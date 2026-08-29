@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Take · Ramble{% endblock %}
+
+{% block content %}
+<div class="shell">
+  <p class="detail-header">
+    <a class="text-link" href="{% url 'notes:list' %}">Roll</a>
+    <span>{{ note.day_header }} · {{ note.time_label }}</span>
+  </p>
+
+  <article class="transcript glass">
+    <p class="transcript-body{% if not note.display_text.strip %} is-empty{% endif %}">
+      {% if note.display_text.strip %}{{ note.display_text|linebreaksbr }}{% else %}Empty take{% endif %}
+    </p>
+  </article>
+</div>
+{% endblock %}

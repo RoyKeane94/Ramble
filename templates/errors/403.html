@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Access denied — Ramble{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <section class="hero error-page">
+    <p class="page-kicker">Web · 403</p>
+    <h1 class="hero-title">No access.</h1>
+    <p class="hero-lede">You don’t have permission to view this page.</p>
+    <div class="hero-actions">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Roll</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'login' %}">Sign in</a>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

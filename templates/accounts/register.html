@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Create account · Ramble{% endblock %}
+
+{% block content %}
+<section class="shell auth glass">
+  <p class="page-kicker">Account</p>
+  <h1 class="page-title">Create account</h1>
+  <p class="hero-lede">One account for the app and the web roll.</p>
+  <form method="post" class="auth-form" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <p class="auth-error">{{ form.non_field_errors.0 }}</p>
+    {% endif %}
+    {{ form.email }}
+    {{ form.password1 }}
+    {{ form.password2 }}
+    {% for field in form %}
+      {% for error in field.errors %}
+        <p class="auth-error">{{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Create account</button>
+  </form>
+  <p class="auth-switch">Already have one? <a href="{% url 'login' %}">Sign in</a></p>
+</section>
+{% endblock %}

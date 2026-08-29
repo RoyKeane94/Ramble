@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Ramble{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <section class="hero">
+    <p class="page-kicker">Voice, filed</p>
+    <h1 class="hero-title">Say it.<br>See it again.</h1>
+    <p class="hero-lede">You talk. It keeps a tidied version of what you said — your words, just readable.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{% url 'register' %}">Get started</a>
+      <a class="btn btn-ghost" href="{% url 'login' %}">Sign in</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <article class="feature glass">
+      <p class="feature-index">01</p>
+      <h2>Record</h2>
+      <p>One shutter on your phone. No transcript while you talk. Just the take.</p>
+    </article>
+    <article class="feature glass">
+      <p class="feature-index">02</p>
+      <h2>Roll</h2>
+      <p>Newest first. Search when you need it. Star what matters.</p>
+    </article>
+    <article class="feature glass">
+      <p class="feature-index">03</p>
+      <h2>Read</h2>
+      <p>Tidied text first. The original stays underneath.</p>
+    </article>
+  </section>
+</div>
+{% endblock %}

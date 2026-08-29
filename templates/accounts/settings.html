@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Settings · Ramble{% endblock %}
+
+{% block content %}
+<section class="shell">
+  <header class="page-head">
+    <p class="page-kicker">Account</p>
+    <h1 class="page-title">Settings</h1>
+  </header>
+
+  <div class="settings-block glass">
+    <p class="settings-label">Signed in as</p>
+    <p class="settings-email">{{ request.user.email }}</p>
+    {% if note_count %}
+      <p class="settings-hint">
+        {% if note_count == 1 %}1 take{% else %}{{ note_count }} takes{% endif %}
+        saved in Postgres
+        {% if last_synced %} · last saved {{ last_synced|date:"g:i a" }}{% endif %}
+      </p>
+    {% else %}
+      <p class="settings-hint">Takes recorded in the app appear on your roll.</p>
+    {% endif %}
+  </div>
+
+  <form method="post" class="settings-block glass auth-form" novalidate>
+    <h2 class="day-header">Password</h2>
+    {% csrf_token %}
+    <input type="hidden" name="intent" value="password">
+    {% if password_saved %}
+      <p class="settings-ok">Password updated.</p>
+    {% endif %}
+    {% if password_form.non_field_errors %}
+      <p class="auth-error">{{ password_form.non_field_errors.0 }}</p>
+    {% endif %}
+    {% for field in password_form %}
+      {{ field }}
+      {% for error in field.errors %}
+        <p class="auth-error">{{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Update password</button>
+  </form>
+
+  <form method="post" action="{% url 'logout' %}" class="signout-form">
+    {% csrf_token %}
+    <button type="submit" class="text-link">Sign out</button>
+  </form>
+</section>
+{% endblock %}

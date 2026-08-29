@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Roll · Ramble{% endblock %}
+
+{% block content %}
+<div class="shell shell-full">
+  {% if has_recents %}
+    <div class="toolbar roll-tools">
+      <a class="text-link{% if album == 'recents' %} is-current{% endif %}" href="?album=recents{% if query %}&amp;q={{ query|urlencode }}{% endif %}">Recents</a>
+      {% if has_starred %}
+        <a class="text-link{% if album == 'starred' %} is-current{% endif %}" href="?album=starred{% if query %}&amp;q={{ query|urlencode }}{% endif %}">Starred</a>
+      {% endif %}
+      <button class="text-link" type="button" onclick="document.getElementById('search').classList.toggle('is-open'); document.querySelector('#search input')?.focus()">Search</button>
+    </div>
+    <form id="search" class="search glass{% if search_open %} is-open{% endif %}" method="get">
+      <input type="hidden" name="album" value="{{ album }}">
+      <input type="search" name="q" value="{{ query }}" placeholder="Search" {% if search_open %}autofocus{% endif %}>
+      <a class="text-link" href="?album={{ album }}">Cancel</a>
+    </form>
+  {% endif %}
+
+  {% if has_results %}
+    <div class="roll glass">
+      {% for day, day_notes in grouped_notes %}
+        <section class="day">
+          <h2 class="day-header">{{ day }}</h2>
+          <ul class="frames">
+            {% for note in day_notes %}
+              <li>
+                <a class="frame{% if note.is_developing %} is-developing{% endif %}" href="{% url 'notes:detail' note.id %}">
+                  <div class="frame-copy">
+                    <p class="frame-preview">{{ note.preview_line }}</p>
+                    {% if note.duration > 0 %}
+                      <p class="frame-sub">{{ note.duration_label }}{% if note.is_starred %} · Starred{% endif %}</p>
+                    {% elif note.is_starred %}
+                      <p class="frame-sub">Starred</p>
+                    {% endif %}
+                  </div>
+                  <time class="frame-time" datetime="{{ note.created_at|date:'c' }}">{{ note.time_label }}</time>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      {% if query %}
+        <p class="empty-title">No matching takes</p>
+        <p class="empty-copy">Try a different search, or clear it to see the full roll.</p>
+      {% else %}
+        <p class="empty-title">Nothing here yet</p>
+        <p class="empty-copy">Record on your phone. It will show up here.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
