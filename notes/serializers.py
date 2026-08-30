@@ -18,6 +18,8 @@ class NoteSerializer(serializers.ModelSerializer):
             "boosted_transcript",
             "gpt_transcript",
             "gpt_tidied_text",
+            "edited_text",
+            "edited_at",
             "duration",
             "is_starred",
             "is_processing",

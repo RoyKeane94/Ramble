@@ -17,6 +17,8 @@ class Note(models.Model):
     boosted_transcript = models.TextField(blank=True, default="")
     gpt_transcript = models.TextField(blank=True, default="")
     gpt_tidied_text = models.TextField(blank=True, default="")
+    edited_text = models.TextField(blank=True, default="")
+    edited_at = models.DateTimeField(null=True, blank=True)
     duration = models.FloatField(default=0)
     is_starred = models.BooleanField(default=False)
     is_processing = models.BooleanField(default=False)
@@ -36,19 +38,10 @@ class Note(models.Model):
 
     @property
     def is_developing(self):
-        return self.is_processing or self.is_refining
+        return self.is_processing
 
     @property
     def developing_subtitle(self):
-        if not self.is_developing:
-            return None
-        stage = self.processing_stage.strip()
-        if stage:
-            return stage
-        if self.is_processing:
-            return "Transcribing"
-        if self.is_refining:
-            return "Refining"
         return None
 
     @property
@@ -60,29 +53,52 @@ class Note(models.Model):
         return self.did_gpt_transcribe_tidy and bool(self.gpt_tidied_text.strip())
 
     @property
+    def has_whisper_tidied(self):
+        return self.did_gpt_transcribe_tidy and bool(self.gpt_tidied_text.strip())
+
+    @property
+    def is_edited(self):
+        return self.edited_at is not None
+
+    @property
+    def source_text(self):
+        if self.has_whisper_tidied:
+            return self.gpt_tidied_text
+        whisper = self.gpt_transcript.strip()
+        if whisper:
+            return self.gpt_transcript
+        if self.has_tidied:
+            return self.tidied_text
+        return self.boosted_transcript
+
+    @property
     def preview_line(self):
         if self.is_processing:
-            if self.developing_subtitle:
-                return f"Developing… · {self.developing_subtitle}"
             return "Developing…"
-        if self.is_refining:
-            if self.developing_subtitle:
-                return f"Refining… · {self.developing_subtitle}"
-            return "Refining…"
-        if self.has_tidied:
-            return self.tidied_text.replace("\n", " ")
-        boosted = self.boosted_transcript.strip()
-        if boosted:
-            return boosted.replace("\n", " ")
+        if self.is_edited:
+            text = self.edited_text.strip()
+            if text:
+                return text.replace("\n", " ")
+            return "Empty take"
+        if self.has_whisper_tidied:
+            return self.gpt_tidied_text.replace("\n", " ")
+        whisper = self.gpt_transcript.strip()
+        if whisper:
+            return whisper.replace("\n", " ")
         return "Empty take"
 
     @property
     def display_text(self):
-        if self.has_tidied:
-            return self.tidied_text
-        if self.has_gpt_transcribe_tidy:
-            return self.gpt_tidied_text
-        return self.boosted_transcript
+        if self.is_edited:
+            return self.edited_text
+        return self.source_text
+
+    @property
+    def edited_label(self):
+        if not self.is_edited or not self.edited_at:
+            return None
+        local = timezone.localtime(self.edited_at)
+        return local.strftime("%-d %b %Y · %-I:%M %p").replace("AM", "am").replace("PM", "pm")
 
     @property
     def duration_label(self):

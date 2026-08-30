@@ -3,16 +3,93 @@
 {% block title %}Take · Ramble{% endblock %}
 
 {% block content %}
-<div class="shell">
-  <p class="detail-header">
-    <a class="text-link" href="{% url 'notes:list' %}">Roll</a>
-    <span>{{ note.day_header }} · {{ note.time_label }}</span>
-  </p>
-
-  <article class="transcript glass">
-    <p class="transcript-body{% if not note.display_text.strip %} is-empty{% endif %}">
-      {% if note.display_text.strip %}{{ note.display_text|linebreaksbr }}{% else %}Empty take{% endif %}
+<div class="shell shell-roll">
+  <header class="roll-head detail-head">
+    <div class="roll-head-row">
+      <h1 class="roll-title"><a class="roll-back" href="{% url 'notes:list' %}">Recents</a></h1>
+      {% if not editing %}
+        <div class="detail-actions">
+          <a class="text-link detail-action" href="{% url 'notes:detail' note.id %}?edit=1">Edit</a>
+          <form method="post" action="{% url 'notes:star' note.id %}" class="detail-action-form">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="detail-star{% if note.is_starred %} is-active{% endif %}"
+              aria-label="{% if note.is_starred %}Unfavourite{% else %}Favourite{% endif %}"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
+              </svg>
+            </button>
+          </form>
+          <button
+            type="button"
+            class="text-link detail-action detail-copy"
+            data-copy-target="take-text"
+            {% if not note.display_text.strip %}disabled{% endif %}
+          >
+            Copy text
+          </button>
+          <form method="post" action="{% url 'notes:delete' note.id %}" class="detail-action-form" onsubmit="return confirm('Delete this take?');">
+            {% csrf_token %}
+            <button type="submit" class="text-link detail-action detail-delete">Delete</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+    <p class="detail-meta">
+      {{ note.day_header }} · {{ note.time_label }}{% if note.is_edited %} · <span class="detail-edited-inline">Edited · {{ note.edited_label }}</span>{% endif %}
     </p>
-  </article>
+  </header>
+
+  <textarea id="take-text" class="visually-hidden" readonly aria-hidden="true">{{ note.display_text }}</textarea>
+
+  {% if editing %}
+    <form method="post" action="{% url 'notes:edit' note.id %}" class="detail-edit-form">
+      {% csrf_token %}
+      <article class="transcript glass">
+        <textarea name="text" class="transcript-edit" rows="12" autofocus>{{ note.display_text }}</textarea>
+      </article>
+      <div class="detail-edit-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="text-link" href="{% url 'notes:detail' note.id %}">Cancel</a>
+      </div>
+    </form>
+  {% else %}
+    <article class="transcript glass">
+      <p class="transcript-body{% if not note.display_text.strip %} is-empty{% endif %}">
+        {% if note.display_text.strip %}{{ note.display_text|linebreaksbr }}{% else %}Empty take{% endif %}
+      </p>
+    </article>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-copy-target]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const source = document.getElementById(button.dataset.copyTarget);
+      if (!source?.value.trim()) return;
+
+      const label = button.textContent;
+      try {
+        await navigator.clipboard.writeText(source.value);
+        button.textContent = "Copied";
+        button.disabled = true;
+        setTimeout(() => {
+          button.textContent = label;
+          button.disabled = false;
+        }, 1500);
+      } catch {
+        source.select();
+        document.execCommand("copy");
+        button.textContent = "Copied";
+        setTimeout(() => {
+          button.textContent = label;
+        }, 1500);
+      }
+    });
+  });
+</script>
 {% endblock %}

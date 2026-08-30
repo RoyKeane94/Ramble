@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#F7F8FC">
+  <meta name="theme-color" content="#F7F5F2">
   <meta name="description" content="You talk. Ramble keeps a readable version of what you said.">
   <title>{% block title %}Ramble{% endblock %}</title>
   {% load static %}
@@ -15,24 +15,29 @@
 <body>
   <div class="atmosphere" aria-hidden="true"></div>
   <div class="site">
-    <nav class="navbar glass">
-      <a class="wordmark" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
-      <div class="nav-links">
-        {% if user.is_authenticated %}
-          <a class="nav-link{% if request.resolver_match.url_name == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Roll</a>
-          <a class="nav-link{% if request.resolver_match.url_name == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
-        {% else %}
-          <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
-          <a class="btn btn-primary" href="{% url 'register' %}">Get started</a>
-        {% endif %}
+    <header class="navbar">
+      <div class="navbar-inner">
+        <a class="wordmark" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
+        <div class="nav-links">
+          {% if user.is_authenticated %}
+            <a class="nav-link{% if request.resolver_match.url_name == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
+            <a class="nav-link nav-quiet{% if request.resolver_match.url_name == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
+            <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
+              {% csrf_token %}
+              <button type="submit" class="nav-link nav-quiet">Log out</button>
+            </form>
+          {% else %}
+            <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
+            <a class="btn btn-primary nav-cta" href="{% url 'register' %}">Get started</a>
+          {% endif %}
+        </div>
       </div>
-    </nav>
+    </header>
     <main>
       {% block content %}{% endblock %}
     </main>
-    <footer class="footer">
-      <span class="wordmark">Ramble</span>
-    </footer>
+    <footer class="footer" aria-hidden="true"></footer>
   </div>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -10,7 +10,7 @@
     <p class="hero-lede">That page doesn’t exist, or you don’t have access to it.</p>
     <div class="hero-actions">
       {% if user.is_authenticated %}
-        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Roll</a>
+        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Recents</a>
       {% else %}
         <a class="btn btn-primary" href="{% url 'notes:home' %}">Go home</a>
       {% endif %}

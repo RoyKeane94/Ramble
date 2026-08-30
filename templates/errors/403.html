@@ -10,7 +10,7 @@
     <p class="hero-lede">You don’t have permission to view this page.</p>
     <div class="hero-actions">
       {% if user.is_authenticated %}
-        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Roll</a>
+        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Recents</a>
       {% else %}
         <a class="btn btn-primary" href="{% url 'login' %}">Sign in</a>
       {% endif %}
