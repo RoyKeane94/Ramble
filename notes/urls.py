@@ -7,8 +7,10 @@ app_name = "notes"
 urlpatterns = [
     path("", views.home, name="home"),
     path("roll/", views.note_list, name="list"),
+    path("albums/", views.album_list, name="albums"),
     path("notes/<uuid:pk>/", views.note_detail, name="detail"),
     path("notes/<uuid:pk>/delete/", views.note_delete, name="delete"),
     path("notes/<uuid:pk>/star/", views.note_star, name="star"),
     path("notes/<uuid:pk>/edit/", views.note_edit, name="edit"),
+    path("notes/<uuid:pk>/albums/", views.note_albums, name="albums_for_note"),
 ]

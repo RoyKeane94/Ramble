@@ -50,3 +50,12 @@ def logout(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     return Response({"email": request.user.email})
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    user = request.user
+    Token.objects.filter(user=user).delete()
+    user.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

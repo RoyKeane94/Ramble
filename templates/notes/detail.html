@@ -3,63 +3,111 @@
 {% block title %}Take · Ramble{% endblock %}
 
 {% block content %}
-<div class="shell shell-roll">
-  <header class="roll-head detail-head">
-    <div class="roll-head-row">
-      <h1 class="roll-title"><a class="roll-back" href="{% url 'notes:list' %}">Recents</a></h1>
-      {% if not editing %}
-        <div class="detail-actions">
-          <a class="text-link detail-action" href="{% url 'notes:detail' note.id %}?edit=1">Edit</a>
-          <form method="post" action="{% url 'notes:star' note.id %}" class="detail-action-form">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="detail-star{% if note.is_starred %} is-active{% endif %}"
-              aria-label="{% if note.is_starred %}Unfavourite{% else %}Favourite{% endif %}"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
-              </svg>
-            </button>
-          </form>
-          <button
-            type="button"
-            class="text-link detail-action detail-copy"
-            data-copy-target="take-text"
-            {% if not note.display_text.strip %}disabled{% endif %}
-          >
-            Copy text
-          </button>
-          <form method="post" action="{% url 'notes:delete' note.id %}" class="detail-action-form" onsubmit="return confirm('Delete this take?');">
-            {% csrf_token %}
-            <button type="submit" class="text-link detail-action detail-delete">Delete</button>
-          </form>
-        </div>
+<div class="shell shell-roll shell-take">
+  <a class="take-back" href="{% url 'notes:list' %}">← Recents</a>
+
+  <header class="take-head">
+    <h1 class="take-title">
+      <span class="take-when">{{ note.day_header }} · {{ note.time_label }}</span>
+      {% if note.is_edited %}
+        <span class="take-edited-tag">Edited · {{ note.edited_label }}</span>
       {% endif %}
-    </div>
-    <p class="detail-meta">
-      {{ note.day_header }} · {{ note.time_label }}{% if note.is_edited %} · <span class="detail-edited-inline">Edited · {{ note.edited_label }}</span>{% endif %}
-    </p>
+    </h1>
+
+    {% if not editing %}
+      <div class="take-actions">
+        <a class="take-action" href="{% url 'notes:detail' note.id %}?edit=1">Edit</a>
+        <a class="take-action{% if managing_albums %} is-current{% endif %}" href="{% url 'notes:detail' note.id %}?albums=1">Album</a>
+        <button
+          type="button"
+          class="take-action take-copy"
+          data-copy-target="take-text"
+          {% if not note.display_text.strip %}disabled{% endif %}
+        >
+          Copy
+        </button>
+        <form method="post" action="{% url 'notes:delete' note.id %}" class="take-action-form" onsubmit="return confirm('Delete this take?');">
+          {% csrf_token %}
+          <button type="submit" class="take-action take-action-delete">Delete</button>
+        </form>
+      </div>
+    {% endif %}
   </header>
 
   <textarea id="take-text" class="visually-hidden" readonly aria-hidden="true">{{ note.display_text }}</textarea>
 
-  {% if editing %}
-    <form method="post" action="{% url 'notes:edit' note.id %}" class="detail-edit-form">
+  {% if managing_albums and not editing %}
+    <section class="take-albums" aria-label="Add to album">
+      <div class="take-albums-head">
+        <h2 class="take-albums-title">Add to album</h2>
+        <a class="text-link" href="{% url 'notes:detail' note.id %}">Done</a>
+      </div>
+
+      <form method="post" action="{% url 'notes:albums_for_note' note.id %}" class="take-album-create">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <input type="text" name="name" class="take-album-input" placeholder="New album name" maxlength="200" required autocomplete="off">
+        <button type="submit" class="take-album-create-btn">Create</button>
+      </form>
+
+      {% if album_rows %}
+        <ul class="take-album-list">
+          {% for row in album_rows %}
+            <li>
+              <form method="post" action="{% url 'notes:albums_for_note' note.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="album_id" value="{{ row.album.id }}">
+                <button type="submit" class="take-album-row{% if row.contained %} is-in{% endif %}">
+                  <span class="take-album-row-copy">
+                    <span class="take-album-row-name">{{ row.album.name }}</span>
+                    <span class="take-album-row-count">{% if row.count == 1 %}1 take{% else %}{{ row.count }} takes{% endif %}</span>
+                  </span>
+                  <span class="take-album-check" aria-hidden="true"></span>
+                </button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="take-albums-empty">No albums yet — create one above.</p>
+      {% endif %}
+    </section>
+  {% elif editing %}
+    <form method="post" action="{% url 'notes:edit' note.id %}" class="take-edit-form">
       {% csrf_token %}
-      <article class="transcript glass">
-        <textarea name="text" class="transcript-edit" rows="12" autofocus>{{ note.display_text }}</textarea>
+      <article class="take-body">
+        <textarea name="text" class="take-text take-text-edit" rows="10" autofocus>{{ note.display_text }}</textarea>
       </article>
-      <div class="detail-edit-actions">
+      <div class="take-edit-actions">
         <button type="submit" class="btn btn-primary">Save</button>
         <a class="text-link" href="{% url 'notes:detail' note.id %}">Cancel</a>
       </div>
     </form>
   {% else %}
-    <article class="transcript glass">
-      <p class="transcript-body{% if not note.display_text.strip %} is-empty{% endif %}">
-        {% if note.display_text.strip %}{{ note.display_text|linebreaksbr }}{% else %}Empty take{% endif %}
-      </p>
+    <article class="take-body">
+      <form method="post" action="{% url 'notes:star' note.id %}" class="take-star-form">
+        {% csrf_token %}
+        <button
+          type="submit"
+          class="take-star{% if note.is_starred %} is-active{% endif %}"
+          aria-label="{% if note.is_starred %}Unfavourite{% else %}Favourite{% endif %}"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
+          </svg>
+        </button>
+      </form>
+      <div class="take-text take-text-prose{% if note.transcription_failed %} is-failed{% elif not note.display_text.strip %} is-empty{% endif %}">
+        {% if note.transcription_failed %}
+          <p class="take-failed-title">{{ note.failure_message }}</p>
+          <p class="take-failed-hint">Open Ramble on your phone and tap <strong>Retry</strong> — the recording is still there.</p>
+        {% elif note.display_text.strip %}
+          {{ note.display_text|linebreaks }}
+        {% else %}
+          Empty take
+        {% endif %}
+      </div>
     </article>
   {% endif %}
 </div>

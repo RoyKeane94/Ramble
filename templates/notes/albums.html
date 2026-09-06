@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Albums · Ramble{% endblock %}
+
+{% block content %}
+<section class="shell shell-albums">
+  <header class="roll-head">
+    <div class="roll-head-row">
+      <h1 class="roll-title">Albums</h1>
+    </div>
+  </header>
+
+  <div class="albums-grid">
+    {% for tile in tiles %}
+      <a class="album-tile tone-{{ tile.tone }}" href="{{ tile.href }}">
+        <span class="album-tile-copy">
+          <span class="album-tile-title">{{ tile.title }}</span>
+          <span class="album-tile-count">{% if tile.count == 1 %}1 take{% else %}{{ tile.count }} takes{% endif %}</span>
+          {% if tile.updated_label %}
+            <span class="album-tile-updated">{{ tile.updated_label }}</span>
+          {% endif %}
+        </span>
+      </a>
+    {% empty %}
+      <p class="empty-copy">No albums yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

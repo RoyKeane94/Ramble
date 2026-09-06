@@ -9,7 +9,7 @@
     <h1 class="page-title">Settings</h1>
   </header>
 
-  <div class="settings-block glass">
+  <div class="settings-block panel">
     <p class="settings-label">Signed in as</p>
     <p class="settings-email">{{ request.user.email }}</p>
     {% if note_count %}
@@ -23,7 +23,7 @@
     {% endif %}
   </div>
 
-  <form method="post" class="settings-block glass auth-form" novalidate>
+  <form method="post" class="settings-block panel auth-form" novalidate>
     <h2 class="day-header">Password</h2>
     {% csrf_token %}
     <input type="hidden" name="intent" value="password">

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Note
+from .models import Album, Note
 
 
 class NoteSerializer(serializers.ModelSerializer):
@@ -30,5 +30,61 @@ class NoteSerializer(serializers.ModelSerializer):
             "did_gpt_transcribe_tidy",
             "processing_stage",
             "processing_log",
+            "processing_failed",
+            "processing_error",
         )
         read_only_fields = ("updated_at",)
+
+
+class AlbumSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField()
+    note_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        allow_empty=True,
+        write_only=False,
+    )
+    take_count = serializers.SerializerMethodField()
+    last_updated = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Album
+        fields = (
+            "id",
+            "name",
+            "sort_index",
+            "created_at",
+            "note_ids",
+            "take_count",
+            "last_updated",
+        )
+
+    def get_take_count(self, instance):
+        return instance.take_count
+
+    def get_last_updated(self, instance):
+        return instance.last_updated
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["note_ids"] = [str(note_id) for note_id in instance.notes.values_list("id", flat=True)]
+        return data
+
+    def create(self, validated_data):
+        note_ids = validated_data.pop("note_ids", [])
+        album = Album.objects.create(**validated_data)
+        self._set_notes(album, note_ids)
+        return album
+
+    def update(self, instance, validated_data):
+        note_ids = validated_data.pop("note_ids", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if note_ids is not None:
+            self._set_notes(instance, note_ids)
+        return instance
+
+    def _set_notes(self, album, note_ids):
+        notes = Note.objects.filter(user=album.user, id__in=note_ids)
+        album.notes.set(notes)

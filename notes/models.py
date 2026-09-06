@@ -29,6 +29,8 @@ class Note(models.Model):
     did_gpt_transcribe_tidy = models.BooleanField(default=False)
     processing_stage = models.CharField(max_length=120, blank=True, default="")
     processing_log = models.TextField(blank=True, default="")
+    processing_failed = models.BooleanField(default=False)
+    processing_error = models.CharField(max_length=500, blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]
@@ -72,9 +74,41 @@ class Note(models.Model):
         return self.boosted_transcript
 
     @property
+    def transcription_failed(self):
+        if self.processing_failed:
+            return True
+        if self.is_processing or self.is_edited:
+            return False
+        if self.display_text.strip():
+            return False
+        return self.duration > 0
+
+    @property
+    def failure_message(self):
+        error = self.processing_error.strip()
+        return error if error else "Transcription failed."
+
+    @property
+    def list_preview_text(self):
+        if self.is_processing:
+            return "Developing…"
+        if self.transcription_failed:
+            return "Transcription failed"
+        text = self.display_text.strip()
+        return text if text else "Empty take"
+
+    @property
+    def has_line_breaks(self):
+        if self.transcription_failed:
+            return False
+        return "\n" in self.list_preview_text
+
+    @property
     def preview_line(self):
         if self.is_processing:
             return "Developing…"
+        if self.transcription_failed:
+            return "Transcription failed"
         if self.is_edited:
             text = self.edited_text.strip()
             if text:
@@ -131,3 +165,43 @@ class Note(models.Model):
         if date == today - timedelta(days=1):
             return "Yesterday"
         return local.strftime("%B %Y")
+
+
+class Album(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="albums",
+    )
+    name = models.CharField(max_length=200)
+    sort_index = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    notes = models.ManyToManyField(Note, related_name="albums", blank=True)
+
+    class Meta:
+        ordering = ["sort_index", "created_at"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def take_count(self):
+        return self.notes.count()
+
+    @property
+    def last_updated(self):
+        latest = self.notes.order_by("-created_at").values_list("created_at", flat=True).first()
+        return latest or self.created_at
+
+    @property
+    def updated_label(self):
+        local = timezone.localtime(self.last_updated)
+        today = timezone.localtime(timezone.now()).date()
+        date = local.date()
+        if date == today:
+            time = local.strftime("%-I:%M %p").replace("AM", "am").replace("PM", "pm")
+            return f"Updated {time}"
+        if date == today - timedelta(days=1):
+            return "Updated Yesterday"
+        return f"Updated {local.strftime('%-d %b %Y')}"

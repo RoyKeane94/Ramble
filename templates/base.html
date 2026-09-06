@@ -7,10 +7,13 @@
   <meta name="description" content="You talk. Ramble keeps a readable version of what you said.">
   <title>{% block title %}Ramble{% endblock %}</title>
   {% load static %}
+  <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=albums4">
 </head>
 <body>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -21,6 +24,7 @@
         <div class="nav-links">
           {% if user.is_authenticated %}
             <a class="nav-link{% if request.resolver_match.url_name == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
+            <a class="nav-link{% if request.resolver_match.url_name == 'albums' %} is-current{% endif %}" href="{% url 'notes:albums' %}">Albums</a>
             <a class="nav-link nav-quiet{% if request.resolver_match.url_name == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
             <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
               {% csrf_token %}
