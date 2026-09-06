@@ -156,7 +156,8 @@ class Note(models.Model):
         return local.strftime("%-d %B %Y")
 
     @property
-    def list_header(self):
+    def day_header_compact(self):
+        """Today / Yesterday / 2 Sep — for thin rolls."""
         local = timezone.localtime(self.created_at)
         today = timezone.localtime(timezone.now()).date()
         date = local.date()
@@ -164,7 +165,22 @@ class Note(models.Model):
             return "Today"
         if date == today - timedelta(days=1):
             return "Yesterday"
+        return local.strftime("%-d %b")
+
+    @property
+    def row_day_label(self):
+        """Day stamp for rows under a month header."""
+        local = timezone.localtime(self.created_at)
+        return local.strftime("%-d %b")
+
+    @property
+    def month_header(self):
+        local = timezone.localtime(self.created_at)
         return local.strftime("%B %Y")
+
+    @property
+    def list_header(self):
+        return self.day_header_compact
 
 
 class Album(models.Model):

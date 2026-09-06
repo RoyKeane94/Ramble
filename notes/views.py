@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from datetime import timedelta
 from uuid import UUID
 
@@ -7,8 +7,12 @@ from django.db.models import Max
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .models import Album, Note
+
+# Month section headers only when that month has more takes than this.
+MONTH_GROUP_THRESHOLD = 8
 
 
 def home(request):
@@ -17,19 +21,38 @@ def home(request):
     return render(request, "pages/home.html")
 
 
+def group_notes_for_roll(notes):
+    """Today/Yesterday/day for thin months; month headers when a month is dense."""
+    note_list = list(notes)
+    month_counts = Counter()
+    for note in note_list:
+        local = timezone.localtime(note.created_at)
+        month_counts[(local.year, local.month)] += 1
+
+    grouped = OrderedDict()
+    for note in note_list:
+        local = timezone.localtime(note.created_at)
+        dense = month_counts[(local.year, local.month)] > MONTH_GROUP_THRESHOLD
+        note.show_row_day = dense
+        header = note.month_header if dense else note.day_header_compact
+        grouped.setdefault(header, []).append(note)
+    return grouped
+
+
 @login_required
 def note_list(request):
     album_param = request.GET.get("album", "recents")
     query = request.GET.get("q", "").strip()
     notes = Note.objects.filter(user=request.user)
     has_recents = notes.exists()
-    has_starred = notes.filter(is_starred=True).exists()
     current_album = None
     album_title = "Recents"
+    from_albums = False
 
     if album_param == "starred":
         notes = notes.filter(is_starred=True)
         album_title = "Favourites"
+        from_albums = True
     elif album_param not in ("", "recents"):
         try:
             album_id = UUID(album_param)
@@ -40,17 +63,14 @@ def note_list(request):
             if current_album:
                 notes = notes.filter(albums=current_album).distinct()
                 album_title = current_album.name
+                from_albums = True
             else:
                 album_param = "recents"
 
     if query:
-        notes = notes.filter(
-            Q_from_query(query)
-        )
+        notes = notes.filter(Q_from_query(query))
 
-    grouped = OrderedDict()
-    for note in notes:
-        grouped.setdefault(note.list_header, []).append(note)
+    grouped = group_notes_for_roll(notes)
 
     return render(
         request,
@@ -62,9 +82,9 @@ def note_list(request):
             "current_album": current_album,
             "query": query,
             "has_recents": has_recents,
-            "has_starred": has_starred,
             "has_results": notes.exists(),
             "search_open": bool(query) or request.GET.get("search") == "1",
+            "nav_section": "albums" if from_albums else "recents",
         },
     )
 
@@ -95,7 +115,7 @@ def album_list(request):
             "title": "Recents",
             "count": notes.count(),
             "updated_label": _updated_label(notes.first().created_at if notes.exists() else None),
-            "href": f"{roll}?album=recents",
+            "href": roll,
             "tone": 0,
         },
         {
@@ -120,7 +140,29 @@ def album_list(request):
             }
         )
 
-    return render(request, "notes/albums.html", {"tiles": tiles})
+    return render(
+        request,
+        "notes/albums.html",
+        {
+            "tiles": tiles,
+            "has_user_albums": bool(albums),
+            "nav_section": "albums",
+        },
+    )
+
+
+@login_required
+@require_POST
+def album_create(request):
+    name = request.POST.get("name", "").strip()
+    if name:
+        next_index = Album.objects.filter(user=request.user).aggregate(m=Max("sort_index"))["m"]
+        Album.objects.create(
+            user=request.user,
+            name=name[:200],
+            sort_index=(next_index if next_index is not None else -1) + 1,
+        )
+    return redirect("notes:albums")
 
 
 def _updated_label(when):
@@ -160,6 +202,7 @@ def note_detail(request, pk):
             "editing": editing,
             "managing_albums": managing_albums,
             "album_rows": album_rows,
+            "nav_section": "recents",
         },
     )
 

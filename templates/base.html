@@ -12,8 +12,8 @@
   <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=albums4">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=roll8">
 </head>
 <body>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -23,13 +23,15 @@
         <a class="wordmark" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
         <div class="nav-links">
           {% if user.is_authenticated %}
-            <a class="nav-link{% if request.resolver_match.url_name == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
-            <a class="nav-link{% if request.resolver_match.url_name == 'albums' %} is-current{% endif %}" href="{% url 'notes:albums' %}">Albums</a>
-            <a class="nav-link nav-quiet{% if request.resolver_match.url_name == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
+            {% with section=nav_section|default:request.resolver_match.url_name %}
+            <a class="nav-link{% if section == 'recents' or section == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
+            <a class="nav-link{% if section == 'albums' %} is-current{% endif %}" href="{% url 'notes:albums' %}">Albums</a>
+            <a class="nav-link nav-quiet{% if section == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
             <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
               {% csrf_token %}
               <button type="submit" class="nav-link nav-quiet">Log out</button>
             </form>
+            {% endwith %}
           {% else %}
             <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
             <a class="btn btn-primary nav-cta" href="{% url 'register' %}">Get started</a>

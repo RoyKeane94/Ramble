@@ -7,6 +7,20 @@
   <header class="roll-head">
     <div class="roll-head-row">
       <h1 class="roll-title">Albums</h1>
+      <form method="post" action="{% url 'notes:album_create' %}" class="album-create">
+        {% csrf_token %}
+        <input
+          type="text"
+          name="name"
+          class="album-create-input"
+          placeholder="New album"
+          maxlength="200"
+          required
+          autocomplete="off"
+          aria-label="New album name"
+        >
+        <button type="submit" class="text-link album-create-btn">Add</button>
+      </form>
     </div>
   </header>
 
@@ -21,9 +35,11 @@
           {% endif %}
         </span>
       </a>
-    {% empty %}
-      <p class="empty-copy">No albums yet.</p>
     {% endfor %}
   </div>
+
+  {% if not has_user_albums %}
+    <p class="albums-empty-hint">Albums you make will show up here. Open a take and add it to one.</p>
+  {% endif %}
 </section>
 {% endblock %}

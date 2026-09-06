@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Recents · Ramble{% endblock %}
+{% block title %}{{ album_title }} · Ramble{% endblock %}
 
 {% block content %}
 <section class="shell shell-roll">
@@ -9,12 +9,6 @@
       <h1 class="roll-title">{{ album_title }}</h1>
       {% if has_recents %}
         <div class="toolbar roll-tools">
-          <a class="text-link{% if album == 'recents' %} is-current{% endif %}" href="?album=recents{% if query %}&amp;q={{ query|urlencode }}{% endif %}">Recents</a>
-          <a class="text-link{% if album == 'starred' %} is-current{% endif %}" href="?album=starred{% if query %}&amp;q={{ query|urlencode }}{% endif %}">Favourites</a>
-          {% if current_album %}
-            <a class="text-link is-current" href="?album={{ current_album.id }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}">{{ current_album.name }}</a>
-          {% endif %}
-          <a class="text-link" href="{% url 'notes:albums' %}">Albums</a>
           <button class="text-link search-toggle" type="button" aria-label="Search" onclick="document.getElementById('search').classList.toggle('is-open'); document.querySelector('#search input')?.focus()">
             <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
               <circle cx="7" cy="7" r="4.5"/>
@@ -44,26 +38,13 @@
           <ul class="frames">
             {% for note in day_notes %}
               <li>
-                <a class="frame frame-card{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}" href="{% url 'notes:detail' note.id %}">
+                <a class="frame{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}" href="{% url 'notes:detail' note.id %}">
                   <div class="frame-copy">
-                    <div class="frame-preview{% if note.has_line_breaks %} has-breaks{% endif %}">
-                      {% if note.has_line_breaks %}
-                        {{ note.list_preview_text|linebreaksbr }}
-                      {% else %}
-                        {{ note.preview_line }}
-                      {% endif %}
-                    </div>
-                    {% if note.duration > 0 or note.is_starred or note.is_edited %}
-                      <p class="frame-sub">
-                        {% if note.duration > 0 %}{{ note.duration_label }}{% endif %}
-                        {% if note.duration > 0 and note.is_starred %} · {% endif %}
-                        {% if note.is_starred %}Favourites{% endif %}
-                        {% if note.is_starred and note.is_edited %} · {% elif note.duration > 0 and note.is_edited %} · {% endif %}
-                        {% if note.is_edited %}Edited{% endif %}
-                      </p>
-                    {% endif %}
+                    <p class="frame-preview">{{ note.preview_line }}</p>
                   </div>
-                  <time class="frame-time" datetime="{{ note.created_at|date:'c' }}">{{ note.time_label }}</time>
+                  <p class="frame-meta">
+                    <span class="frame-meta-text">{% if note.show_row_day %}{{ note.row_day_label }} · {% endif %}{{ note.time_label }}{% if note.duration > 0 %} · {{ note.duration_label }}{% endif %}{% if note.is_edited %} · Edited{% endif %}</span>{% if note.is_starred %}<svg class="frame-star" width="11" height="11" viewBox="0 0 16 16" aria-label="Favourited" role="img"><path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/></svg>{% endif %}
+                  </p>
                 </a>
               </li>
             {% endfor %}
@@ -83,7 +64,7 @@
         <h2 class="day-label">Today</h2>
         <ul class="frames">
           <li>
-            <div class="frame frame-card frame-empty">
+            <div class="frame frame-empty">
               <p class="frame-preview frame-preview-empty">Record on your phone. It will show up here.</p>
             </div>
           </li>
