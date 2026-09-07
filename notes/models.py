@@ -17,6 +17,7 @@ class Note(models.Model):
     boosted_transcript = models.TextField(blank=True, default="")
     gpt_transcript = models.TextField(blank=True, default="")
     gpt_tidied_text = models.TextField(blank=True, default="")
+    next_action_text = models.TextField(blank=True, default="")
     edited_text = models.TextField(blank=True, default="")
     edited_at = models.DateTimeField(null=True, blank=True)
     duration = models.FloatField(default=0)
@@ -126,6 +127,29 @@ class Note(models.Model):
         if self.is_edited:
             return self.edited_text
         return self.source_text
+
+    @property
+    def todo_items(self):
+        items = []
+        for action in self.next_action_text.splitlines():
+            action = action.strip()
+            if not action:
+                continue
+            lower = action.lower()
+            for prefix in ("to do —", "to do –", "to do -", "to do:", "to do ·", "to do "):
+                if lower.startswith(prefix):
+                    action = action[len(prefix):].strip()
+                    break
+            if action:
+                items.append(action)
+        return items
+
+    @property
+    def todo_preview_line(self):
+        items = self.todo_items
+        if not items:
+            return None
+        return f"To do · {items[0]}"
 
     @property
     def edited_label(self):

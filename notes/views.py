@@ -18,7 +18,14 @@ MONTH_GROUP_THRESHOLD = 8
 def home(request):
     if request.user.is_authenticated:
         return redirect("notes:list")
-    return render(request, "pages/home.html")
+
+    joined = False
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        if email and "@" in email:
+            joined = True
+
+    return render(request, "pages/home.html", {"joined": joined})
 
 
 def group_notes_for_roll(notes):

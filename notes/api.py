@@ -21,6 +21,7 @@ class NoteViewSet(viewsets.ModelViewSet):
         if instance is None:
             data = {**request.data}
             data.setdefault("id", str(self.kwargs.get(self.lookup_field)))
+            data.setdefault("next_action_text", "")
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save(user=request.user)

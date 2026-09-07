@@ -1,26 +1,89 @@
 {% extends "base.html" %}
 
 {% block title %}Sign in · Ramble{% endblock %}
+{% block body_class %}is-auth-page{% endblock %}
 
 {% block content %}
-<section class="shell auth panel">
-  <p class="page-kicker">Account</p>
-  <h1 class="page-title">Sign in</h1>
-  <p class="hero-lede">Read your roll on the web.</p>
-  <form method="post" class="auth-form" novalidate>
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <p class="auth-error">{{ form.non_field_errors.0 }}</p>
-    {% endif %}
-    {{ form.username }}
-    {{ form.password }}
-    {% for field in form %}
-      {% for error in field.errors %}
-        <p class="auth-error">{{ error }}</p>
-      {% endfor %}
-    {% endfor %}
-    <button type="submit" class="btn btn-primary">Continue</button>
-  </form>
-  <p class="auth-switch">No account? <a href="{% url 'register' %}">Create one</a></p>
-</section>
+<div class="auth-shell">
+  <div class="auth-card">
+    <section class="auth-panel auth-panel-form">
+      <div class="auth-copy">
+        <h1 class="auth-title">Log in to your account</h1>
+      </div>
+
+      <form method="post" class="auth-form" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <p class="auth-error">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+
+        <div class="auth-field">
+          <label class="visually-hidden" for="{{ form.username.id_for_label }}">Email</label>
+          <span class="auth-field-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m2 7 10 7 10-7"/>
+            </svg>
+          </span>
+          {{ form.username }}
+        </div>
+
+        <div class="auth-field">
+          <label class="visually-hidden" for="{{ form.password.id_for_label }}">Password</label>
+          <span class="auth-field-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          {{ form.password }}
+          <button type="button" class="auth-field-toggle" aria-label="Show password" data-password-toggle>
+            <svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.26 18.26 0 0 1-2.16 3.19"/>
+              <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
+              <path d="M1 1l22 22"/>
+              <path d="M6.71 6.71A10.94 10.94 0 0 0 2 12s3.5 7 10 7a10.94 10.94 0 0 0 5.29-1.29"/>
+            </svg>
+          </button>
+        </div>
+
+        {% for field in form %}
+          {% for error in field.errors %}
+            <p class="auth-error">{{ error }}</p>
+          {% endfor %}
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary auth-submit">Log in</button>
+      </form>
+
+      <p class="auth-switch">Don't have an account? <a href="{% url 'register' %}">Create an account</a></p>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-password-toggle]").forEach(function (btn) {
+    var field = btn.closest(".auth-field");
+    var input = field && field.querySelector('input[type="password"], input[type="text"]');
+
+    function syncToggle() {
+      var visible = input && input.type === "text";
+      btn.classList.toggle("is-visible", visible);
+      btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+    }
+
+    syncToggle();
+    btn.addEventListener("click", function () {
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+      syncToggle();
+    });
+  });
+</script>
 {% endblock %}

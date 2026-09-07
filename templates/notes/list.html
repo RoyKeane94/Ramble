@@ -41,6 +41,9 @@
                 <a class="frame{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}" href="{% url 'notes:detail' note.id %}">
                   <div class="frame-copy">
                     <p class="frame-preview">{{ note.preview_line }}</p>
+                    {% if note.todo_preview_line %}
+                      <p class="frame-todo">{{ note.todo_preview_line }}</p>
+                    {% endif %}
                   </div>
                   <p class="frame-meta">
                     <span class="frame-meta-text">{% if note.show_row_day %}{{ note.row_day_label }} · {% endif %}{{ note.time_label }}{% if note.duration > 0 %} · {{ note.duration_label }}{% endif %}{% if note.is_edited %} · Edited{% endif %}</span>{% if note.is_starred %}<svg class="frame-star" width="11" height="11" viewBox="0 0 16 16" aria-label="Favourited" role="img"><path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/></svg>{% endif %}

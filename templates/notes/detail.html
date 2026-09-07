@@ -108,6 +108,16 @@
           Empty take
         {% endif %}
       </div>
+      {% if note.todo_items and not note.transcription_failed and note.display_text.strip %}
+        <div class="take-todos">
+          <p class="take-todos-label">To do</p>
+          <div class="take-todos-list">
+            {% for item in note.todo_items %}
+              <p class="take-todos-item">{{ item }}</p>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </article>
   {% endif %}
 </div>

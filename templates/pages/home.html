@@ -1,35 +1,214 @@
 {% extends "base.html" %}
 
-{% block title %}Ramble{% endblock %}
+{% block title %}Ramble — Say it now. Read it at the desk.{% endblock %}
+{% block meta_description %}Sometimes you just want to talk an idea out. Sometimes the thought arrives and there is no notebook. Say it now. Read it at the desk. Always your words.{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
 
 {% block content %}
 <div class="shell shell-wide">
-  <section class="hero">
-    <p class="page-kicker">Voice, filed</p>
-    <h1 class="hero-title">Say it.<br>See it again.</h1>
-    <p class="hero-lede">You talk. It keeps a tidied version of what you said — your words, just readable.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="{% url 'register' %}">Get started</a>
-      <a class="btn btn-ghost" href="{% url 'login' %}">Sign in</a>
+  <section class="hero hero-landing">
+    <div class="hero-landing-copy">
+      <p class="page-kicker">A notebook you speak into</p>
+      <h1 class="hero-title">You had the thought.<br>There wasn't a notebook.</h1>
+      <p class="hero-lede">Sometimes you just want to talk an idea out. Sometimes the idea arrives and the page isn't there. <em>Say it now. Read it at the desk. Always your words.</em></p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#list">Get on the list</a>
+        <p class="hero-note">£9.99 a month, or £100 a year.</p>
+      </div>
+    </div>
+
+    <div class="panel recents-card" aria-hidden="true">
+      <div class="recents-bar">
+        <span class="recents-bar-title">Recents</span>
+        <span class="recents-live">
+          <span class="live-dot" aria-hidden="true"></span>
+          Talking · 0:00
+        </span>
+      </div>
+      <div class="recents-body">
+        <p class="day-label">Today</p>
+        <div class="frame frame-static">
+          <p class="frame-preview frame-preview-live"><span class="recents-caret" aria-hidden="true"></span></p>
+          <p class="frame-meta">0:00</p>
+        </div>
+        <p class="day-label recents-day-gap">Yesterday</p>
+        <div class="frame frame-static">
+          <p class="frame-preview">We've managed to get a lot done on the house. Ramble has progressed. We just need to sort out this recording page.</p>
+          <p class="frame-meta">2:40 pm · 0:33</p>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="features">
-    <article class="feature panel">
-      <p class="feature-index">01</p>
-      <h2>Record</h2>
-      <p>One shutter on your phone. No transcript while you talk. Just the take.</p>
+  <section class="step-flow" aria-label="How Ramble works">
+    <article class="step-block">
+      <div class="step-block-grid">
+        <div class="step-block-copy reveal">
+          <p class="step-eyebrow"><span class="step-num">01</span> / 03 · RAMBLE</p>
+          <h2 class="step-lead">Say it when it arrives.</h2>
+          <h3 class="step-name">Talk</h3>
+          <p class="step-desc">Open it and speak. No sitting down to write. No prompt. The ums fall off. The thought stays yours.</p>
+        </div>
+        <div class="step-block-visual reveal reveal-visual">
+          <div class="step-visual-frame step-visual-frame--talk" aria-hidden="true">
+            <div class="step-mock step-mock--talk">
+              <div class="mock-phone-bar">
+                <span class="mock-live-dot"></span>
+                <span>Talking · 0:14</span>
+              </div>
+              <div class="mock-wave">
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <p class="mock-caption">The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
-    <article class="feature panel">
-      <p class="feature-index">02</p>
-      <h2>Roll</h2>
-      <p>Newest first. Search when you need it. Star what matters.</p>
+
+    <article class="step-block step-block--flip">
+      <div class="step-block-grid">
+        <div class="step-block-copy reveal">
+          <p class="step-eyebrow"><span class="step-num">02</span> / 03 · RAMBLE</p>
+          <h2 class="step-lead">It lands where you'll find it.</h2>
+          <h3 class="step-name">Keep</h3>
+          <p class="step-desc">It lands in Recents, not a file you will never open. Same roll on the phone and at the desk.</p>
+        </div>
+        <div class="step-block-visual reveal reveal-visual">
+          <div class="step-visual-frame step-visual-frame--keep" aria-hidden="true">
+            <div class="step-mock step-mock--keep">
+              <p class="mock-label">Recents</p>
+              <div class="mock-recents">
+                <div class="mock-entry mock-entry--new">
+                  <p>The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
+                  <span>Just now · 0:14</span>
+                </div>
+                <div class="mock-entry">
+                  <p>We've managed to get a lot done on the house. Ramble has progressed.</p>
+                  <span>Yesterday · 0:33</span>
+                </div>
+                <div class="mock-entry mock-entry--dim">
+                  <p>Need to call the plumber about the kitchen tap.</p>
+                  <span>Mon · 0:08</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
-    <article class="feature panel">
-      <p class="feature-index">03</p>
-      <h2>Read</h2>
-      <p>Tidied text first. The original stays underneath.</p>
+
+    <article class="step-block">
+      <div class="step-block-grid">
+        <div class="step-block-copy reveal">
+          <p class="step-eyebrow"><span class="step-num">03</span> / 03 · RAMBLE</p>
+          <h2 class="step-lead">Read it like you wrote it.</h2>
+          <h3 class="step-name">Read</h3>
+          <p class="step-desc">Tidied text first. If there is something to do, one line sits under the words. That is all.</p>
+        </div>
+        <div class="step-block-visual reveal reveal-visual">
+          <div class="step-visual-frame step-visual-frame--read" aria-hidden="true">
+            <div class="step-mock step-mock--read">
+              <p class="mock-read-text">We should make the steps feel more like scrolling through a product tour. Each one gets its own moment — text on one side, the app on the other.</p>
+              <p class="mock-read-todo">Redesign the landing page steps</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
   </section>
+
+  <section class="clarity" aria-label="What Ramble is and isn't">
+    <h2 class="clarity-title reveal">In plain terms</h2>
+    <div class="clarity-rows">
+      <div class="clarity-row reveal">
+        <div class="clarity-cell clarity-cell--is">
+          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
+          <span>A notebook you speak into</span>
+        </div>
+        <div class="clarity-divider" aria-hidden="true"></div>
+        <div class="clarity-cell clarity-cell--isnt">
+          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
+          <span>A meeting bot</span>
+        </div>
+      </div>
+      <div class="clarity-row reveal">
+        <div class="clarity-cell clarity-cell--is">
+          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
+          <span>A light tidy, not a rewrite</span>
+        </div>
+        <div class="clarity-divider" aria-hidden="true"></div>
+        <div class="clarity-cell clarity-cell--isnt">
+          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
+          <span>A chat with your notes</span>
+        </div>
+      </div>
+      <div class="clarity-row reveal">
+        <div class="clarity-cell clarity-cell--is">
+          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
+          <span>A log you can read later</span>
+        </div>
+        <div class="clarity-divider" aria-hidden="true"></div>
+        <div class="clarity-cell clarity-cell--isnt">
+          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
+          <span>A second brain</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-wait" id="list">
+    <h2 class="landing-wait-title">Get on the list</h2>
+    <p class="landing-wait-lede">Phone and web. Free app. You pay on the web. No in-app store.</p>
+    {% if joined %}
+      <p class="landing-wait-ok">You're on the list. We'll be in touch.</p>
+    {% else %}
+      <form method="post" class="landing-wait-form">
+        {% csrf_token %}
+        <label class="visually-hidden" for="waitlist-email">Email</label>
+        <input id="waitlist-email" type="email" name="email" class="field" placeholder="Email" autocomplete="email" required>
+        <button type="submit" class="btn btn-primary">Join</button>
+      </form>
+    {% endif %}
+  </section>
 </div>
+{% endblock %}
+
+{% block footer %}
+<footer class="footer landing-footer">
+  <div class="footer-inner">
+    <span class="wordmark footer-wordmark">Ramble</span>
+    <span>Always your words.</span>
+  </div>
+</footer>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
+    return;
+  }
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(function (el) { observer.observe(el); });
+  document.querySelectorAll('.step-block').forEach(function (block) {
+    block.querySelectorAll('.reveal').forEach(function (el, i) {
+      el.style.transitionDelay = (i * 0.12) + 's';
+    });
+  });
+  document.querySelectorAll('.hero-landing-copy > *, .recents-card').forEach(function (el, i) {
+    el.style.animationDelay = (i * 0.1) + 's';
+    el.classList.add('hero-enter');
+  });
+})();
+</script>
 {% endblock %}

@@ -7,20 +7,11 @@
   <header class="roll-head">
     <div class="roll-head-row">
       <h1 class="roll-title">Albums</h1>
-      <form method="post" action="{% url 'notes:album_create' %}" class="album-create">
-        {% csrf_token %}
-        <input
-          type="text"
-          name="name"
-          class="album-create-input"
-          placeholder="New album"
-          maxlength="200"
-          required
-          autocomplete="off"
-          aria-label="New album name"
-        >
-        <button type="submit" class="text-link album-create-btn">Add</button>
-      </form>
+      <button type="button" class="album-add-btn" aria-label="New album" data-album-modal-open>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -42,4 +33,65 @@
     <p class="albums-empty-hint">Albums you make will show up here. Open a take and add it to one.</p>
   {% endif %}
 </section>
+
+<dialog class="album-modal" id="album-modal" aria-labelledby="album-modal-title">
+  <form method="post" action="{% url 'notes:album_create' %}" class="album-modal-form">
+    {% csrf_token %}
+    <div class="album-modal-head">
+      <h2 id="album-modal-title" class="album-modal-title">New album</h2>
+      <button type="button" class="album-modal-close" aria-label="Close" data-album-modal-close>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <label class="visually-hidden" for="album-name">Album name</label>
+    <input
+      id="album-name"
+      type="text"
+      name="name"
+      class="field album-modal-input"
+      placeholder="Album name"
+      maxlength="200"
+      required
+      autocomplete="off"
+    >
+    <div class="album-modal-actions">
+      <button type="button" class="btn btn-ghost" data-album-modal-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Create</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var modal = document.getElementById("album-modal");
+    if (!modal) return;
+
+    var openBtn = document.querySelector("[data-album-modal-open]");
+    var closeBtns = modal.querySelectorAll("[data-album-modal-close]");
+    var nameInput = modal.querySelector('input[name="name"]');
+
+    openBtn?.addEventListener("click", function () {
+      modal.showModal();
+      nameInput?.focus();
+    });
+
+    closeBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        modal.close();
+      });
+    });
+
+    modal.addEventListener("click", function (event) {
+      if (event.target === modal) modal.close();
+    });
+
+    modal.addEventListener("close", function () {
+      modal.querySelector("form")?.reset();
+    });
+  })();
+</script>
 {% endblock %}

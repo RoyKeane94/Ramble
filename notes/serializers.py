@@ -5,6 +5,7 @@ from .models import Album, Note
 
 class NoteSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField()
+    next_action_text = serializers.CharField(required=False, allow_blank=True, default="")
 
     class Meta:
         model = Note
@@ -18,6 +19,7 @@ class NoteSerializer(serializers.ModelSerializer):
             "boosted_transcript",
             "gpt_transcript",
             "gpt_tidied_text",
+            "next_action_text",
             "edited_text",
             "edited_at",
             "duration",
@@ -34,6 +36,18 @@ class NoteSerializer(serializers.ModelSerializer):
             "processing_error",
         )
         read_only_fields = ("updated_at",)
+
+    def validate_next_action_text(self, value):
+        return "" if value is None else value
+
+    def create(self, validated_data):
+        validated_data.setdefault("next_action_text", "")
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "next_action_text" in validated_data and validated_data["next_action_text"] is None:
+            validated_data["next_action_text"] = ""
+        return super().update(instance, validated_data)
 
 
 class AlbumSerializer(serializers.ModelSerializer):

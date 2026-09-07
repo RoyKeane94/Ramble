@@ -5,7 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, Us
 User = get_user_model()
 
 FIELD_ATTRS = {
-    "class": "field",
+    "class": "field auth-input",
     "autocomplete": "off",
 }
 
