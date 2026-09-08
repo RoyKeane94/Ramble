@@ -172,6 +172,14 @@ def album_create(request):
     return redirect("notes:albums")
 
 
+@login_required
+@require_POST
+def album_delete(request, pk):
+    album = get_object_or_404(Album, pk=pk, user=request.user)
+    album.delete()
+    return redirect("notes:albums")
+
+
 def _updated_label(when):
     if when is None:
         return None

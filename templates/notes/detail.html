@@ -6,13 +6,29 @@
 <div class="shell shell-roll shell-take">
   <a class="take-back" href="{% url 'notes:list' %}">← Recents</a>
 
-  <header class="take-head">
-    <h1 class="take-title">
-      <span class="take-when">{{ note.day_header }} · {{ note.time_label }}</span>
-      {% if note.is_edited %}
-        <span class="take-edited-tag">Edited · {{ note.edited_label }}</span>
+  <header class="take-chrome">
+    <div class="take-head">
+      <p class="take-meta">
+        <span class="take-when">{{ note.day_header }} · {{ note.time_label }}</span>
+        {% if note.is_edited %}
+          <span class="take-edited-tag">Edited · {{ note.edited_label }}</span>
+        {% endif %}
+      </p>
+      {% if not editing %}
+        <form method="post" action="{% url 'notes:star' note.id %}" class="take-star-form">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="take-star{% if note.is_starred %} is-active{% endif %}"
+            aria-label="{% if note.is_starred %}Unfavourite{% else %}Favourite{% endif %}"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
+            </svg>
+          </button>
+        </form>
       {% endif %}
-    </h1>
+    </div>
 
     {% if not editing %}
       <div class="take-actions">
@@ -86,18 +102,6 @@
     </form>
   {% else %}
     <article class="take-body">
-      <form method="post" action="{% url 'notes:star' note.id %}" class="take-star-form">
-        {% csrf_token %}
-        <button
-          type="submit"
-          class="take-star{% if note.is_starred %} is-active{% endif %}"
-          aria-label="{% if note.is_starred %}Unfavourite{% else %}Favourite{% endif %}"
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
-          </svg>
-        </button>
-      </form>
       <div class="take-text take-text-prose{% if note.transcription_failed %} is-failed{% elif not note.display_text.strip %} is-empty{% endif %}">
         {% if note.transcription_failed %}
           <p class="take-failed-title">{{ note.failure_message }}</p>
@@ -108,17 +112,17 @@
           Empty take
         {% endif %}
       </div>
-      {% if note.todo_items and not note.transcription_failed and note.display_text.strip %}
-        <div class="take-todos">
-          <p class="take-todos-label">To do</p>
-          <div class="take-todos-list">
-            {% for item in note.todo_items %}
-              <p class="take-todos-item">{{ item }}</p>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
     </article>
+    {% if note.todo_items and not note.transcription_failed and note.display_text.strip %}
+      <section class="todo">
+        <p class="todo-label">To do</p>
+        <ul class="todo-list">
+          {% for item in note.todo_items %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
   {% endif %}
 </div>
 {% endblock %}
@@ -134,10 +138,8 @@
       try {
         await navigator.clipboard.writeText(source.value);
         button.textContent = "Copied";
-        button.disabled = true;
         setTimeout(() => {
           button.textContent = label;
-          button.disabled = false;
         }, 1500);
       } catch {
         source.select();

@@ -4,6 +4,7 @@
   --navy: #051A9C;
   --navy-deep: #07144F;
   --ink: #0B1B4A;
+  --ink-soft: rgba(11, 27, 74, 0.72);
   --muted: #5A6490;
   --faint: #8B93B5;
   --line: rgba(5, 26, 156, 0.08);
@@ -16,6 +17,7 @@
   --shell: 720px;
   --roll: 680px;
   --content: 85%;
+  --measure: min(36rem, calc(100% - 3rem));
   --radius: 20px;
   --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -165,9 +167,9 @@ main { flex: 1; }
 }
 
 .shell-roll {
-  width: var(--content);
+  width: var(--measure);
   max-width: none;
-  margin: 0 auto;
+  margin-inline: auto;
   padding: 36px 0 72px;
 }
 
@@ -257,9 +259,9 @@ main { flex: 1; }
 }
 
 .shell-albums {
-  width: var(--content);
+  width: var(--measure);
   max-width: none;
-  margin: 0 auto;
+  margin-inline: auto;
   padding: 36px 0 72px;
 }
 
@@ -385,6 +387,13 @@ main { flex: 1; }
   justify-content: flex-end;
   gap: 10px;
   margin-top: 4px;
+}
+
+.album-modal-copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
 }
 
 .albums-empty-hint {
@@ -617,8 +626,9 @@ a.frame:focus-visible {
 }
 
 .shell-take {
-  width: var(--content);
+  width: var(--measure);
   max-width: none;
+  margin-inline: auto;
   padding-top: 28px;
   padding-bottom: 56px;
 }
@@ -636,11 +646,18 @@ a.frame:focus-visible {
   color: var(--ink);
 }
 
-.take-head {
-  margin-bottom: 0;
+.take-chrome {
+  margin: 0;
 }
 
-.take-title {
+.take-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.take-meta {
   margin: 0;
   font-size: 13px;
   font-weight: 500;
@@ -663,8 +680,10 @@ a.frame:focus-visible {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 1rem;
   margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
 .take-action-form {
@@ -677,9 +696,9 @@ a.frame:focus-visible {
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 12px;
+  font-size: inherit;
   font-weight: 500;
-  color: var(--muted);
+  color: inherit;
   text-decoration: none;
   cursor: pointer;
 }
@@ -706,16 +725,11 @@ a.frame:focus-visible {
 }
 
 .take-body {
-  position: relative;
-  margin-top: 22px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line);
+  margin-top: 1.75rem;
 }
 
 .take-star-form {
-  position: absolute;
-  top: 20px;
-  right: 0;
+  flex-shrink: 0;
   margin: 0;
 }
 
@@ -723,19 +737,21 @@ a.frame:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: auto;
+  height: auto;
   padding: 0;
   color: var(--faint);
   background: none;
   border: 0;
   cursor: pointer;
   font-family: inherit;
+  line-height: 1;
 }
 
 .take-star svg {
   width: 15px;
   height: 15px;
+  display: block;
 }
 
 .take-star:not(.is-active) svg {
@@ -892,46 +908,48 @@ a.frame:focus-visible {
 
 .take-text {
   margin: 0;
-  padding-right: 36px;
-  font-size: 16px;
+  font-size: 1.0625rem;
   font-weight: 400;
-  line-height: 1.58;
+  line-height: 1.6;
   color: var(--ink);
 }
 
 .take-text-prose p {
-  margin: 0 0 1.1em;
+  margin: 0;
 }
 
-.take-text-prose p:last-child {
-  margin-bottom: 0;
+.take-text-prose p + p {
+  margin-top: 1.25rem;
 }
 
-.take-todos {
-  margin: 40px 0 0;
-  padding: 0;
+.todo {
+  margin-top: 2.5rem;
 }
 
-.take-todos-label {
-  margin: 0 0 10px;
-  font-size: 13px;
+.todo-label {
+  margin: 0;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.4;
   color: var(--muted);
 }
 
-.take-todos-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.take-todos-item {
-  margin: 0;
-  font-size: 16px;
+.todo-list li {
+  margin-top: 0.4rem;
+  font-size: 1rem;
   font-weight: 400;
-  line-height: 1.35;
-  color: rgba(11, 27, 74, 0.72);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.todo-list li:first-child {
+  margin-top: 0.5rem;
 }
 
 .take-text.is-empty {
@@ -968,9 +986,9 @@ a.frame:focus-visible {
   padding: 0;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: 1.0625rem;
   font-weight: 400;
-  line-height: 1.58;
+  line-height: 1.6;
   color: var(--ink);
   font-family: inherit;
   resize: vertical;
@@ -1655,6 +1673,13 @@ a.frame:focus-visible {
 
 .btn-ghost:hover { background: rgba(5, 26, 156, 0.1); }
 
+.btn-danger {
+  background: #9A3B1A;
+  color: #fff;
+}
+
+.btn-danger:hover { opacity: 0.9; }
+
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1810,7 +1835,7 @@ a.frame:focus-visible {
   .clarity-divider { display: none; }
   .navbar-inner { height: 48px; }
   .nav-links { gap: 14px; }
-  .take-text { font-size: 15px; }
+  .take-text { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {

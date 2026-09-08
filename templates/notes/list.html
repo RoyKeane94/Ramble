@@ -4,6 +4,9 @@
 
 {% block content %}
 <section class="shell shell-roll">
+  {% if current_album %}
+    <a class="take-back" href="{% url 'notes:albums' %}">← Albums</a>
+  {% endif %}
   <header class="roll-head">
     <div class="roll-head-row">
       <h1 class="roll-title">{{ album_title }}</h1>
@@ -18,6 +21,11 @@
         </div>
       {% endif %}
     </div>
+    {% if current_album %}
+      <div class="take-actions">
+        <button type="button" class="take-action take-action-delete" data-album-delete-open>Delete</button>
+      </div>
+    {% endif %}
     {% if has_recents %}
       <form id="search" class="search panel{% if search_open %} is-open{% endif %}" method="get">
         <input type="hidden" name="album" value="{{ album }}">
@@ -76,4 +84,53 @@
     </div>
   {% endif %}
 </section>
+
+{% if current_album %}
+  <dialog class="album-modal" id="album-delete-modal" aria-labelledby="album-delete-modal-title">
+    <form method="post" action="{% url 'notes:album_delete' current_album.id %}" class="album-modal-form">
+      {% csrf_token %}
+      <div class="album-modal-head">
+        <h2 id="album-delete-modal-title" class="album-modal-title">Delete album</h2>
+        <button type="button" class="album-modal-close" aria-label="Close" data-album-delete-close>
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <p class="album-modal-copy">Delete “{{ current_album.name }}”? Takes in this album are not deleted.</p>
+      <div class="album-modal-actions">
+        <button type="button" class="btn btn-ghost" data-album-delete-close>Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </div>
+    </form>
+  </dialog>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if current_album %}
+<script>
+  (function () {
+    var modal = document.getElementById("album-delete-modal");
+    if (!modal) return;
+
+    var openBtn = document.querySelector("[data-album-delete-open]");
+    var closeBtns = modal.querySelectorAll("[data-album-delete-close]");
+
+    openBtn?.addEventListener("click", function () {
+      modal.showModal();
+    });
+
+    closeBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        modal.close();
+      });
+    });
+
+    modal.addEventListener("click", function (event) {
+      if (event.target === modal) modal.close();
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}
