@@ -28,6 +28,14 @@ def home(request):
     return render(request, "pages/home.html", {"joined": joined})
 
 
+def privacy(request):
+    return render(request, "pages/legal.html", {"page_title": "Privacy"})
+
+
+def terms(request):
+    return render(request, "pages/legal.html", {"page_title": "Terms of use"})
+
+
 def group_notes_for_roll(notes):
     """Today/Yesterday/day for thin months; month headers when a month is dense."""
     note_list = list(notes)

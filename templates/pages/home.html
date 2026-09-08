@@ -1,42 +1,72 @@
 {% extends "base.html" %}
 
-{% block title %}Ramble — Say it now. Read it at the desk.{% endblock %}
-{% block meta_description %}Sometimes you just want to talk an idea out. Sometimes the thought arrives and there is no notebook. Say it now. Read it at the desk. Always your words.{% endblock %}
+{% block extra_head %}
+{% load static %}
+<link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
+<link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#FFFFFF">
+{% endblock %}
+
+{% block title %}Ramble{% endblock %}
+{% block meta_description %}Say it now. Read it any time. Always your words.{% endblock %}
 {% block body_class %}is-landing-page{% endblock %}
 
 {% block content %}
 <div class="shell shell-wide">
-  <section class="hero hero-landing">
-    <div class="hero-landing-copy">
-      <p class="page-kicker">A notebook you speak into</p>
-      <h1 class="hero-title">You had the thought.<br>There wasn't a notebook.</h1>
-      <p class="hero-lede">Sometimes you just want to talk an idea out. Sometimes the idea arrives and the page isn't there. <em>Say it now. Read it at the desk. Always your words.</em></p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#list">Get on the list</a>
-        <p class="hero-note">£9.99 a month, or £100 a year.</p>
-      </div>
-    </div>
+  <section class="hero-constellation" aria-label="Ramble">
+    <div class="constellation-grid">
+      <aside class="constellation-side constellation-side--left" aria-hidden="true">
+        <div class="constellation-satellite constellation-satellite--note constellation-satellite--desktop satellite-float" style="--float-delay: 0.5s">
+          <article class="hero-note hero-note--full panel">
+            <p class="hero-note-meta"><span class="frame-meta-text">Yesterday · 2:40 pm · 0:33</span></p>
+            <div class="hero-note-body">
+              <p class="hero-note-para">Product launch narrative: talk first, read later. The hero should feel like opening the app, not reading a pitch deck. Constellation layout with real UI in the steps, not mockups in phone frames. Waitlist at the bottom. No pricing in the headline. The centre column stays clean so the copy can breathe.</p>
+              <p class="hero-note-para">GTM stays out of the headline. Founder posts and one waitlist email.</p>
+              <p class="hero-note-para hero-note-para--fade">Three steps below: Talk, Keep, Read. Each one gets the actual roll and take chrome, so scrolling feels like using Ramble. Same panels on phone and web. Copy tight, product visible, no screenshot collage in a phone frame.</p>
+            </div>
+          </article>
+        </div>
+      </aside>
 
-    <div class="panel recents-card" aria-hidden="true">
-      <div class="recents-bar">
-        <span class="recents-bar-title">Recents</span>
-        <span class="recents-live">
-          <span class="live-dot" aria-hidden="true"></span>
-          Talking · 0:00
-        </span>
-      </div>
-      <div class="recents-body">
-        <p class="day-label">Today</p>
-        <div class="frame frame-static">
-          <p class="frame-preview frame-preview-live"><span class="recents-caret" aria-hidden="true"></span></p>
-          <p class="frame-meta">0:00</p>
-        </div>
-        <p class="day-label recents-day-gap">Yesterday</p>
-        <div class="frame frame-static">
-          <p class="frame-preview">We've managed to get a lot done on the house. Ramble has progressed. We just need to sort out this recording page.</p>
-          <p class="frame-meta">2:40 pm · 0:33</p>
+      <div class="constellation-center">
+        <p class="page-kicker hero-kicker">A notebook you speak into</p>
+        <h1 class="hero-title">You had the thought.<br>Nowhere to put it.</h1>
+        <p class="hero-lede hero-lede-tagline">Say it now. Read it any time. Always your words.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#list">Get on the list</a>
         </div>
       </div>
+
+      <aside class="constellation-side constellation-side--right">
+        <div class="constellation-satellite constellation-satellite--recents satellite-float" style="--float-delay: 0.3s">
+          <div class="panel recents-card recents-card--hero">
+            <div class="recents-bar">
+              <span class="recents-bar-title">Recents</span>
+              <span class="recents-phase is-talk">Talk</span>
+            </div>
+            <div class="recents-body">
+              <article class="hero-note hero-note--inline">
+                <p class="hero-note-meta"><span class="frame-meta-text">Today · 3:08 pm · <span class="recents-meta-dur">0:00</span></span></p>
+                <p class="hero-note-body frame-preview frame-preview-live" id="hero-recents-preview">
+                  <span class="recents-caret" aria-hidden="true"></span>
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
+        <div class="constellation-satellite constellation-satellite--desktop satellite-float" style="--float-delay: 1.1s">
+          <article class="hero-note panel">
+            <p class="hero-note-meta"><span class="frame-meta-text">Today · 11:24 am · 0:41</span></p>
+            <p class="hero-note-body">Product Launch page structure: constellation hero, three steps, waitlist. Each step gets the real UI, not a mockup in a phone frame.</p>
+            <section class="todo">
+              <p class="todo-label">To do</p>
+              <ul class="todo-list">
+                <li>Review GTM messaging with the team</li>
+              </ul>
+            </section>
+          </article>
+        </div>
+      </aside>
     </div>
   </section>
 
@@ -51,17 +81,9 @@
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--talk" aria-hidden="true">
-            <div class="step-mock step-mock--talk">
-              <div class="mock-phone-bar">
-                <span class="mock-live-dot"></span>
-                <span>Talking · 0:14</span>
-              </div>
-              <div class="mock-wave">
-                <span></span><span></span><span></span><span></span><span></span>
-                <span></span><span></span><span></span><span></span><span></span>
-              </div>
-              <p class="mock-caption">The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
-            </div>
+            <span class="landing-record-btn">
+              <span class="landing-record-btn-inner"></span>
+            </span>
           </div>
         </div>
       </div>
@@ -77,21 +99,61 @@
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--keep" aria-hidden="true">
-            <div class="step-mock step-mock--keep">
-              <p class="mock-label">Recents</p>
-              <div class="mock-recents">
-                <div class="mock-entry mock-entry--new">
-                  <p>The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
-                  <span>Just now · 0:14</span>
+            <div class="landing-preview landing-preview--roll">
+              <header class="roll-head landing-preview-head">
+                <div class="roll-head-row">
+                  <h2 class="roll-title">Recents</h2>
+                  <div class="toolbar roll-tools">
+                    <span class="text-link search-toggle" aria-hidden="true">
+                      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <circle cx="7" cy="7" r="4.5"/>
+                        <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                  </div>
                 </div>
-                <div class="mock-entry">
-                  <p>We've managed to get a lot done on the house. Ramble has progressed.</p>
-                  <span>Yesterday · 0:33</span>
-                </div>
-                <div class="mock-entry mock-entry--dim">
-                  <p>Need to call the plumber about the kitchen tap.</p>
-                  <span>Mon · 0:08</span>
-                </div>
+              </header>
+              <div class="roll-list">
+                <section class="day">
+                  <h2 class="day-label">Today</h2>
+                  <ul class="frames">
+                    <li>
+                      <div class="frame frame-static">
+                        <div class="frame-copy">
+                          <p class="frame-preview">The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
+                        </div>
+                        <p class="frame-meta">
+                          <span class="frame-meta-text">3:08 pm · 0:14</span>
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </section>
+                <section class="day">
+                  <h2 class="day-label">Yesterday</h2>
+                  <ul class="frames">
+                    <li>
+                      <div class="frame frame-static">
+                        <div class="frame-copy">
+                          <p class="frame-preview">We've managed to get a lot done on the house. Ramble has progressed.</p>
+                        </div>
+                        <p class="frame-meta">
+                          <span class="frame-meta-text">2:40 pm · 0:33</span>
+                        </p>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="frame frame-static">
+                        <div class="frame-copy">
+                          <p class="frame-preview">Need to call the plumber about the kitchen tap.</p>
+                        </div>
+                        <p class="frame-meta">
+                          <span class="frame-meta-text">9:12 am · 0:08</span>
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </section>
               </div>
             </div>
           </div>
@@ -109,53 +171,44 @@
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--read" aria-hidden="true">
-            <div class="step-mock step-mock--read">
-              <p class="mock-read-text">We should make the steps feel more like scrolling through a product tour. Each one gets its own moment — text on one side, the app on the other.</p>
-              <p class="mock-read-todo">Redesign the landing page steps</p>
+            <div class="landing-preview landing-preview--take">
+              <span class="take-back">← Recents</span>
+              <header class="take-chrome">
+                <div class="take-head">
+                  <p class="take-meta">
+                    <span class="take-when">Today · 3:08 pm</span>
+                  </p>
+                  <span class="take-star is-active" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/>
+                    </svg>
+                  </span>
+                </div>
+                <div class="take-actions">
+                  <span class="take-action">Edit</span>
+                  <span class="take-action">Album</span>
+                  <span class="take-action">Copy</span>
+                  <span class="take-action take-action-delete">Delete</span>
+                </div>
+              </header>
+              <article class="take-body">
+                <div class="take-text take-text-prose">
+                  <p>We should make the steps feel more like scrolling through a product tour. Each one gets its own moment — text on one side, the app on the other.</p>
+                  <p>I think we've made some good progress on the house too. Ramble has come a long way.</p>
+                </div>
+              </article>
+              <section class="todo">
+                <p class="todo-label">To do</p>
+                <ul class="todo-list">
+                  <li>Redesign the landing page steps</li>
+                  <li>Call the plumber about the kitchen tap</li>
+                </ul>
+              </section>
             </div>
           </div>
         </div>
       </div>
     </article>
-  </section>
-
-  <section class="clarity" aria-label="What Ramble is and isn't">
-    <h2 class="clarity-title reveal">In plain terms</h2>
-    <div class="clarity-rows">
-      <div class="clarity-row reveal">
-        <div class="clarity-cell clarity-cell--is">
-          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
-          <span>A notebook you speak into</span>
-        </div>
-        <div class="clarity-divider" aria-hidden="true"></div>
-        <div class="clarity-cell clarity-cell--isnt">
-          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
-          <span>A meeting bot</span>
-        </div>
-      </div>
-      <div class="clarity-row reveal">
-        <div class="clarity-cell clarity-cell--is">
-          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
-          <span>A light tidy, not a rewrite</span>
-        </div>
-        <div class="clarity-divider" aria-hidden="true"></div>
-        <div class="clarity-cell clarity-cell--isnt">
-          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
-          <span>A chat with your notes</span>
-        </div>
-      </div>
-      <div class="clarity-row reveal">
-        <div class="clarity-cell clarity-cell--is">
-          <span class="clarity-mark clarity-mark--yes" aria-hidden="true">✓</span>
-          <span>A log you can read later</span>
-        </div>
-        <div class="clarity-divider" aria-hidden="true"></div>
-        <div class="clarity-cell clarity-cell--isnt">
-          <span class="clarity-mark clarity-mark--no" aria-hidden="true">✗</span>
-          <span>A second brain</span>
-        </div>
-      </div>
-    </div>
   </section>
 
   <section class="landing-wait" id="list">
@@ -179,7 +232,10 @@
 <footer class="footer landing-footer">
   <div class="footer-inner">
     <span class="wordmark footer-wordmark">Ramble</span>
-    <span>Always your words.</span>
+    <nav class="footer-links" aria-label="Legal">
+      <a class="footer-link" href="{% url 'notes:privacy' %}">Privacy</a>
+      <a class="footer-link" href="{% url 'notes:terms' %}">Terms of use</a>
+    </nav>
   </div>
 </footer>
 {% endblock %}
@@ -187,28 +243,87 @@
 {% block extra_js %}
 <script>
 (function () {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!reduced) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(function (el) { observer.observe(el); });
+    document.querySelectorAll('.step-block').forEach(function (block) {
+      block.querySelectorAll('.reveal').forEach(function (el, i) {
+        el.style.transitionDelay = (i * 0.12) + 's';
+      });
+    });
+    document.querySelectorAll('.constellation-center > *').forEach(function (el, i) {
+      el.style.animationDelay = (i * 0.1) + 's';
+      el.classList.add('hero-enter');
+    });
+  } else {
     document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
-    return;
   }
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
+
+  var preview = document.getElementById('hero-recents-preview');
+  if (!preview) return;
+
+  var raw = 'Um, for the product launch we should open with the waitlist and keep the hero focused on talk first…';
+  var tidy = 'For the product launch we should open with the waitlist and keep the hero focused on talk first…';
+  var filler = 'Um, ';
+  var phaseEl = document.querySelector('.recents-phase');
+  var durEl = document.querySelector('.recents-meta-dur');
+
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function setPhase(label, isTalk) {
+    if (!phaseEl) return;
+    phaseEl.textContent = label;
+    phaseEl.classList.toggle('is-talk', !!isTalk);
+  }
+
+  async function runCycle() {
+    if (reduced) {
+      preview.textContent = tidy;
+      setPhase('Tidy', false);
+      if (durEl) durEl.textContent = '0:14';
+      return;
+    }
+
+    while (true) {
+      setPhase('Talk', true);
+      preview.innerHTML = '';
+      var caret = document.createElement('span');
+      caret.className = 'recents-caret';
+      caret.setAttribute('aria-hidden', 'true');
+
+      for (var i = 0; i <= raw.length; i++) {
+        preview.textContent = raw.slice(0, i);
+        preview.appendChild(caret);
+        if (durEl) durEl.textContent = '0:' + String(Math.min(14, Math.floor(i / 4))).padStart(2, '0');
+        await sleep(32);
       }
-    });
-  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-  document.querySelectorAll('.reveal').forEach(function (el) { observer.observe(el); });
-  document.querySelectorAll('.step-block').forEach(function (block) {
-    block.querySelectorAll('.reveal').forEach(function (el, i) {
-      el.style.transitionDelay = (i * 0.12) + 's';
-    });
-  });
-  document.querySelectorAll('.hero-landing-copy > *, .recents-card').forEach(function (el, i) {
-    el.style.animationDelay = (i * 0.1) + 's';
-    el.classList.add('hero-enter');
-  });
+      await sleep(700);
+
+      setPhase('Tidy', false);
+      preview.innerHTML = '<span class="recents-filler">' + filler + '</span>' + raw.slice(filler.length);
+      await sleep(80);
+      preview.querySelectorAll('.recents-filler').forEach(function (el) {
+        el.classList.add('is-gone');
+      });
+      await sleep(420);
+      preview.textContent = tidy;
+      if (durEl) durEl.textContent = '0:14';
+      await sleep(3200);
+    }
+  }
+
+  runCycle();
 })();
 </script>
 {% endblock %}

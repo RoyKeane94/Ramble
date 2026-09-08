@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} · Ramble{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <header class="page-head">
+    <h1 class="page-title">{{ page_title }}</h1>
+  </header>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer class="footer landing-footer">
+  <div class="footer-inner">
+    <span class="wordmark footer-wordmark">Ramble</span>
+    <nav class="footer-links" aria-label="Legal">
+      <a class="footer-link" href="{% url 'notes:privacy' %}">Privacy</a>
+      <a class="footer-link" href="{% url 'notes:terms' %}">Terms of use</a>
+    </nav>
+  </div>
+</footer>
+{% endblock %}

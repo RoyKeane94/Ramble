@@ -13,7 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing3">
+  {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing25">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <div class="atmosphere" aria-hidden="true"></div>
@@ -34,6 +35,7 @@
             {% endwith %}
           {% else %}
             {% if request.resolver_match.url_name == 'home' %}
+              <a class="nav-link" href="{% url 'login' %}">Sign in</a>
               <a class="btn btn-primary nav-cta" href="#list">Get on the list</a>
             {% else %}
               <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>

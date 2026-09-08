@@ -6,6 +6,8 @@ app_name = "notes"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("privacy/", views.privacy, name="privacy"),
+    path("terms/", views.terms, name="terms"),
     path("roll/", views.note_list, name="list"),
     path("albums/", views.album_list, name="albums"),
     path("albums/new/", views.album_create, name="album_create"),
