@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ErrorLog
+from .models import ErrorLog, ModelUsageLog
 
 
 @admin.register(ErrorLog)
@@ -39,6 +39,46 @@ class ErrorLogAdmin(admin.ModelAdmin):
     @admin.display(description="Path")
     def path_preview(self, obj):
         return obj.path[:80]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ModelUsageLog)
+class ModelUsageLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "operation",
+        "model",
+        "success",
+        "user",
+        "frame_id",
+        "audio_seconds",
+        "total_tokens",
+        "latency_ms",
+    )
+    list_filter = ("operation", "model", "success")
+    search_fields = ("operation", "model", "user__email", "frame_id")
+    readonly_fields = (
+        "user",
+        "frame_id",
+        "operation",
+        "model",
+        "success",
+        "audio_seconds",
+        "input_chars",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "latency_ms",
+        "app_version",
+        "metadata",
+        "created_at",
+    )
+    date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
         return False
