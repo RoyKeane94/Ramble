@@ -962,9 +962,9 @@ a.frame:focus-visible {
 
 .take-text {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.45;
   color: var(--ink);
 }
 
@@ -1012,8 +1012,8 @@ a.frame:focus-visible {
 }
 
 .take-text.is-failed {
-  font-size: 16px;
-  line-height: 1.58;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .take-failed-title {
@@ -1040,9 +1040,9 @@ a.frame:focus-visible {
   padding: 0;
   border: 0;
   background: transparent;
-  font-size: 1.0625rem;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.45;
   color: var(--ink);
   font-family: inherit;
   resize: vertical;
@@ -1817,7 +1817,7 @@ a.frame:focus-visible {
   .clarity-divider { display: none; }
   .navbar-inner { height: 48px; }
   .nav-links { gap: 14px; }
-  .take-text { font-size: 1rem; }
+  .take-text { font-size: 14px; }
 }
 
 @media (max-width: 480px) {
