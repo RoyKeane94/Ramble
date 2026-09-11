@@ -42,12 +42,59 @@ class NoteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.setdefault("next_action_text", "")
+        self._keep_completed_transcript(None, validated_data)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         if "next_action_text" in validated_data and validated_data["next_action_text"] is None:
             validated_data["next_action_text"] = ""
+        self._keep_completed_transcript(instance, validated_data)
         return super().update(instance, validated_data)
+
+    def _keep_completed_transcript(self, instance, validated_data):
+        incoming_text = self._completed_text(validated_data, instance)
+        existing_text = self._completed_text({}, instance) if instance is not None else ""
+
+        if existing_text and not incoming_text:
+            for key in (
+                "gpt_tidied_text",
+                "tidied_text",
+                "gpt_transcript",
+                "did_gpt_transcribe_tidy",
+                "did_gpt_tidy",
+                "edited_text",
+                "edited_at",
+                "next_action_text",
+            ):
+                validated_data.pop(key, None)
+            incoming_text = existing_text
+
+        if incoming_text:
+            validated_data["processing_failed"] = False
+            validated_data["processing_error"] = ""
+            if not validated_data.get("is_processing"):
+                validated_data["is_processing"] = False
+
+    @staticmethod
+    def _completed_text(data, instance):
+        def field(name):
+            if name in data:
+                value = data.get(name)
+            elif instance is not None:
+                value = getattr(instance, name)
+            else:
+                value = ""
+            return (value or "").strip() if isinstance(value, str) else value
+
+        if field("edited_at"):
+            edited = field("edited_text")
+            if edited:
+                return edited
+        for name in ("gpt_tidied_text", "tidied_text"):
+            value = field(name)
+            if value:
+                return value
+        return ""
 
 
 class AlbumSerializer(serializers.ModelSerializer):

@@ -65,23 +65,25 @@ class Note(models.Model):
 
     @property
     def source_text(self):
-        if self.has_whisper_tidied:
-            return self.gpt_tidied_text
-        whisper = self.gpt_transcript.strip()
-        if whisper:
-            return self.gpt_transcript
-        if self.has_tidied:
-            return self.tidied_text
-        return self.boosted_transcript
+        for value in (
+            self.gpt_tidied_text,
+            self.tidied_text,
+            self.gpt_transcript,
+            self.boosted_transcript,
+            self.raw_transcript,
+        ):
+            if value.strip():
+                return value
+        return ""
 
     @property
     def transcription_failed(self):
-        if self.processing_failed:
-            return True
         if self.is_processing or self.is_edited:
             return False
         if self.display_text.strip():
             return False
+        if self.processing_failed:
+            return True
         return self.duration > 0
 
     @property
@@ -115,11 +117,9 @@ class Note(models.Model):
             if text:
                 return text.replace("\n", " ")
             return "Empty take"
-        if self.has_whisper_tidied:
-            return self.gpt_tidied_text.replace("\n", " ")
-        whisper = self.gpt_transcript.strip()
-        if whisper:
-            return whisper.replace("\n", " ")
+        text = self.display_text.strip()
+        if text:
+            return text.replace("\n", " ")
         return "Empty take"
 
     @property
@@ -156,7 +156,7 @@ class Note(models.Model):
         if not self.is_edited or not self.edited_at:
             return None
         local = timezone.localtime(self.edited_at)
-        return local.strftime("%-d %b %Y · %-I:%M %p").replace("AM", "am").replace("PM", "pm")
+        return local.strftime("%-d %b %Y · %H:%M")
 
     @property
     def duration_label(self):
@@ -166,7 +166,7 @@ class Note(models.Model):
     @property
     def time_label(self):
         local = timezone.localtime(self.created_at)
-        return local.strftime("%-I:%M %p").replace("AM", "am").replace("PM", "pm")
+        return local.strftime("%H:%M")
 
     @property
     def day_header(self):
@@ -240,8 +240,7 @@ class Album(models.Model):
         today = timezone.localtime(timezone.now()).date()
         date = local.date()
         if date == today:
-            time = local.strftime("%-I:%M %p").replace("AM", "am").replace("PM", "pm")
-            return f"Updated {time}"
+            return f"Updated {local.strftime('%H:%M')}"
         if date == today - timedelta(days=1):
             return "Updated Yesterday"
         return f"Updated {local.strftime('%-d %b %Y')}"

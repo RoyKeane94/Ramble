@@ -195,8 +195,7 @@ def _updated_label(when):
     today = timezone.localtime(timezone.now()).date()
     date = local.date()
     if date == today:
-        time = local.strftime("%-I:%M %p").replace("AM", "am").replace("PM", "pm")
-        return f"Updated {time}"
+        return f"Updated {local.strftime('%H:%M')}"
     if date == today - timedelta(days=1):
         return "Updated Yesterday"
     return f"Updated {local.strftime('%-d %b %Y')}"
