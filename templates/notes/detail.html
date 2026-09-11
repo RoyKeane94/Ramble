@@ -93,7 +93,7 @@
     <form method="post" action="{% url 'notes:edit' note.id %}" class="take-edit-form">
       {% csrf_token %}
       <article class="take-body">
-        <textarea name="text" class="take-text take-text-edit" rows="10" autofocus>{{ note.display_text }}</textarea>
+        <textarea name="text" class="take-text take-text-edit" rows="1" autofocus>{{ note.display_text }}</textarea>
       </article>
       <div class="take-edit-actions">
         <button type="submit" class="btn btn-primary">Save</button>
@@ -129,6 +129,15 @@
 
 {% block extra_js %}
 <script>
+  document.querySelectorAll(".take-text-edit").forEach((textarea) => {
+    const resize = () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    };
+    resize();
+    textarea.addEventListener("input", resize);
+  });
+
   document.querySelectorAll("[data-copy-target]").forEach((button) => {
     button.addEventListener("click", async () => {
       const source = document.getElementById(button.dataset.copyTarget);

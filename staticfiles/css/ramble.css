@@ -1035,7 +1035,7 @@ a.frame:focus-visible {
 .take-text-edit {
   display: block;
   width: 100%;
-  min-height: 180px;
+  min-height: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1045,7 +1045,8 @@ a.frame:focus-visible {
   line-height: 1.45;
   color: var(--ink);
   font-family: inherit;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   outline: none;
 }
 
