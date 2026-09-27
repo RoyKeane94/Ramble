@@ -1009,9 +1009,9 @@ a.frame:focus-visible {
 
 .todo-label {
   margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
   color: var(--muted);
 }
 
@@ -1023,7 +1023,7 @@ a.frame:focus-visible {
 
 .todo-list li {
   margin-top: 0.4rem;
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.45;
   color: var(--ink-soft);
@@ -1233,10 +1233,6 @@ a.frame:focus-visible {
 
 .hero-note .todo {
   margin-top: 1.25rem;
-}
-
-.hero-note .todo-list li {
-  font-size: 14px;
 }
 
 .hero-note--inline {
