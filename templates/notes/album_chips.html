@@ -1,0 +1,11 @@
+{% if names %}
+<p class="album-chips" aria-label="{% if names|length == 1 %}In album {{ names.0 }}{% else %}In albums {{ names|join:', ' }}{% endif %}">
+  {% for name in names %}
+    {% if forloop.counter <= 3 %}
+      <span class="album-chip">{{ name }}</span>
+    {% elif forloop.counter == 4 %}
+      <span class="album-chip album-chip-more" aria-hidden="true">+{{ names|length|add:"-3" }}</span>
+    {% endif %}
+  {% endfor %}
+</p>
+{% endif %}

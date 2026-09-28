@@ -645,11 +645,58 @@ a.frame:focus-visible {
   text-overflow: ellipsis;
 }
 
+.album-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.album-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 0.5px solid rgba(5, 26, 156, 0.16);
+  border-radius: 999px;
+  background: rgba(5, 26, 156, 0.05);
+  color: rgba(5, 26, 156, 0.78);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-chip-more {
+  flex: 0 0 auto;
+}
+
 .frame.is-developing .frame-preview,
 .frame.is-failed .frame-preview {
   color: var(--muted);
   font-size: 13px;
   height: calc(1.45em * 2);
+}
+
+.frame-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  align-self: stretch;
+  min-width: 0;
+  gap: 8px;
+}
+
+.frame-side .album-chips {
+  justify-content: flex-end;
+  width: 100%;
+  margin: 0;
 }
 
 .frame-meta {
@@ -734,8 +781,24 @@ a.frame:focus-visible {
 .take-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
+}
+
+.take-head-aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.take-head-aside .album-chips {
+  width: auto;
+  max-width: 16rem;
+  margin: 0;
+  justify-content: flex-end;
 }
 
 .take-meta {

@@ -58,7 +58,7 @@ def group_notes_for_roll(notes):
 def note_list(request):
     album_param = request.GET.get("album", "recents")
     query = request.GET.get("q", "").strip()
-    notes = Note.objects.filter(user=request.user)
+    notes = Note.objects.filter(user=request.user).prefetch_related("albums")
     has_recents = notes.exists()
     current_album = None
     album_title = "Recents"
@@ -68,6 +68,11 @@ def note_list(request):
         notes = notes.filter(is_starred=True)
         album_title = "Favourites"
         from_albums = True
+    elif album_param == "today":
+        now = timezone.localtime(timezone.now())
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        notes = notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1))
+        album_title = "Today"
     elif album_param not in ("", "recents"):
         try:
             album_id = UUID(album_param)
@@ -85,7 +90,13 @@ def note_list(request):
     if query:
         notes = notes.filter(Q_from_query(query))
 
-    grouped = group_notes_for_roll(notes)
+    if album_param == "today":
+        today_notes = list(notes)
+        for note in today_notes:
+            note.show_row_day = False
+        grouped = OrderedDict([("Today", today_notes)]) if today_notes else OrderedDict()
+    else:
+        grouped = group_notes_for_roll(notes)
 
     return render(
         request,
@@ -99,7 +110,7 @@ def note_list(request):
             "has_recents": has_recents,
             "has_results": notes.exists(),
             "search_open": bool(query) or request.GET.get("search") == "1",
-            "nav_section": "albums" if from_albums else "recents",
+            "nav_section": "albums" if from_albums else ("today" if album_param == "today" else "recents"),
         },
     )
 
@@ -122,6 +133,9 @@ def Q_from_query(query):
 def album_list(request):
     notes = Note.objects.filter(user=request.user)
     favourites = notes.filter(is_starred=True)
+    now = timezone.localtime(timezone.now())
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today = notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1))
     albums = list(Album.objects.filter(user=request.user).prefetch_related("notes"))
     roll = reverse("notes:list")
 
@@ -134,13 +148,20 @@ def album_list(request):
             "tone": 0,
         },
         {
+            "title": "Today",
+            "count": today.count(),
+            "updated_label": _updated_label(today.first().created_at if today.exists() else None),
+            "href": f"{roll}?album=today",
+            "tone": 1,
+        },
+        {
             "title": "Favourites",
             "count": favourites.count(),
             "updated_label": _updated_label(
                 favourites.first().created_at if favourites.exists() else None
             ),
             "href": f"{roll}?album=starred",
-            "tone": 1,
+            "tone": 2,
         },
     ]
 
@@ -151,7 +172,7 @@ def album_list(request):
                 "count": album.take_count,
                 "updated_label": album.updated_label,
                 "href": f"{roll}?album={album.id}",
-                "tone": (index + 2) % 4,
+                "tone": (index + 3) % 4,
             }
         )
 
@@ -202,7 +223,11 @@ def _updated_label(when):
 
 @login_required
 def note_detail(request, pk):
-    note = get_object_or_404(Note, pk=pk, user=request.user)
+    note = get_object_or_404(
+        Note.objects.prefetch_related("albums"),
+        pk=pk,
+        user=request.user,
+    )
     editing = request.GET.get("edit") == "1"
     managing_albums = request.GET.get("albums") == "1"
     albums = list(Album.objects.filter(user=request.user))

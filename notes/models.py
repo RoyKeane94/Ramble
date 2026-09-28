@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from .preview import todo_preview_line as build_todo_preview_line
+
 
 class Note(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -146,10 +148,13 @@ class Note(models.Model):
 
     @property
     def todo_preview_line(self):
-        items = self.todo_items
-        if not items:
-            return None
-        return f"To do · {items[0]}"
+        return build_todo_preview_line(self.todo_items, self.preview_line)
+
+    @property
+    def membership_names(self):
+        albums = list(self.albums.all())
+        albums.sort(key=lambda album: (album.sort_index, album.name.casefold(), str(album.id)))
+        return [album.name for album in albums]
 
     @property
     def edited_label(self):
