@@ -160,7 +160,6 @@ def album_list(request):
         "notes/albums.html",
         {
             "tiles": tiles,
-            "has_user_albums": bool(albums),
             "nav_section": "albums",
         },
     )

@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .logging import log_app_error, log_model_usage
@@ -32,7 +32,7 @@ def report_app_error(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def report_model_usage(request):
     operation = (request.data.get("operation") or "").strip()
     model = (request.data.get("model") or "").strip()
@@ -70,13 +70,17 @@ def report_model_usage(request):
         except (TypeError, ValueError):
             return None
 
+    audio_seconds = _optional_float("audio_seconds")
+    if operation in {"whisper_cloud", "whisper_on_device"} and audio_seconds is None:
+        audio_seconds = 0.0
+
     log_model_usage(
         request=request,
         operation=operation,
         model=model,
         success=bool(success),
         frame_id=frame_id,
-        audio_seconds=_optional_float("audio_seconds"),
+        audio_seconds=audio_seconds,
         input_chars=_optional_int("input_chars"),
         prompt_tokens=_optional_int("prompt_tokens"),
         completion_tokens=_optional_int("completion_tokens"),
