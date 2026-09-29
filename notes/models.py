@@ -18,6 +18,8 @@ class Note(models.Model):
     original_transcript = models.TextField(blank=True, default="")
     boosted_transcript = models.TextField(blank=True, default="")
     gpt_transcript = models.TextField(blank=True, default="")
+    gpt_transcribe_transcript = models.TextField(blank=True, default="")
+    whisper_1_transcript = models.TextField(blank=True, default="")
     gpt_tidied_text = models.TextField(blank=True, default="")
     next_action_text = models.TextField(blank=True, default="")
     edited_text = models.TextField(blank=True, default="")
@@ -210,6 +212,26 @@ class Note(models.Model):
     @property
     def list_header(self):
         return self.day_header_compact
+
+    @property
+    def labeled_transcripts(self):
+        """Side-by-side ASR outputs for comparison on the web."""
+        rows = []
+        gpt = self.gpt_transcribe_transcript.strip()
+        whisper = self.whisper_1_transcript.strip()
+        if gpt:
+            rows.append({"model": "gpt-transcribe", "label": "gpt-transcribe", "text": gpt})
+        if whisper:
+            rows.append({"model": "whisper-1", "label": "whisper-1", "text": whisper})
+        if not rows:
+            legacy = self.gpt_transcript.strip()
+            if legacy:
+                rows.append({"model": "gpt-transcribe", "label": "gpt-transcribe (legacy)", "text": legacy})
+        return rows
+
+    @property
+    def has_labeled_transcripts(self):
+        return len(self.labeled_transcripts) > 0
 
 
 class Album(models.Model):

@@ -45,6 +45,7 @@
         >
           Copy
         </button>
+        <a class="take-action" href="{% url 'notes:export_json' %}">Export JSON</a>
         <form method="post" action="{% url 'notes:delete' note.id %}" class="take-action-form" onsubmit="return confirm('Delete this take?');">
           {% csrf_token %}
           <button type="submit" class="take-action take-action-delete">Delete</button>
@@ -124,6 +125,17 @@
             <li>{{ item }}</li>
           {% endfor %}
         </ul>
+      </section>
+    {% endif %}
+    {% if note.has_labeled_transcripts %}
+      <section class="take-transcripts" aria-label="Model transcriptions">
+        <h2 class="take-transcripts-title">Transcriptions</h2>
+        {% for row in note.labeled_transcripts %}
+          <article class="take-transcript-block">
+            <p class="take-transcript-label">{{ row.label }}</p>
+            <div class="take-transcript-text">{{ row.text|linebreaks }}</div>
+          </article>
+        {% endfor %}
       </section>
     {% endif %}
   {% endif %}

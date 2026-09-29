@@ -12,6 +12,7 @@
       <h1 class="roll-title">{{ album_title }}</h1>
       {% if has_recents %}
         <div class="toolbar roll-tools">
+          <a class="text-link roll-export" href="{% url 'notes:export_json' %}">Export JSON</a>
           <button class="text-link search-toggle" type="button" aria-label="Search" onclick="document.getElementById('search').classList.toggle('is-open'); document.querySelector('#search input')?.focus()">
             <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
               <circle cx="7" cy="7" r="4.5"/>

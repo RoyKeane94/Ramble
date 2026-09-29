@@ -872,6 +872,44 @@ a.frame:focus-visible {
   margin-top: 1.75rem;
 }
 
+.take-transcripts {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.take-transcripts-title {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.take-transcript-block + .take-transcript-block {
+  margin-top: 1.25rem;
+}
+
+.take-transcript-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.take-transcript-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.roll-export {
+  margin-right: 0.75rem;
+}
+
 .take-star-form {
   flex-shrink: 0;
   margin: 0;
