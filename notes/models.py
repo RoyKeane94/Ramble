@@ -20,6 +20,8 @@ class Note(models.Model):
     gpt_transcript = models.TextField(blank=True, default="")
     gpt_transcribe_transcript = models.TextField(blank=True, default="")
     whisper_1_transcript = models.TextField(blank=True, default="")
+    gpt_transcribe_tidied_text = models.TextField(blank=True, default="")
+    whisper_1_tidied_text = models.TextField(blank=True, default="")
     gpt_tidied_text = models.TextField(blank=True, default="")
     next_action_text = models.TextField(blank=True, default="")
     edited_text = models.TextField(blank=True, default="")
@@ -215,18 +217,41 @@ class Note(models.Model):
 
     @property
     def labeled_transcripts(self):
-        """Side-by-side ASR outputs for comparison on the web."""
+        """Side-by-side ASR outputs (raw + GPT-tidied) for comparison on the web."""
         rows = []
         gpt = self.gpt_transcribe_transcript.strip()
+        gpt_tidied = self.gpt_transcribe_tidied_text.strip()
         whisper = self.whisper_1_transcript.strip()
-        if gpt:
-            rows.append({"model": "gpt-transcribe", "label": "gpt-transcribe", "text": gpt})
-        if whisper:
-            rows.append({"model": "whisper-1", "label": "whisper-1", "text": whisper})
+        whisper_tidied = self.whisper_1_tidied_text.strip()
+        if gpt or gpt_tidied:
+            rows.append(
+                {
+                    "model": "gpt-transcribe",
+                    "label": "gpt-transcribe",
+                    "raw": gpt,
+                    "tidied": gpt_tidied,
+                }
+            )
+        if whisper or whisper_tidied:
+            rows.append(
+                {
+                    "model": "whisper-1",
+                    "label": "whisper-1",
+                    "raw": whisper,
+                    "tidied": whisper_tidied,
+                }
+            )
         if not rows:
             legacy = self.gpt_transcript.strip()
             if legacy:
-                rows.append({"model": "gpt-transcribe", "label": "gpt-transcribe (legacy)", "text": legacy})
+                rows.append(
+                    {
+                        "model": "gpt-transcribe",
+                        "label": "gpt-transcribe (legacy)",
+                        "raw": legacy,
+                        "tidied": "",
+                    }
+                )
         return rows
 
     @property

@@ -899,6 +899,30 @@ a.frame:focus-visible {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+.take-transcript-sublabel {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.take-transcript-sublabel:first-of-type {
+  margin-top: 0;
+}
+
+.take-transcript-pending {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+
+.take-transcript-text-tidied {
+  color: var(--ink);
+}
+
 .take-transcript-text {
   margin: 0;
   font-size: 0.9375rem;

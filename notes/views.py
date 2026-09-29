@@ -58,13 +58,15 @@ def group_notes_for_roll(notes):
 def _note_export_dict(note):
     transcripts = {}
     gpt = note.gpt_transcribe_transcript.strip()
+    gpt_tidied = note.gpt_transcribe_tidied_text.strip()
     whisper = note.whisper_1_transcript.strip()
-    if gpt:
-        transcripts["gpt_transcribe"] = gpt
-    if whisper:
-        transcripts["whisper_1"] = whisper
+    whisper_tidied = note.whisper_1_tidied_text.strip()
+    if gpt or gpt_tidied:
+        transcripts["gpt_transcribe"] = {"raw": gpt, "tidied": gpt_tidied}
+    if whisper or whisper_tidied:
+        transcripts["whisper_1"] = {"raw": whisper, "tidied": whisper_tidied}
     if not transcripts and note.gpt_transcript.strip():
-        transcripts["gpt_transcribe"] = note.gpt_transcript.strip()
+        transcripts["gpt_transcribe"] = {"raw": note.gpt_transcript.strip(), "tidied": ""}
 
     return {
         "id": str(note.id),
@@ -174,6 +176,8 @@ def Q_from_query(query):
         | Q(gpt_transcript__icontains=query)
         | Q(gpt_transcribe_transcript__icontains=query)
         | Q(whisper_1_transcript__icontains=query)
+        | Q(gpt_transcribe_tidied_text__icontains=query)
+        | Q(whisper_1_tidied_text__icontains=query)
         | Q(gpt_tidied_text__icontains=query)
         | Q(edited_text__icontains=query)
     )

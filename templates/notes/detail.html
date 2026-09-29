@@ -133,7 +133,16 @@
         {% for row in note.labeled_transcripts %}
           <article class="take-transcript-block">
             <p class="take-transcript-label">{{ row.label }}</p>
-            <div class="take-transcript-text">{{ row.text|linebreaks }}</div>
+            {% if row.raw %}
+              <p class="take-transcript-sublabel">Raw</p>
+              <div class="take-transcript-text">{{ row.raw|linebreaks }}</div>
+            {% endif %}
+            {% if row.tidied %}
+              <p class="take-transcript-sublabel">Tidied</p>
+              <div class="take-transcript-text take-transcript-text-tidied">{{ row.tidied|linebreaks }}</div>
+            {% elif row.raw %}
+              <p class="take-transcript-sublabel take-transcript-pending">Tidied — pending from app</p>
+            {% endif %}
           </article>
         {% endfor %}
       </section>
