@@ -872,6 +872,27 @@ a.frame:focus-visible {
   margin-top: 1.75rem;
 }
 
+.take-route {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+.take-route-label {
+  display: block;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.take-route-summary {
+  display: block;
+  margin-top: 0.35rem;
+}
+
 .take-transcripts {
   margin-top: 2rem;
   padding-top: 1.5rem;

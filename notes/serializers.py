@@ -22,6 +22,8 @@ class NoteSerializer(serializers.ModelSerializer):
             "whisper_1_transcript",
             "gpt_transcribe_tidied_text",
             "whisper_1_tidied_text",
+            "chosen_transcription_model",
+            "transcription_route_summary",
             "gpt_tidied_text",
             "next_action_text",
             "edited_text",

@@ -116,6 +116,14 @@
           Empty take
         {% endif %}
       </div>
+      {% if note.has_transcription_route and not note.transcription_failed and note.display_text.strip %}
+        <p class="take-route">
+          <span class="take-route-label">Transcription · {{ note.chosen_transcription_model_label }}</span>
+          {% if note.transcription_route_summary.strip %}
+            <span class="take-route-summary">{{ note.transcription_route_summary }}</span>
+          {% endif %}
+        </p>
+      {% endif %}
     </article>
     {% if note.todo_items and not note.transcription_failed and note.display_text.strip %}
       <section class="todo">
@@ -125,26 +133,6 @@
             <li>{{ item }}</li>
           {% endfor %}
         </ul>
-      </section>
-    {% endif %}
-    {% if note.has_labeled_transcripts %}
-      <section class="take-transcripts" aria-label="Model transcriptions">
-        <h2 class="take-transcripts-title">Transcriptions</h2>
-        {% for row in note.labeled_transcripts %}
-          <article class="take-transcript-block">
-            <p class="take-transcript-label">{{ row.label }}</p>
-            {% if row.raw %}
-              <p class="take-transcript-sublabel">Raw</p>
-              <div class="take-transcript-text">{{ row.raw|linebreaks }}</div>
-            {% endif %}
-            {% if row.tidied %}
-              <p class="take-transcript-sublabel">Tidied</p>
-              <div class="take-transcript-text take-transcript-text-tidied">{{ row.tidied|linebreaks }}</div>
-            {% elif row.raw %}
-              <p class="take-transcript-sublabel take-transcript-pending">Tidied — pending from app</p>
-            {% endif %}
-          </article>
-        {% endfor %}
       </section>
     {% endif %}
   {% endif %}

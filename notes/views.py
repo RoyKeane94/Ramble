@@ -83,6 +83,8 @@ def _note_export_dict(note):
         "tidied_text": note.tidied_text,
         "edited_text": note.edited_text,
         "display_text": note.display_text,
+        "chosen_transcription_model": note.chosen_transcription_model,
+        "transcription_route_summary": note.transcription_route_summary,
         "next_action_text": note.next_action_text,
         "todo_items": note.todo_items,
         "processing_failed": note.transcription_failed,

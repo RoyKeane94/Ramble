@@ -22,6 +22,8 @@ class Note(models.Model):
     whisper_1_transcript = models.TextField(blank=True, default="")
     gpt_transcribe_tidied_text = models.TextField(blank=True, default="")
     whisper_1_tidied_text = models.TextField(blank=True, default="")
+    chosen_transcription_model = models.CharField(max_length=60, blank=True, default="")
+    transcription_route_summary = models.TextField(blank=True, default="")
     gpt_tidied_text = models.TextField(blank=True, default="")
     next_action_text = models.TextField(blank=True, default="")
     edited_text = models.TextField(blank=True, default="")
@@ -214,6 +216,21 @@ class Note(models.Model):
     @property
     def list_header(self):
         return self.day_header_compact
+
+    @property
+    def chosen_transcription_model_label(self):
+        model = self.chosen_transcription_model.strip()
+        if not model:
+            return ""
+        if model == "gpt-transcribe":
+            return "gpt-transcribe"
+        if model == "whisper-1":
+            return "whisper-1"
+        return model
+
+    @property
+    def has_transcription_route(self):
+        return bool(self.chosen_transcription_model_label)
 
     @property
     def labeled_transcripts(self):
