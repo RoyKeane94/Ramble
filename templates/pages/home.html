@@ -13,54 +13,49 @@
 
 {% block content %}
 <div class="shell shell-wide">
-  <section class="hero-constellation" aria-label="Ramble">
-    <div class="constellation-grid">
-      <aside class="constellation-side constellation-side--left" aria-hidden="true">
-        <div class="constellation-satellite constellation-satellite--note constellation-satellite--desktop satellite-float" style="--float-delay: 0.5s">
-          <article class="hero-note hero-note--full panel">
-            <p class="hero-note-meta"><span class="frame-meta-text">Yesterday · 2:40 pm · 0:33</span></p>
-            <div class="hero-note-body">
-              <p class="hero-note-para">Product launch narrative: talk first, read later. The hero should feel like opening the app, not reading a pitch deck. Constellation layout with real UI in the steps, not mockups in phone frames. Waitlist at the bottom. No pricing in the headline. The centre column stays clean so the copy can breathe.</p>
-              <p class="hero-note-para">GTM stays out of the headline. Founder posts and one waitlist email.</p>
-              <p class="hero-note-para hero-note-para--fade">Three steps below: Talk, Keep, Read. Each one gets the actual roll and take chrome, so scrolling feels like using Ramble. Same panels on phone and web. Copy tight, product visible, no screenshot collage in a phone frame.</p>
-            </div>
-          </article>
-        </div>
-      </aside>
-
-      <div class="constellation-center">
-        <p class="page-kicker hero-kicker">A notebook you speak into</p>
-        <h1 class="hero-title">You had the thought.<br>Nowhere to put it.</h1>
-        <p class="hero-lede hero-lede-tagline">Say it now. Read it any time. Always your words.</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#list">Get on the list</a>
-        </div>
+  <section class="hero-landing" aria-label="Ramble">
+    <div class="hero-landing-copy">
+      <p class="page-kicker hero-kicker">A notebook you speak into</p>
+      <h1 class="hero-title">You had the thought.<br>Nowhere to put it.</h1>
+      <p class="hero-lede hero-lede-tagline">
+        <span class="hero-lede-tagline-line">Say it now. Read it any time.</span>
+        <span class="hero-lede-tagline-line">No fluff and always your words</span>
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#list">Get on the list</a>
       </div>
+    </div>
 
-      <aside class="constellation-side constellation-side--right">
-        <div class="constellation-satellite constellation-satellite--recents satellite-float" style="--float-delay: 0.3s">
-          <div class="panel recents-card recents-card--hero">
-            <div class="recents-bar">
-              <span class="recents-bar-title">Recents</span>
-              <span class="recents-phase is-talk">Talk</span>
-            </div>
-            <div class="recents-body">
-              <article class="hero-note hero-note--inline">
-                <p class="hero-note-meta"><span class="frame-meta-text">Today · 3:08 pm · <span class="recents-meta-dur">0:00</span></span></p>
-                <p class="hero-note-body frame-preview frame-preview-live" id="hero-recents-preview">
-                  <span class="recents-caret" aria-hidden="true"></span>
-                </p>
-              </article>
+    <div class="hero-landing-visual">
+      <div class="hero-visual-frame hero-visual-frame--mesh step-visual-frame" aria-hidden="true">
+        <div class="panel recents-card recents-card--hero recents-card--demo">
+          <div class="recents-bar">
+            <span class="recents-bar-title">Recents</span>
+            <span class="recents-phase is-talk">Talk</span>
+          </div>
+          <div class="recents-body">
+            <article class="hero-note hero-note--inline">
+              <p class="hero-note-meta"><span class="frame-meta-text">Today · 3:08 pm · <span class="recents-meta-dur">0:00</span></span></p>
+              <p class="album-chips hero-demo-album-chips" id="hero-demo-album-chips" aria-hidden="true" hidden>
+                <span class="album-chip">Super useful ideas</span>
+              </p>
+              <div class="hero-note-body frame-preview frame-preview-live" id="hero-recents-preview">
+                <span class="recents-caret" aria-hidden="true"></span>
+              </div>
+            </article>
+            <div class="hero-demo-album-panel" id="hero-demo-album-panel" hidden>
+              <p class="hero-demo-album-label">Add to album</p>
+              <div class="take-album-row hero-demo-album-row" id="hero-demo-album-row">
+                <div class="take-album-row-copy">
+                  <span class="take-album-row-name">Super useful ideas</span>
+                  <span class="take-album-row-count">3 notes</span>
+                </div>
+                <span class="take-album-check" aria-hidden="true"></span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="constellation-satellite constellation-satellite--desktop satellite-float" style="--float-delay: 1.1s">
-          <article class="hero-note panel">
-            <p class="hero-note-meta"><span class="frame-meta-text">Today · 11:24 am · 0:41</span></p>
-            <p class="hero-note-body">Product Launch page structure: constellation hero, three steps, waitlist. Each step gets the real UI, not a mockup in a phone frame.</p>
-          </article>
-        </div>
-      </aside>
+      </div>
     </div>
   </section>
 
@@ -70,7 +65,7 @@
         <div class="step-block-copy reveal">
           <h2 class="step-lead">Say it when it arrives.</h2>
           <h3 class="step-name">Talk</h3>
-          <p class="step-desc">Open it and speak. No sitting down to write. No prompt. The ums fall off. The thought stays yours.</p>
+          <p class="step-desc">Open it and speak. No sitting down to write. No prompt. The ums fall off, the false starts are removed, and punctuation added. Always your words.</p>
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--talk" aria-hidden="true">
@@ -244,7 +239,7 @@
         el.style.transitionDelay = (i * 0.12) + 's';
       });
     });
-    document.querySelectorAll('.constellation-center > *').forEach(function (el, i) {
+    document.querySelectorAll('.hero-landing-copy > *').forEach(function (el, i) {
       el.style.animationDelay = (i * 0.1) + 's';
       el.classList.add('hero-enter');
     });
@@ -255,11 +250,19 @@
   var preview = document.getElementById('hero-recents-preview');
   if (!preview) return;
 
-  var raw = 'Um, for the product launch we should open with the waitlist and keep the hero focused on talk first…';
-  var tidy = 'For the product launch we should open with the waitlist and keep the hero focused on talk first…';
-  var filler = 'Um, ';
+  var raw = 'Um, I want to build something without the fluff um really simple you just speak to your phone any time anywhere and like get a punctuated note back no ums no false starts it has to show up on your phone and laptop straight away and you can add notes to albums we don\u2019t we don\u2019t want to polish or rewrite always your words just easier to use let\u2019s call it Ramble';
+  var fillers = ['Um, ', ' um', ' like', ' we don\u2019t'];
+  var tidyParagraphs = [
+    'I want to build something without the fluff. Really simple. You just speak to your phone, any time, anywhere, and get a punctuated note back. No ums, no false starts.',
+    'It shows up on your phone and laptop straight away. Add notes to albums. We don\u2019t polish or rewrite. Always your words, just easier to read.',
+    'Let\u2019s call it Ramble.'
+  ];
+  var recordSeconds = 52;
   var phaseEl = document.querySelector('.recents-phase');
   var durEl = document.querySelector('.recents-meta-dur');
+  var albumChips = document.getElementById('hero-demo-album-chips');
+  var albumPanel = document.getElementById('hero-demo-album-panel');
+  var albumRow = document.getElementById('hero-demo-album-row');
 
   function sleep(ms) {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
@@ -271,16 +274,98 @@
     phaseEl.classList.toggle('is-talk', !!isTalk);
   }
 
+  function formatDur(totalSec) {
+    var m = Math.floor(totalSec / 60);
+    var s = totalSec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function wrapFillers(text) {
+    var parts = [{ t: text, f: false }];
+    fillers.forEach(function (filler) {
+      var next = [];
+      parts.forEach(function (part) {
+        if (part.f) {
+          next.push(part);
+          return;
+        }
+        var idx = part.t.indexOf(filler);
+        if (idx === -1) {
+          next.push(part);
+          return;
+        }
+        if (idx > 0) next.push({ t: part.t.slice(0, idx), f: false });
+        next.push({ t: filler, f: true });
+        var rest = part.t.slice(idx + filler.length);
+        if (rest) next.push({ t: rest, f: false });
+      });
+      parts = next;
+    });
+    return parts.map(function (part) {
+      if (!part.f) return part.t;
+      return '<span class="recents-filler">' + part.t + '</span>';
+    }).join('');
+  }
+
+  function showTidy() {
+    preview.classList.add('is-tidy');
+    preview.innerHTML = tidyParagraphs.map(function (p) {
+      return '<p>' + p + '</p>';
+    }).join('');
+  }
+
+  function resetAlbum() {
+    if (albumChips) {
+      albumChips.hidden = true;
+      albumChips.setAttribute('aria-hidden', 'true');
+      albumChips.classList.remove('is-visible');
+    }
+    if (albumPanel) {
+      albumPanel.hidden = true;
+      albumPanel.classList.remove('is-open');
+    }
+    if (albumRow) albumRow.classList.remove('is-in');
+  }
+
+  async function showAlbumAssign() {
+    setPhase('Album', false);
+    if (albumPanel) {
+      albumPanel.hidden = false;
+      await sleep(40);
+      albumPanel.classList.add('is-open');
+    }
+    await sleep(320);
+    if (albumRow) albumRow.classList.add('is-in');
+    await sleep(520);
+    if (albumPanel) {
+      albumPanel.classList.remove('is-open');
+      await sleep(280);
+      albumPanel.hidden = true;
+    }
+    if (albumChips) {
+      albumChips.hidden = false;
+      albumChips.removeAttribute('aria-hidden');
+      await sleep(40);
+      albumChips.classList.add('is-visible');
+    }
+  }
+
   async function runCycle() {
     if (reduced) {
-      preview.textContent = tidy;
+      showTidy();
       setPhase('Tidy', false);
-      if (durEl) durEl.textContent = '0:14';
+      if (durEl) durEl.textContent = formatDur(recordSeconds);
+      if (albumChips) {
+        albumChips.hidden = false;
+        albumChips.classList.add('is-visible');
+      }
       return;
     }
 
     while (true) {
+      resetAlbum();
       setPhase('Talk', true);
+      preview.classList.remove('is-tidy');
       preview.innerHTML = '';
       var caret = document.createElement('span');
       caret.className = 'recents-caret';
@@ -289,21 +374,25 @@
       for (var i = 0; i <= raw.length; i++) {
         preview.textContent = raw.slice(0, i);
         preview.appendChild(caret);
-        if (durEl) durEl.textContent = '0:' + String(Math.min(14, Math.floor(i / 4))).padStart(2, '0');
-        await sleep(32);
+        if (durEl) {
+          durEl.textContent = formatDur(Math.min(recordSeconds, Math.floor(i / 7)));
+        }
+        await sleep(42);
       }
-      await sleep(700);
+      await sleep(1100);
 
       setPhase('Tidy', false);
-      preview.innerHTML = '<span class="recents-filler">' + filler + '</span>' + raw.slice(filler.length);
-      await sleep(80);
+      preview.innerHTML = wrapFillers(raw);
+      await sleep(120);
       preview.querySelectorAll('.recents-filler').forEach(function (el) {
         el.classList.add('is-gone');
       });
-      await sleep(420);
-      preview.textContent = tidy;
-      if (durEl) durEl.textContent = '0:14';
-      await sleep(3200);
+      await sleep(650);
+      showTidy();
+      if (durEl) durEl.textContent = formatDur(recordSeconds);
+      await sleep(1400);
+      await showAlbumAssign();
+      await sleep(3800);
     }
   }
 

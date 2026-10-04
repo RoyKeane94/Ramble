@@ -117,6 +117,8 @@ def note_list(request):
     from_albums = False
 
     if album_param == "starred":
+        if not notes.filter(is_starred=True).exists():
+            return redirect("notes:list")
         notes = notes.filter(is_starred=True)
         album_title = "Favourites"
         from_albums = True
@@ -210,16 +212,18 @@ def album_list(request):
             "href": f"{roll}?album=today",
             "tone": 1,
         },
-        {
-            "title": "Favourites",
-            "count": favourites.count(),
-            "updated_label": _updated_label(
-                favourites.first().created_at if favourites.exists() else None
-            ),
-            "href": f"{roll}?album=starred",
-            "tone": 2,
-        },
     ]
+
+    if favourites.exists():
+        tiles.append(
+            {
+                "title": "Favourites",
+                "count": favourites.count(),
+                "updated_label": _updated_label(favourites.first().created_at),
+                "href": f"{roll}?album=starred",
+                "tone": 2,
+            }
+        )
 
     for index, album in enumerate(albums):
         tiles.append(
@@ -228,7 +232,7 @@ def album_list(request):
                 "count": album.take_count,
                 "updated_label": album.updated_label,
                 "href": f"{roll}?album={album.id}",
-                "tone": (index + 3) % 4,
+                "tone": index % 4,
             }
         )
 

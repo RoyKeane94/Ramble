@@ -22,14 +22,15 @@
     </div>
   </header>
 
-  <div class="albums-grid">
+  <div class="albums-grid albums-grid--library">
     {% for tile in tiles %}
-      <a class="album-tile tone-{{ tile.tone }}" href="{{ tile.href }}">
-        <span class="album-tile-copy">
-          <span class="album-tile-title">{{ tile.title }}</span>
-          <span class="album-tile-count">{% if tile.count == 1 %}1 take{% else %}{{ tile.count }} takes{% endif %}</span>
+      <a class="album-entry" href="{{ tile.href }}">
+        <span class="album-entry-title">{{ tile.title }}</span>
+        <span class="album-entry-accent tone-{{ tile.tone }}" aria-hidden="true"></span>
+        <span class="album-entry-meta">
+          <span class="album-entry-count">{% if tile.count == 1 %}1 take{% else %}{{ tile.count }} takes{% endif %}</span>
           {% if tile.updated_label %}
-            <span class="album-tile-updated">{{ tile.updated_label }}</span>
+            <span class="album-entry-updated">{{ tile.updated_label }}</span>
           {% endif %}
         </span>
       </a>
