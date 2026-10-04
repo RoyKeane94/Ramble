@@ -222,15 +222,7 @@
 {% endblock %}
 
 {% block footer %}
-<footer class="footer landing-footer">
-  <div class="footer-inner">
-    <span class="wordmark footer-wordmark">Ramble</span>
-    <nav class="footer-links" aria-label="Legal">
-      <a class="footer-link" href="{% url 'notes:privacy' %}">Privacy</a>
-      <a class="footer-link" href="{% url 'notes:terms' %}">Terms of use</a>
-    </nav>
-  </div>
-</footer>
+{% include "includes/legal_footer.html" with landing_footer=True %}
 {% endblock %}
 
 {% block extra_js %}

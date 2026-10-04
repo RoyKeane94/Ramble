@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing35">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing36">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <div class="atmosphere" aria-hidden="true"></div>
@@ -52,7 +52,7 @@
       {% block content %}{% endblock %}
     </main>
     {% block footer %}
-    <footer class="footer" aria-hidden="true"></footer>
+    {% include "includes/legal_footer.html" %}
     {% endblock %}
   </div>
   {% block extra_js %}{% endblock %}

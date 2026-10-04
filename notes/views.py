@@ -29,11 +29,11 @@ def home(request):
 
 
 def privacy(request):
-    return render(request, "pages/legal.html", {"page_title": "Privacy"})
+    return render(request, "pages/privacy.html")
 
 
 def terms(request):
-    return render(request, "pages/legal.html", {"page_title": "Terms of use"})
+    return render(request, "pages/terms.html")
 
 
 def group_notes_for_roll(notes):

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy · Ramble{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <article class="legal-doc">
+    <header class="page-head">
+      <h1 class="page-title">Privacy policy</h1>
+      <p class="legal-updated">Last updated: 4 October 2026</p>
+    </header>
+
+    <p class="legal-lede">This policy explains how Ramble (“we”, “us”) handles information when you use the Ramble iOS app and the Ramble website (together, the “Service”). We built Ramble so you can speak a thought and read it back later. We do not sell your Rambles, and we do not use your content to train our own models.</p>
+
+    <section class="legal-section">
+      <h2>Who we are</h2>
+      <p>Ramble is operated by the team behind the Ramble product. If you have questions about this policy or your data, contact us using the support details in the App Store listing or sign in on the web and use Settings.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>What Ramble does</h2>
+      <p>You record voice Rambles on your iPhone. Audio is transcribed and lightly tidied (punctuation, removing ums and false starts) so each Ramble is easier to read. Your words stay yours; we do not rewrite or polish for meaning. Tidied Rambles sync to your account so you can read them in the app and on the web, organise them into albums, and mark favourites.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>We do not see your Rambles</h2>
+      <p>We do not read, listen to, or review your Rambles as part of running the Service. Your Rambles are processed automatically for transcription and tidying, and stored so you can access them. We only access Ramble content when you ask for support, when we need to fix a technical problem you report, to keep the Service secure, or when the law requires it.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>Information we collect</h2>
+      <h3>Account information</h3>
+      <ul>
+        <li><strong>Email address</strong> — used to create and sign in to your account.</li>
+        <li><strong>Password</strong> — stored only as a secure hash; we never store your plain-text password.</li>
+        <li><strong>Account settings</strong> — such as your recording minute allowance and usage totals associated with your account.</li>
+      </ul>
+      <h3>Your content</h3>
+      <ul>
+        <li><strong>Rambles</strong> — transcripts, tidied text, any text you edit, album names, favourites, timestamps, and recording duration.</li>
+        <li><strong>Albums</strong> — names you choose and which Rambles belong in each album.</li>
+      </ul>
+      <p>We store this content in our PostgreSQL database on <strong>EU servers</strong>, linked to your account, so it syncs between the app and the web.</p>
+      <h3>Audio</h3>
+      <p><strong>Audio files are stored on your phone.</strong> They remain on your device in the app’s local storage. We do not store your audio files on Ramble’s servers. To transcribe a Ramble, the app sends audio to our transcription provider (see below) for processing. Temporary copies may exist on that provider’s systems for the time needed to return a transcript.</p>
+      <h3>Waitlist</h3>
+      <p>If you submit your email on our marketing site to join the waitlist, we use that address only to contact you about Ramble (for example launch news). You can ask us to remove it at any time.</p>
+      <h3>Usage and diagnostics</h3>
+      <ul>
+        <li><strong>Usage logs</strong> — when transcription or tidying runs, we may log operation type, success or failure, audio duration or text length, token counts, latency, app version, and related metadata. This supports billing against your minute allowance, reliability, and abuse prevention.</li>
+        <li><strong>Error logs</strong> — if something fails on the web or in the app, we may log error messages, paths, HTTP status, user agent, app version, and optional account linkage to fix problems.</li>
+        <li><strong>Web sessions</strong> — when you use the website, we use session cookies and similar technologies so you can stay signed in and protect forms (CSRF).</li>
+        <li><strong>API access</strong> — the app uses an API token tied to your account to sync Rambles securely over HTTPS.</li>
+      </ul>
+    </section>
+
+    <section class="legal-section">
+      <h2>How we use information</h2>
+      <p>We use your information to:</p>
+      <ul>
+        <li>Provide transcription, tidying, sync, search, and account features;</li>
+        <li>Enforce fair use and minute allowances;</li>
+        <li>Keep the Service secure and fix bugs;</li>
+        <li>Respond to support requests and legal obligations;</li>
+        <li>Send waitlist or product messages you have asked for.</li>
+      </ul>
+      <p>We do <strong>not</strong> use your Rambles to train Ramble’s own machine-learning models.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>Third-party processors</h2>
+      <p>We rely on trusted providers to run Ramble. They process data only to perform services for us, under their terms and our instructions:</p>
+      <ul>
+        <li><strong>AssemblyAI</strong> — speech-to-text. Audio you choose to transcribe is uploaded to AssemblyAI for transcription. We follow AssemblyAI’s terms and data policies for API use.</li>
+        <li><strong>OpenAI</strong> — text tidying. We send transcript text to OpenAI’s API so fillers can be removed and punctuation added, without changing your meaning. We follow OpenAI’s terms and data policies for API use.</li>
+        <li><strong>Stripe</strong> — payment processing when you pay on the web. Stripe handles payment details; we receive billing status and limited customer information needed to manage your subscription or purchase.</li>
+        <li><strong>Hosting</strong> — the web app and PostgreSQL database are hosted on cloud infrastructure (including Railway) on <strong>EU servers</strong>.</li>
+        <li><strong>Google Fonts</strong> — the website loads the Inter typeface from Google; your browser may request fonts from Google’s servers (see Google’s privacy policy).</li>
+        <li><strong>Apple</strong> — if you download the app from the App Store, Apple processes purchase and device information under Apple’s policies.</li>
+      </ul>
+      <p>On-device transcription (for example when cloud keys are not configured in development builds) may use Apple’s on-device speech frameworks; that processing stays on your device.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>Encryption and security</h2>
+      <p>Data in transit between your devices, our servers, and third-party APIs is protected using TLS (HTTPS). Passwords are hashed. We apply reasonable administrative and technical measures to protect account and Ramble data; no online service can guarantee absolute security.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>AI and training</h2>
+      <p>Your voice and your Rambles are yours. Nothing you send through Ramble is used to train our models. Transcription and tidying use AssemblyAI and OpenAI as processors only; we use their APIs in line with their policies, which are designed for business API use rather than training on your content. We do not use your Rambles to build or improve Ramble’s own models.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>Retention and deletion</h2>
+      <ul>
+        <li>You can delete individual Rambles and albums in the app or on the web.</li>
+        <li>You can delete your account from the app, which removes your account and associated Rambles from our systems subject to brief backup retention.</li>
+        <li>We may retain minimal logs for security, billing disputes, or legal compliance for a limited period.</li>
+      </ul>
+    </section>
+
+    <section class="legal-section">
+      <h2>Your rights</h2>
+      <p>Depending on where you live (including the UK and EEA), you may have rights to access, correct, delete, restrict, or export personal data, and to object to certain processing. To exercise these rights, contact us as above.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>International transfers</h2>
+      <p>Some providers may process data outside the EU. Where that happens, we rely on appropriate safeguards (such as standard contractual clauses) offered by our processors. Your Ramble text stored in our database is hosted in the EU as described above.</p>
+    </section>
+
+    <section class="legal-section">
+      <h2>Changes</h2>
+      <p>We may update this policy from time to time. We will post the new version on this page and update the “Last updated” date. Continued use of the Service after changes means you accept the updated policy.</p>
+    </section>
+  </article>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% include "includes/legal_footer.html" with landing_footer=True %}
+{% endblock %}
