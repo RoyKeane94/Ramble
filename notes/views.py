@@ -4,11 +4,10 @@ from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 
 from .models import Album, Note
 
@@ -53,57 +52,6 @@ def group_notes_for_roll(notes):
         header = note.month_header if dense else note.day_header_compact
         grouped.setdefault(header, []).append(note)
     return grouped
-
-
-def _note_export_dict(note):
-    transcripts = {}
-    gpt = note.gpt_transcribe_transcript.strip()
-    gpt_tidied = note.gpt_transcribe_tidied_text.strip()
-    whisper = note.whisper_1_transcript.strip()
-    whisper_tidied = note.whisper_1_tidied_text.strip()
-    if gpt or gpt_tidied:
-        transcripts["gpt_transcribe"] = {"raw": gpt, "tidied": gpt_tidied}
-    if whisper or whisper_tidied:
-        key = "universal_3_pro" if note.chosen_transcription_model.strip() == "universal-3-pro" else "whisper_1"
-        transcripts[key] = {"raw": whisper, "tidied": whisper_tidied}
-    if not transcripts and note.gpt_transcript.strip():
-        transcripts["gpt_transcribe"] = {"raw": note.gpt_transcript.strip(), "tidied": ""}
-
-    return {
-        "id": str(note.id),
-        "created_at": timezone.localtime(note.created_at).isoformat(),
-        "updated_at": timezone.localtime(note.updated_at).isoformat(),
-        "duration_seconds": note.duration,
-        "is_starred": note.is_starred,
-        "is_edited": note.is_edited,
-        "edited_at": timezone.localtime(note.edited_at).isoformat() if note.edited_at else None,
-        "albums": note.membership_names,
-        "transcriptions": transcripts,
-        "gpt_transcript": note.gpt_transcript,
-        "gpt_tidied_text": note.gpt_tidied_text,
-        "tidied_text": note.tidied_text,
-        "edited_text": note.edited_text,
-        "display_text": note.display_text,
-        "chosen_transcription_model": note.chosen_transcription_model,
-        "transcription_route_summary": note.transcription_route_summary,
-        "next_action_text": note.next_action_text,
-        "processing_failed": note.transcription_failed,
-        "processing_error": note.processing_error,
-    }
-
-
-@login_required
-@require_GET
-def notes_export_json(request):
-    notes = Note.objects.filter(user=request.user).prefetch_related("albums").order_by("-created_at")
-    payload = {
-        "exported_at": timezone.localtime(timezone.now()).isoformat(),
-        "note_count": notes.count(),
-        "notes": [_note_export_dict(note) for note in notes],
-    }
-    response = JsonResponse(payload, json_dumps_params={"ensure_ascii": False, "indent": 2})
-    response["Content-Disposition"] = 'attachment; filename="ramble-export.json"'
-    return response
 
 
 @login_required
