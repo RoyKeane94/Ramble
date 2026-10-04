@@ -5,8 +5,6 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from .preview import todo_preview_line as build_todo_preview_line
-
 
 class Note(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -137,26 +135,6 @@ class Note(models.Model):
         return self.source_text
 
     @property
-    def todo_items(self):
-        items = []
-        for action in self.next_action_text.splitlines():
-            action = action.strip()
-            if not action:
-                continue
-            lower = action.lower()
-            for prefix in ("to do —", "to do –", "to do -", "to do:", "to do ·", "to do "):
-                if lower.startswith(prefix):
-                    action = action[len(prefix):].strip()
-                    break
-            if action:
-                items.append(action)
-        return items
-
-    @property
-    def todo_preview_line(self):
-        return build_todo_preview_line(self.todo_items, self.preview_line)
-
-    @property
     def membership_names(self):
         albums = list(self.albums.all())
         albums.sort(key=lambda album: (album.sort_index, album.name.casefold(), str(album.id)))
@@ -226,6 +204,8 @@ class Note(models.Model):
             return "gpt-transcribe"
         if model == "whisper-1":
             return "whisper-1"
+        if model == "universal-3-pro":
+            return "Universal-3 Pro"
         return model
 
     @property
@@ -250,10 +230,15 @@ class Note(models.Model):
                 }
             )
         if whisper or whisper_tidied:
+            model = self.chosen_transcription_model.strip() or "whisper-1"
+            label = self.chosen_transcription_model_label or "whisper-1"
+            if model not in {"universal-3-pro"}:
+                model = "whisper-1"
+                label = "whisper-1"
             rows.append(
                 {
-                    "model": "whisper-1",
-                    "label": "whisper-1",
+                    "model": model,
+                    "label": label,
                     "raw": whisper,
                     "tidied": whisper_tidied,
                 }

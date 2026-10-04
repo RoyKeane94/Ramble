@@ -23,6 +23,8 @@
     {% endif %}
   </div>
 
+  {% include "accounts/minutes.html" %}
+
   <form method="post" class="settings-block panel auth-form" novalidate>
     <h2 class="day-header">Password</h2>
     {% csrf_token %}

@@ -64,7 +64,8 @@ def _note_export_dict(note):
     if gpt or gpt_tidied:
         transcripts["gpt_transcribe"] = {"raw": gpt, "tidied": gpt_tidied}
     if whisper or whisper_tidied:
-        transcripts["whisper_1"] = {"raw": whisper, "tidied": whisper_tidied}
+        key = "universal_3_pro" if note.chosen_transcription_model.strip() == "universal-3-pro" else "whisper_1"
+        transcripts[key] = {"raw": whisper, "tidied": whisper_tidied}
     if not transcripts and note.gpt_transcript.strip():
         transcripts["gpt_transcribe"] = {"raw": note.gpt_transcript.strip(), "tidied": ""}
 
@@ -86,7 +87,6 @@ def _note_export_dict(note):
         "chosen_transcription_model": note.chosen_transcription_model,
         "transcription_route_summary": note.transcription_route_summary,
         "next_action_text": note.next_action_text,
-        "todo_items": note.todo_items,
         "processing_failed": note.transcription_failed,
         "processing_error": note.processing_error,
     }

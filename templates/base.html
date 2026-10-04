@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing29">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing30">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <div class="atmosphere" aria-hidden="true"></div>
@@ -28,6 +28,9 @@
             <a class="nav-link{% if section == 'recents' or section == 'list' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
             <a class="nav-link{% if section == 'today' %} is-current{% endif %}" href="{% url 'notes:list' %}?album=today">Today</a>
             <a class="nav-link{% if section == 'albums' %} is-current{% endif %}" href="{% url 'notes:albums' %}">Albums</a>
+            {% if minute_usage %}
+              <a class="nav-link nav-minutes{% if section == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}" title="{{ minute_usage.used_minutes_label }} of {{ minute_usage.cap_minutes }} minutes used">{{ minute_usage.used_minutes_label }}/{{ minute_usage.cap_minutes }} min</a>
+            {% endif %}
             <a class="nav-link nav-quiet{% if section == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
             <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
               {% csrf_token %}

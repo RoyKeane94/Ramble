@@ -1,6 +1,10 @@
 import traceback
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import F
+
+from notes.usage import allowance_seconds
 
 from .models import ErrorLog, ModelUsageLog
 
@@ -88,8 +92,10 @@ def log_model_usage(
     app_version="",
     metadata=None,
 ):
-    return ModelUsageLog.objects.create(
-        user=_request_user(request),
+    meta = metadata or {}
+    user = _request_user(request)
+    log = ModelUsageLog.objects.create(
+        user=user,
         frame_id=frame_id or None,
         operation=operation,
         model=model,
@@ -101,5 +107,11 @@ def log_model_usage(
         total_tokens=total_tokens,
         latency_ms=latency_ms,
         app_version=app_version,
-        metadata=metadata or {},
+        metadata=meta,
     )
+    billed = allowance_seconds(operation, success, audio_seconds, meta)
+    if user is not None and billed > 0:
+        get_user_model().objects.filter(pk=user.pk).update(
+            billed_seconds=F("billed_seconds") + billed
+        )
+    return log

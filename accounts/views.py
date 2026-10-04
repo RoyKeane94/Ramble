@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView
 
 from notes.models import Note
+from notes.usage import usage_for_user
 
 from .forms import EmailAuthenticationForm, RegisterForm, StyledPasswordChangeForm
 
@@ -56,5 +57,6 @@ def settings(request):
             "password_saved": password_saved,
             "note_count": notes.count(),
             "last_synced": latest.updated_at if latest else None,
+            "minute_usage": usage_for_user(request.user),
         },
     )

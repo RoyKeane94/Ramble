@@ -125,16 +125,6 @@
         </p>
       {% endif %}
     </article>
-    {% if note.todo_items and not note.transcription_failed and note.display_text.strip %}
-      <section class="todo">
-        <p class="todo-label">To do</p>
-        <ul class="todo-list">
-          {% for item in note.todo_items %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      </section>
-    {% endif %}
   {% endif %}
 </div>
 {% endblock %}

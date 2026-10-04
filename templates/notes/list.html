@@ -9,7 +9,14 @@
   {% endif %}
   <header class="roll-head">
     <div class="roll-head-row">
-      <h1 class="roll-title">{{ album_title }}</h1>
+      <div class="roll-heading">
+        <h1 class="roll-title">{{ album_title }}</h1>
+        {% if minute_usage %}
+          <p class="roll-usage">
+            <a href="{% url 'settings' %}">{{ minute_usage.used_minutes_label }} of {{ minute_usage.cap_minutes }} minutes used · {{ minute_usage.remaining_copy }}</a>
+          </p>
+        {% endif %}
+      </div>
       {% if has_recents %}
         <div class="toolbar roll-tools">
           <a class="text-link roll-export" href="{% url 'notes:export_json' %}">Export JSON</a>
@@ -50,9 +57,6 @@
                 <a class="frame{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}" href="{% url 'notes:detail' note.id %}">
                   <div class="frame-copy">
                     <p class="frame-preview">{{ note.preview_line }}</p>
-                    {% if note.todo_preview_line %}
-                      <p class="frame-todo">{{ note.todo_preview_line }}</p>
-                    {% endif %}
                   </div>
                   <div class="frame-side">
                     <p class="frame-meta">

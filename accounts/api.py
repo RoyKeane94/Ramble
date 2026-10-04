@@ -1,4 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
+
+from notes.usage import usage_for_user
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -10,7 +12,9 @@ User = get_user_model()
 
 def _token_payload(user):
     token, _ = Token.objects.get_or_create(user=user)
-    return {"token": token.key, "email": user.email}
+    payload = {"token": token.key, "email": user.email}
+    payload.update(usage_for_user(user))
+    return payload
 
 
 @api_view(["POST"])
@@ -49,7 +53,9 @@ def logout(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    return Response({"email": request.user.email})
+    payload = {"email": request.user.email}
+    payload.update(usage_for_user(request.user))
+    return Response(payload)
 
 
 @api_view(["DELETE"])

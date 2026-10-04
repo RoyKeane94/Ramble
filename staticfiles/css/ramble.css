@@ -1767,6 +1767,21 @@ a.frame:focus-visible {
   color: var(--muted);
 }
 
+.settings-meter {
+  margin: 10px 0 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--navy-deep) 10%, transparent);
+  overflow: hidden;
+}
+
+.settings-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--navy-deep);
+}
+
 .settings-ok {
   margin: 0;
   font-size: 13px;

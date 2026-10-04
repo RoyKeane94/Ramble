@@ -35,6 +35,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    minute_cap = models.PositiveIntegerField(
+        default=600,
+        help_text="Recording allowance for this account, in minutes.",
+    )
+    billed_seconds = models.FloatField(
+        default=0,
+        help_text="AssemblyAI audio already counted against this account, in seconds.",
+    )
 
     objects = UserManager()
 
