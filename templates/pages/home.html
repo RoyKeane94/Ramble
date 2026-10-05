@@ -228,6 +228,15 @@
 {% block extra_js %}
 <script>
 (function () {
+  function updateNavbarBorder() {
+    document.body.classList.toggle('is-navbar-scrolled', window.scrollY > 0);
+  }
+  updateNavbarBorder();
+  window.addEventListener('scroll', updateNavbarBorder, { passive: true });
+})();
+</script>
+<script>
+(function () {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (!reduced) {

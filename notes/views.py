@@ -15,6 +15,29 @@ from .models import Album, Note
 MONTH_GROUP_THRESHOLD = 8
 
 
+def roll_day_summary(notes):
+    """Quiet line under a day header, e.g. '5 takes · 4 min'."""
+    count = len(notes)
+    if count == 0:
+        return ""
+    take_label = "take" if count == 1 else "takes"
+    parts = [f"{count} {take_label}"]
+    total_sec = int(sum(float(note.duration) for note in notes))
+    if total_sec > 0:
+        minutes = round(total_sec / 60)
+        if minutes < 1:
+            minutes = 1
+        parts.append(f"{minutes} min")
+    return " · ".join(parts)
+
+
+def roll_day_groups(grouped):
+    return [
+        {"header": header, "notes": day_notes, "summary": roll_day_summary(day_notes)}
+        for header, day_notes in grouped.items()
+    ]
+
+
 def home(request):
     if request.user.is_authenticated:
         return redirect("notes:list")
@@ -104,7 +127,7 @@ def note_list(request):
         request,
         "notes/list.html",
         {
-            "grouped_notes": grouped.items(),
+            "roll_day_groups": roll_day_groups(grouped),
             "album": album_param,
             "album_title": album_title,
             "current_album": current_album,
@@ -216,6 +239,37 @@ def album_delete(request, pk):
     return redirect("notes:albums")
 
 
+def detail_album_rail_entries(user, note):
+    """All library albums for the take detail sidebar (same set as Albums page, minus tiles meta)."""
+    notes = Note.objects.filter(user=user)
+    roll = reverse("notes:list")
+    membership_ids = set(note.albums.values_list("id", flat=True))
+    entries = [
+        {"name": "Recents", "href": roll, "contained": False},
+        {"name": "Today", "href": f"{roll}?album=today", "contained": False},
+    ]
+    favourites = notes.filter(is_starred=True)
+    if favourites.exists():
+        entries.append(
+            {
+                "name": "Favourites",
+                "href": f"{roll}?album=starred",
+                "contained": note.is_starred,
+            }
+        )
+    albums = list(Album.objects.filter(user=user))
+    albums.sort(key=lambda album: (album.sort_index, album.name.casefold(), str(album.id)))
+    for album in albums:
+        entries.append(
+            {
+                "name": album.name,
+                "href": f"{roll}?album={album.id}",
+                "contained": album.id in membership_ids,
+            }
+        )
+    return entries
+
+
 def _updated_label(when):
     if when is None:
         return None
@@ -239,14 +293,16 @@ def note_detail(request, pk):
     editing = request.GET.get("edit") == "1"
     managing_albums = request.GET.get("albums") == "1"
     albums = list(Album.objects.filter(user=request.user))
+    albums.sort(key=lambda album: (album.sort_index, album.name.casefold(), str(album.id)))
     album_ids = set(note.albums.values_list("id", flat=True))
     album_rows = [
         {
             "album": album,
             "contained": album.id in album_ids,
             "count": album.take_count,
+            "tone": index % 4,
         }
-        for album in albums
+        for index, album in enumerate(albums)
     ]
     return render(
         request,
@@ -256,6 +312,7 @@ def note_detail(request, pk):
             "editing": editing,
             "managing_albums": managing_albums,
             "album_rows": album_rows,
+            "album_rail_entries": detail_album_rail_entries(request.user, note),
             "nav_section": "recents",
         },
     )

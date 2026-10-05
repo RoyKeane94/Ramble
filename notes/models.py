@@ -135,10 +135,14 @@ class Note(models.Model):
         return self.source_text
 
     @property
-    def membership_names(self):
+    def membership_albums(self):
         albums = list(self.albums.all())
         albums.sort(key=lambda album: (album.sort_index, album.name.casefold(), str(album.id)))
-        return [album.name for album in albums]
+        return albums
+
+    @property
+    def membership_names(self):
+        return [album.name for album in self.membership_albums]
 
     @property
     def edited_label(self):

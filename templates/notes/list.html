@@ -42,13 +42,19 @@
 
   {% if has_results %}
     <div class="roll-list">
-      {% for day, day_notes in grouped_notes %}
+      {% for group in roll_day_groups %}
         <section class="day">
-          <h2 class="day-label">{{ day }}</h2>
+          <div class="day-head">
+            <h2 class="day-label">{{ group.header }}</h2>
+            {% if group.summary %}
+              <p class="day-summary">{{ group.summary }}</p>
+            {% endif %}
+          </div>
           <ul class="frames">
-            {% for note in day_notes %}
-              <li>
-                <a class="frame{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}" href="{% url 'notes:detail' note.id %}">
+            {% for note in group.notes %}
+              <li class="frame-row"{% if note.membership_albums %} data-album-ids="{% for album in note.membership_albums %}{{ album.id }}{% if not forloop.last %} {% endif %}{% endfor %}"{% endif %}>
+                <div class="frame{% if note.is_developing %} is-developing{% elif note.transcription_failed %} is-failed{% endif %}">
+                  <a class="frame-link" href="{% url 'notes:detail' note.id %}" aria-label="Open take"></a>
                   <div class="frame-copy">
                     <p class="frame-preview">{{ note.preview_line }}</p>
                   </div>
@@ -56,9 +62,9 @@
                     <p class="frame-meta">
                       <span class="frame-meta-text">{% if note.show_row_day %}{{ note.row_day_label }} · {% endif %}{{ note.time_label }}{% if note.duration > 0 %} · {{ note.duration_label }}{% endif %}{% if note.is_edited %} · Edited{% endif %}</span>{% if note.is_starred %}<svg class="frame-star" width="11" height="11" viewBox="0 0 16 16" aria-label="Favourited" role="img"><path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.67 4.48 12.24l.67-3.92L2.3 5.64l3.94-.57L8 1.5z"/></svg>{% endif %}
                     </p>
-                    {% include "notes/album_chips.html" with names=note.membership_names %}
+                    {% include "notes/album_chips.html" with albums=note.membership_albums stacked=True %}
                   </div>
-                </a>
+                </div>
               </li>
             {% endfor %}
           </ul>
@@ -112,6 +118,40 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if has_results %}
+<script>
+(function () {
+  var list = document.querySelector(".roll-list");
+  if (!list) return;
+
+  function clearAlbumFocus() {
+    list.classList.remove("is-album-focus");
+    list.querySelectorAll(".frame-row.is-album-match").forEach(function (row) {
+      row.classList.remove("is-album-match");
+    });
+  }
+
+  function applyAlbumFocus(albumId) {
+    list.classList.add("is-album-focus");
+    list.querySelectorAll(".frame-row[data-album-ids]").forEach(function (row) {
+      var ids = (row.getAttribute("data-album-ids") || "").split(/\s+/);
+      row.classList.toggle("is-album-match", ids.indexOf(albumId) !== -1);
+    });
+  }
+
+  list.querySelectorAll(".album-chip[data-album-id]").forEach(function (chip) {
+    chip.addEventListener("mouseenter", function () {
+      applyAlbumFocus(chip.getAttribute("data-album-id"));
+    });
+    chip.addEventListener("mouseleave", function (event) {
+      var next = event.relatedTarget;
+      if (next && next.closest && next.closest(".album-chip[data-album-id]")) return;
+      clearAlbumFocus();
+    });
+  });
+})();
+</script>
+{% endif %}
 {% if current_album %}
 <script>
   (function () {

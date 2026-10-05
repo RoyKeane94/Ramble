@@ -1,11 +1,34 @@
-{% if names %}
-<p class="album-chips" aria-label="{% if names|length == 1 %}In album {{ names.0 }}{% else %}In albums {{ names|join:', ' }}{% endif %}">
-  {% for name in names %}
-    {% if forloop.counter <= 3 %}
-      <span class="album-chip">{{ name }}</span>
-    {% elif forloop.counter == 4 %}
-      <span class="album-chip album-chip-more" aria-hidden="true">+{{ names|length|add:"-3" }}</span>
+{% if albums or names or add_url %}
+<div class="album-rail{% if stacked %} album-rail--stack{% endif %}">
+  {% if albums or names %}
+  <p class="album-chips{% if stacked %} album-chips--stack{% endif %}" aria-label="{% if albums %}{% if albums|length == 1 %}In album {{ albums.0.name }}{% else %}In albums {% for album in albums %}{{ album.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}{% elif names|length == 1 %}In album {{ names.0 }}{% else %}In albums {{ names|join:', ' }}{% endif %}">
+    {% if albums %}
+      {% for album in albums %}
+        {% if stacked %}
+          <a class="album-chip" href="{% url 'notes:list' %}?album={{ album.id }}" data-album-id="{{ album.id }}">{{ album.name }}</a>
+        {% elif forloop.counter <= 3 %}
+          <a class="album-chip" href="{% url 'notes:list' %}?album={{ album.id }}" data-album-id="{{ album.id }}">{{ album.name }}</a>
+        {% elif forloop.counter == 4 %}
+          <span class="album-chip album-chip-more" aria-hidden="true">+{{ albums|length|add:"-3" }}</span>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {% for name in names %}
+        {% if stacked or forloop.counter <= 3 %}
+          <span class="album-chip">{{ name }}</span>
+        {% elif forloop.counter == 4 %}
+          <span class="album-chip album-chip-more" aria-hidden="true">+{{ names|length|add:"-3" }}</span>
+        {% endif %}
+      {% endfor %}
     {% endif %}
-  {% endfor %}
-</p>
+  </p>
+  {% endif %}
+  {% if add_url %}
+    <a class="album-add-btn album-add-btn--rail" href="{{ add_url }}" aria-label="Add to album">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </a>
+  {% endif %}
+</div>
 {% endif %}

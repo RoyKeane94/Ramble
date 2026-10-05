@@ -1,0 +1,19 @@
+<aside class="take-album-rail" aria-label="Albums">
+  <div class="album-rail album-rail--stack take-album-rail-inner">
+    <a class="album-add-btn album-add-btn--rail" href="{% url 'notes:detail' note.id %}?albums=1" aria-label="Add to album">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </a>
+    {% if album_rail_entries %}
+      <nav class="album-chips album-chips--stack take-album-rail-list" aria-label="Your albums">
+        {% for entry in album_rail_entries %}
+          <a
+            class="album-chip{% if entry.contained %} is-in-album{% endif %}"
+            href="{{ entry.href }}"
+          >{{ entry.name }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </div>
+</aside>
