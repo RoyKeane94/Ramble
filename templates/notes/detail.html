@@ -22,6 +22,22 @@
       </p>
       <div class="take-head-aside">
         {% if not editing %}
+          <div class="take-actions">
+            <a class="take-action" href="{% url 'notes:detail' note.id %}?edit=1">Edit</a>
+            <a class="take-action{% if managing_albums %} is-current{% endif %}" href="{% url 'notes:detail' note.id %}?albums=1">Album</a>
+            <button
+              type="button"
+              class="take-action take-copy"
+              data-copy-target="take-text"
+              {% if not note.display_text.strip %}disabled{% endif %}
+            >
+              Copy
+            </button>
+            <form method="post" action="{% url 'notes:delete' note.id %}" class="take-action-form" onsubmit="return confirm('Delete this take?');">
+              {% csrf_token %}
+              <button type="submit" class="take-action take-action-delete">Delete</button>
+            </form>
+          </div>
           <form method="post" action="{% url 'notes:star' note.id %}" class="take-star-form">
             {% csrf_token %}
             <button
@@ -37,25 +53,6 @@
         {% endif %}
       </div>
     </div>
-
-    {% if not editing %}
-      <div class="take-actions">
-        <a class="take-action" href="{% url 'notes:detail' note.id %}?edit=1">Edit</a>
-        <a class="take-action{% if managing_albums %} is-current{% endif %}" href="{% url 'notes:detail' note.id %}?albums=1">Album</a>
-        <button
-          type="button"
-          class="take-action take-copy"
-          data-copy-target="take-text"
-          {% if not note.display_text.strip %}disabled{% endif %}
-        >
-          Copy
-        </button>
-        <form method="post" action="{% url 'notes:delete' note.id %}" class="take-action-form" onsubmit="return confirm('Delete this take?');">
-          {% csrf_token %}
-          <button type="submit" class="take-action take-action-delete">Delete</button>
-        </form>
-      </div>
-    {% endif %}
   </header>
 
   <textarea id="take-text" class="visually-hidden" readonly aria-hidden="true">{{ note.display_text }}</textarea>
@@ -121,14 +118,6 @@
           Empty take
         {% endif %}
       </div>
-      {% if note.has_transcription_route and not note.transcription_failed and note.display_text.strip %}
-        <p class="take-route">
-          <span class="take-route-label">Transcription · {{ note.chosen_transcription_model_label }}</span>
-          {% if note.transcription_route_summary.strip %}
-            <span class="take-route-summary">{{ note.transcription_route_summary }}</span>
-          {% endif %}
-        </p>
-      {% endif %}
     </article>
   {% endif %}
   </div>

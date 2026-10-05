@@ -1024,9 +1024,15 @@ a.album-chip:focus-visible {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px 14px;
   margin-left: auto;
   min-width: 0;
+}
+
+.take-head-aside .take-actions {
+  margin-top: 0;
+  gap: 0.875rem;
 }
 
 .take-head-aside .album-chips {
@@ -1055,6 +1061,7 @@ a.album-chip:focus-visible {
 .take-meta-sep {
   color: var(--faint);
   font-weight: 400;
+  margin-inline: 0.55em 0.2em;
 }
 
 .take-meta-album {
@@ -1125,27 +1132,6 @@ a.album-chip:focus-visible {
 
 .take-body {
   margin-top: 1.75rem;
-}
-
-.take-route {
-  margin: 1.25rem 0 0;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--faint);
-}
-
-.take-route-label {
-  display: block;
-  font-weight: 600;
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.take-route-summary {
-  display: block;
-  margin-top: 0.35rem;
 }
 
 .take-transcripts {
