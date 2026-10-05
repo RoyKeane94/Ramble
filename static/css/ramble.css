@@ -42,7 +42,8 @@
   --pad: 28px;
   --shell: 720px;
   --roll: 680px;
-  --content: 70%;
+  --content: 60%;
+  --chrome: 85%;
   --measure: var(--content);
   --radius: 20px;
   --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -184,7 +185,7 @@ main { flex: 1; }
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  width: var(--content);
+  width: var(--chrome);
   max-width: none;
   height: 52px;
   margin: 0 auto;
@@ -712,7 +713,7 @@ main { flex: 1; }
   font-weight: 400;
   line-height: 1.45;
   height: calc(1.45em * 2);
-  color: var(--muted);
+  color: var(--ink);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -720,11 +721,6 @@ main { flex: 1; }
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
-}
-
-.frame-preview::first-line {
-  color: var(--ink-soft);
-  font-weight: 500;
 }
 
 .frame-todo {
@@ -819,12 +815,6 @@ a.album-chip:focus-visible {
   color: var(--muted);
   font-size: 13px;
   height: calc(1.45em * 2);
-}
-
-.frame.is-developing .frame-preview::first-line,
-.frame.is-failed .frame-preview::first-line {
-  color: var(--muted);
-  font-weight: 400;
 }
 
 .frame-side {
@@ -934,7 +924,7 @@ a.album-chip:focus-visible {
   position: sticky;
   top: 68px;
   align-self: start;
-  padding-top: 52px;
+  padding-top: 0;
   pointer-events: auto;
 }
 
@@ -2411,7 +2401,7 @@ a.album-chip:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  width: var(--content);
+  width: var(--chrome);
   max-width: none;
   margin: 0 auto;
   padding: 18px 0 24px;
@@ -2752,7 +2742,10 @@ a.album-chip:focus-visible {
 }
 
 @media (max-width: 800px) {
-  :root { --content: calc(100% - 2 * var(--pad)); }
+  :root {
+    --content: calc(100% - 2 * var(--pad));
+    --chrome: var(--content);
+  }
 
   .shell-take--with-albums .take-layout {
     grid-template-columns: 1fr;
