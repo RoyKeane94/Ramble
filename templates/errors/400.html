@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Bad request — Ramble{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <section class="hero error-page">
+    <p class="page-kicker">Web · 400</p>
+    <h1 class="hero-title">That didn’t work.</h1>
+    <p class="hero-lede">The request couldn’t be processed. Check the link or form and try again.</p>
+    <div class="hero-actions">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'notes:list' %}">Back to Recents</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'notes:home' %}">Go home</a>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

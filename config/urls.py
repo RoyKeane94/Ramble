@@ -3,8 +3,9 @@ from django.db import connection
 from django.http import HttpResponse
 from django.urls import include, path
 
-from core.views import page_not_found, permission_denied, server_error
+from core.views import bad_request, page_not_found, permission_denied, server_error
 
+handler400 = bad_request
 handler404 = page_not_found
 handler403 = permission_denied
 handler500 = server_error
