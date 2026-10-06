@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ErrorLog, ModelUsageLog
+from .models import ErrorLog, ModelUsageLog, SupportRequest
 
 
 @admin.register(ErrorLog)
@@ -79,6 +79,25 @@ class ModelUsageLogAdmin(admin.ModelAdmin):
         "created_at",
     )
     date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SupportRequest)
+class SupportRequestAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "email", "topic", "user", "message_preview")
+    list_filter = ("topic",)
+    search_fields = ("email", "message", "user__email")
+    readonly_fields = ("user", "email", "topic", "message", "created_at")
+    date_hierarchy = "created_at"
+
+    @admin.display(description="Message")
+    def message_preview(self, obj):
+        return obj.message[:120]
 
     def has_add_permission(self, request):
         return False

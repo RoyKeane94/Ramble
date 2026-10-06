@@ -15,8 +15,8 @@
 <div class="shell shell-wide">
   <section class="hero-landing" aria-label="Ramble">
     <div class="hero-landing-copy">
-      <p class="page-kicker hero-kicker">A notebook you speak into</p>
       <h1 class="hero-title">You had the thought.<br>Nowhere to put it.</h1>
+      <p class="page-kicker hero-kicker hero-kicker-below">Ramble is the fastest way to get a thought out of your head and onto the page.</p>
       <p class="hero-lede hero-lede-tagline">
         <span class="hero-lede-tagline-line">Say it now. Read it any time.</span>
         <span class="hero-lede-tagline-line">No fluff and always your words</span>
@@ -265,14 +265,14 @@
   var preview = document.getElementById('hero-recents-preview');
   if (!preview) return;
 
-  var raw = 'Um, I want to build something without the fluff um really simple you just speak to your phone any time anywhere and like get a punctuated note back no ums no false starts it has to show up on your phone and laptop straight away and you can add notes to albums we don\u2019t we don\u2019t want to polish or rewrite always your words just easier to use let\u2019s call it Ramble';
-  var fillers = ['Um, ', ' um', ' like', ' we don\u2019t'];
+  var raw = 'I keep finding myself out and about and, um, ideas pop into my head. I don\u2019t have a notepad with me and I suppose I could use notes on my phone, but it\u2019s clunky and they, they always just stay on my phone anyway. What if we built something which was super easy to use? You just press record and you go. The output is tidied to remove any filler and any false starts, but it never rewrites, so it\u2019s always your words. It\u2019s instantly on your phone and laptop, and if you ever wanted to edit it, you can. You should also be able to create albums to group your rambles. Let\u2019s call this Ramble.';
+  var fillers = [', um,', ' they, they'];
   var tidyParagraphs = [
-    'I want to build something without the fluff. Really simple. You just speak to your phone, any time, anywhere, and get a punctuated note back. No ums, no false starts.',
-    'It shows up on your phone and laptop straight away. Add notes to albums. We don\u2019t polish or rewrite. Always your words, just easier to read.',
-    'Let\u2019s call it Ramble.'
+    'I keep finding myself out and about and ideas pop into my head. I don\u2019t have a notepad with me and I suppose I could use notes on my phone, but it\u2019s clunky and they always just stay on my phone anyway.',
+    'What if we built something which was super easy to use? You just press record and you go. The output is tidied to remove any filler and any false starts, but it never rewrites, so it\u2019s always your words. It\u2019s instantly on your phone and laptop, and if you ever wanted to edit it, you can.',
+    'You should also be able to create albums to group your rambles. Let\u2019s call this Ramble.'
   ];
-  var recordSeconds = 52;
+  var recordSeconds = 80;
   var phaseEl = document.querySelector('.recents-phase');
   var durEl = document.querySelector('.recents-meta-dur');
   var albumChips = document.getElementById('hero-demo-album-chips');

@@ -70,3 +70,30 @@ class ModelUsageLog(models.Model):
     def __str__(self):
         status = "ok" if self.success else "fail"
         return f"{self.operation} ({self.model}) — {status}"
+
+
+class SupportRequest(models.Model):
+    class Topic(models.TextChoices):
+        ACCOUNT = "account", "Account & billing"
+        SYNC = "sync", "Sync or missing takes"
+        TRANSCRIPTION = "transcription", "Transcription or tidying"
+        BUG = "bug", "Bug or crash"
+        OTHER = "other", "Something else"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="support_requests",
+    )
+    email = models.EmailField()
+    topic = models.CharField(max_length=20, choices=Topic.choices, default=Topic.OTHER)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.email} — {self.get_topic_display()}"

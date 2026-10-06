@@ -44,6 +44,11 @@
     <button type="submit" class="btn btn-primary">Update password</button>
   </form>
 
+  <div class="settings-block panel">
+    <h2 class="day-header">Help</h2>
+    <p class="settings-hint"><a href="{% url 'notes:support' %}">Contact support</a></p>
+  </div>
+
   <form method="post" action="{% url 'logout' %}" class="signout-form">
     {% csrf_token %}
     <button type="submit" class="text-link">Sign out</button>

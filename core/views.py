@@ -1,5 +1,7 @@
-from django.shortcuts import render
+from django.contrib import messages
+from django.shortcuts import redirect, render
 
+from .forms import SupportRequestForm
 from .logging import log_web_error
 
 
@@ -46,3 +48,25 @@ def bad_request(request, exception):
 
 def server_error(request):
     return render(request, "errors/500.html", status=500)
+
+
+def support(request):
+    if request.method == "POST":
+        form = SupportRequestForm(request.POST)
+        if form.is_valid():
+            support_request = form.save(commit=False)
+            if request.user.is_authenticated:
+                support_request.user = request.user
+            support_request.save()
+            messages.success(
+                request,
+                "Thanks — we received your message and will reply by email.",
+            )
+            return redirect("notes:support")
+    else:
+        initial = {}
+        if request.user.is_authenticated:
+            initial["email"] = request.user.email
+        form = SupportRequestForm(initial=initial)
+
+    return render(request, "pages/support.html", {"form": form})

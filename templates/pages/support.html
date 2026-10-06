@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Support · Ramble{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <article class="legal-doc support-doc">
+    <header class="page-head">
+      <h1 class="page-title">Support</h1>
+      <p class="legal-lede">Questions about your account, sync, transcription, or anything else — send us a message and we will reply by email.</p>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="support-ok" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="support-form auth-form" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <p class="auth-error">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+
+      <div class="support-field">
+        <label class="support-label" for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email }}
+        {% for error in form.email.errors %}
+          <p class="auth-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      <div class="support-field">
+        <label class="support-label" for="{{ form.topic.id_for_label }}">Topic</label>
+        <div class="support-select-wrap" data-support-select>
+          {{ form.topic }}
+        </div>
+        {% for error in form.topic.errors %}
+          <p class="auth-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      <div class="support-field">
+        <label class="support-label" for="{{ form.message.id_for_label }}">Message</label>
+        {{ form.message }}
+        {% for error in form.message.errors %}
+          <p class="auth-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary support-submit">Send message</button>
+    </form>
+  </article>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-support-select]").forEach(function (wrap) {
+    var select = wrap.querySelector("select");
+    if (!select || wrap.dataset.supportSelectReady) return;
+    wrap.dataset.supportSelectReady = "1";
+
+    select.classList.add("support-select-native");
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+
+    var trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.id = select.id + "-trigger";
+    trigger.className = "field support-select-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", select.id + "-listbox");
+
+    var menu = document.createElement("ul");
+    menu.className = "support-select-menu";
+    menu.id = select.id + "-listbox";
+    menu.setAttribute("role", "listbox");
+    menu.hidden = true;
+
+    var label = wrap.closest(".support-field") && wrap.closest(".support-field").querySelector(".support-label");
+    if (label) {
+      label.id = select.id + "-label";
+      label.setAttribute("for", trigger.id);
+      trigger.setAttribute("aria-labelledby", label.id);
+      menu.setAttribute("aria-labelledby", label.id);
+    }
+
+    Array.from(select.options).forEach(function (opt) {
+      var item = document.createElement("li");
+      item.className = "support-select-option";
+      item.setAttribute("role", "option");
+      item.dataset.value = opt.value;
+      item.textContent = opt.text;
+      menu.appendChild(item);
+    });
+
+    function syncOptions() {
+      menu.querySelectorAll(".support-select-option").forEach(function (item) {
+        var selected = item.dataset.value === select.value;
+        item.setAttribute("aria-selected", selected ? "true" : "false");
+        item.classList.toggle("is-selected", selected);
+      });
+      var current = select.options[select.selectedIndex];
+      trigger.textContent = current ? current.text : "Choose a topic";
+    }
+
+    function closeMenu() {
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+      wrap.classList.remove("is-open");
+    }
+
+    function openMenu() {
+      menu.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      wrap.classList.add("is-open");
+    }
+
+    trigger.addEventListener("click", function () {
+      if (menu.hidden) openMenu();
+      else closeMenu();
+    });
+
+    menu.addEventListener("click", function (event) {
+      var item = event.target.closest(".support-select-option");
+      if (!item) return;
+      select.value = item.dataset.value;
+      syncOptions();
+      closeMenu();
+    });
+
+    trigger.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeMenu();
+      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+        if (menu.hidden) {
+          event.preventDefault();
+          openMenu();
+        }
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!wrap.contains(event.target)) closeMenu();
+    });
+
+    syncOptions();
+    wrap.insertBefore(trigger, select);
+    wrap.appendChild(menu);
+  });
+</script>
+{% endblock %}
