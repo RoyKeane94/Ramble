@@ -8,18 +8,17 @@
 {% endblock %}
 
 {% block title %}Ramble{% endblock %}
-{% block meta_description %}Say it now. Read it any time. Always your words.{% endblock %}
+{% block meta_description %}Say it now. Read it any time. Talk for a moment — Ramble brings the words back tidied, and still yours.{% endblock %}
 {% block body_class %}is-landing-page{% endblock %}
 
 {% block content %}
 <div class="shell shell-wide">
   <section class="hero-landing" aria-label="Ramble">
     <div class="hero-landing-copy">
-      <h1 class="hero-title">You had the thought.<br>Nowhere to put it.</h1>
-      <p class="page-kicker hero-kicker hero-kicker-below">Ramble is the fastest way to get a thought out of your head and onto the page.</p>
+      <h1 class="hero-title">You had the thought.<br>Say it before it goes.</h1>
+      <p class="hero-lede">Talk for a moment. Ramble brings the words back tidied, and still yours.</p>
       <p class="hero-lede hero-lede-tagline">
         <span class="hero-lede-tagline-line">Say it now. Read it any time.</span>
-        <span class="hero-lede-tagline-line">No fluff and always your words</span>
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#list">Get on the list</a>
@@ -265,14 +264,14 @@
   var preview = document.getElementById('hero-recents-preview');
   if (!preview) return;
 
-  var raw = 'I keep finding myself out and about and, um, ideas pop into my head. I don\u2019t have a notepad with me and I suppose I could use notes on my phone, but it\u2019s clunky and they, they always just stay on my phone anyway. What if we built something which was super easy to use? You just press record and you go. The output is tidied to remove any filler and any false starts, but it never rewrites, so it\u2019s always your words. It\u2019s instantly on your phone and laptop, and if you ever wanted to edit it, you can. You should also be able to create albums to group your rambles. Let\u2019s call this Ramble.';
-  var fillers = [', um,', ' they, they'];
+  var raw = 'I keep finding myself out and about and, um, ideas pop into my head. I don\u2019t have a notepad with me and, uh, I suppose I could use notes on my phone, but it\u2019s clunky and, you know, they, they always just stay on my phone anyway. What if we, ah, what if we built something which was super easy to use? You just press record and, um, you go. The output is tidied to remove any filler and any false starts, but it never rewrites, so it\u2019s always your words. It\u2019s instantly on your phone and laptop, and if you ever wanted to edit it, you can. You should also be able to create albums to group your rambles. Let\u2019s call this Ramble.';
+  var fillers = [', um,', ', uh,', ', you know,', ' they, they', ', ah, what if we'];
   var tidyParagraphs = [
     'I keep finding myself out and about and ideas pop into my head. I don\u2019t have a notepad with me and I suppose I could use notes on my phone, but it\u2019s clunky and they always just stay on my phone anyway.',
     'What if we built something which was super easy to use? You just press record and you go. The output is tidied to remove any filler and any false starts, but it never rewrites, so it\u2019s always your words. It\u2019s instantly on your phone and laptop, and if you ever wanted to edit it, you can.',
     'You should also be able to create albums to group your rambles. Let\u2019s call this Ramble.'
   ];
-  var recordSeconds = 80;
+  var recordSeconds = 88;
   var phaseEl = document.querySelector('.recents-phase');
   var durEl = document.querySelector('.recents-meta-dur');
   var albumChips = document.getElementById('hero-demo-album-chips');
