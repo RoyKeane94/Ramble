@@ -904,6 +904,10 @@ a.album-chip:focus-visible {
   padding-bottom: 56px;
 }
 
+.shell-take:has(.take-compare) {
+  width: min(52rem, calc(100% - 2 * var(--pad)));
+}
+
 .take-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1130,6 +1134,16 @@ a.album-chip:focus-visible {
   border-top: 1px solid var(--line);
 }
 
+.take-compare {
+  margin: 0;
+}
+
+.take-transcript-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
 .take-transcripts-title {
   margin: 0 0 1rem;
   font-size: 0.75rem;
@@ -1143,25 +1157,27 @@ a.album-chip:focus-visible {
   margin-top: 1.25rem;
 }
 
+.take-transcript-grid .take-transcript-block + .take-transcript-block {
+  margin-top: 0;
+}
+
 .take-transcript-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.8125rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-family: inherit;
 }
 
 .take-transcript-sublabel {
-  margin: 0.75rem 0 0.25rem;
+  margin: 1.25rem 0 0.35rem;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--faint);
-}
-
-.take-transcript-sublabel:first-of-type {
-  margin-top: 0;
 }
 
 .take-transcript-pending {
@@ -1171,15 +1187,25 @@ a.album-chip:focus-visible {
   font-weight: 500;
 }
 
-.take-transcript-text-tidied {
-  color: var(--ink);
-}
-
 .take-transcript-text {
   margin: 0;
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--muted);
+}
+
+.take-transcript-text p {
+  margin: 0;
+}
+
+.take-transcript-text p + p {
+  margin-top: 1rem;
+}
+
+.take-transcript-text-tidied {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .take-star-form {
@@ -2879,6 +2905,11 @@ a.album-chip:focus-visible {
   :root {
     --content: calc(100% - 2 * var(--pad));
     --chrome: var(--content);
+  }
+
+  .take-transcript-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
   }
 
   .shell-take--with-albums .take-layout {

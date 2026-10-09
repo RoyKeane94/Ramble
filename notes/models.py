@@ -220,31 +220,34 @@ class Note(models.Model):
     def labeled_transcripts(self):
         """Side-by-side ASR outputs (raw + GPT-tidied) for comparison on the web."""
         rows = []
-        gpt = self.gpt_transcribe_transcript.strip()
-        gpt_tidied = self.gpt_transcribe_tidied_text.strip()
+        apple = self.gpt_transcribe_transcript.strip()
+        apple_tidied = self.gpt_transcribe_tidied_text.strip()
         whisper = self.whisper_1_transcript.strip()
         whisper_tidied = self.whisper_1_tidied_text.strip()
-        if gpt or gpt_tidied:
-            rows.append(
-                {
-                    "model": "gpt-transcribe",
-                    "label": "gpt-transcribe",
-                    "raw": gpt,
-                    "tidied": gpt_tidied,
-                }
-            )
         if whisper or whisper_tidied:
-            model = self.chosen_transcription_model.strip() or "whisper-1"
-            label = self.chosen_transcription_model_label or "whisper-1"
-            if model not in {"universal-3-pro"}:
-                model = "whisper-1"
+            model = self.chosen_transcription_model.strip()
+            if model == "universal-3-pro":
+                label = "Universal-3 Pro"
+            elif model == "whisper-1":
                 label = "whisper-1"
+            else:
+                label = self.chosen_transcription_model_label or "Universal-3 Pro"
+                model = model or "universal-3-pro"
             rows.append(
                 {
                     "model": model,
                     "label": label,
                     "raw": whisper,
                     "tidied": whisper_tidied,
+                }
+            )
+        if apple or apple_tidied:
+            rows.append(
+                {
+                    "model": "apple-speech",
+                    "label": "Apple Speech",
+                    "raw": apple,
+                    "tidied": apple_tidied,
                 }
             )
         if not rows:
@@ -263,6 +266,10 @@ class Note(models.Model):
     @property
     def has_labeled_transcripts(self):
         return len(self.labeled_transcripts) > 0
+
+    @property
+    def has_comparison_transcripts(self):
+        return len(self.labeled_transcripts) >= 2
 
 
 class Album(models.Model):
