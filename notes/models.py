@@ -1,5 +1,7 @@
+import re
 import uuid
 from datetime import timedelta
+from difflib import SequenceMatcher
 
 from django.conf import settings
 from django.db import models
@@ -216,9 +218,13 @@ class Note(models.Model):
     def has_transcription_route(self):
         return bool(self.chosen_transcription_model_label)
 
+    @staticmethod
+    def _normalize_for_similarity(text):
+        return re.sub(r"\s+", " ", (text or "").casefold()).strip()
+
     @property
     def labeled_transcripts(self):
-        """Side-by-side ASR outputs (raw + GPT-tidied) for comparison on the web."""
+        """Stacked ASR outputs (raw + GPT-tidied) for comparison on the web."""
         rows = []
         apple = self.gpt_transcribe_transcript.strip()
         apple_tidied = self.gpt_transcribe_tidied_text.strip()
@@ -270,6 +276,21 @@ class Note(models.Model):
     @property
     def has_comparison_transcripts(self):
         return len(self.labeled_transcripts) >= 2
+
+    @property
+    def raw_similarity_percent(self):
+        raws = [row["raw"].strip() for row in self.labeled_transcripts if row.get("raw", "").strip()]
+        if len(raws) < 2:
+            return None
+        left = self._normalize_for_similarity(raws[0])
+        right = self._normalize_for_similarity(raws[1])
+        if not left or not right:
+            return None
+        return round(SequenceMatcher(None, left, right).ratio() * 100)
+
+    @property
+    def has_raw_similarity(self):
+        return self.raw_similarity_percent is not None
 
 
 class Album(models.Model):
