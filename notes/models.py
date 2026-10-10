@@ -1,7 +1,5 @@
-import re
 import uuid
 from datetime import timedelta
-from difflib import SequenceMatcher
 
 from django.conf import settings
 from django.db import models
@@ -217,81 +215,6 @@ class Note(models.Model):
     @property
     def has_transcription_route(self):
         return bool(self.chosen_transcription_model_label)
-
-    @staticmethod
-    def _normalize_for_similarity(text):
-        return re.sub(r"\s+", " ", (text or "").casefold()).strip()
-
-    @property
-    def labeled_transcripts(self):
-        """Stacked ASR outputs (raw + GPT-tidied) for comparison on the web."""
-        rows = []
-        apple = self.gpt_transcribe_transcript.strip()
-        apple_tidied = self.gpt_transcribe_tidied_text.strip()
-        whisper = self.whisper_1_transcript.strip()
-        whisper_tidied = self.whisper_1_tidied_text.strip()
-        if whisper or whisper_tidied:
-            model = self.chosen_transcription_model.strip()
-            if model == "universal-3-pro":
-                label = "Universal-3 Pro"
-            elif model == "whisper-1":
-                label = "whisper-1"
-            else:
-                label = self.chosen_transcription_model_label or "Universal-3 Pro"
-                model = model or "universal-3-pro"
-            rows.append(
-                {
-                    "model": model,
-                    "label": label,
-                    "raw": whisper,
-                    "tidied": whisper_tidied,
-                }
-            )
-        if apple or apple_tidied:
-            rows.append(
-                {
-                    "model": "apple-speech",
-                    "label": "Apple Speech",
-                    "raw": apple,
-                    "tidied": apple_tidied,
-                }
-            )
-        if not rows:
-            legacy = self.gpt_transcript.strip()
-            if legacy:
-                rows.append(
-                    {
-                        "model": "gpt-transcribe",
-                        "label": "gpt-transcribe (legacy)",
-                        "raw": legacy,
-                        "tidied": "",
-                    }
-                )
-        return rows
-
-    @property
-    def has_labeled_transcripts(self):
-        return len(self.labeled_transcripts) > 0
-
-    @property
-    def has_comparison_transcripts(self):
-        return len(self.labeled_transcripts) >= 2
-
-    @property
-    def raw_similarity_percent(self):
-        raws = [row["raw"].strip() for row in self.labeled_transcripts if row.get("raw", "").strip()]
-        if len(raws) < 2:
-            return None
-        left = self._normalize_for_similarity(raws[0])
-        right = self._normalize_for_similarity(raws[1])
-        if not left or not right:
-            return None
-        return round(SequenceMatcher(None, left, right).ratio() * 100)
-
-    @property
-    def has_raw_similarity(self):
-        return self.raw_similarity_percent is not None
-
 
 class Album(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

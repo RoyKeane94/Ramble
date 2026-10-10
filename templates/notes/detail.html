@@ -113,26 +113,6 @@
           <p class="take-failed-title">{{ note.failure_message }}</p>
           <p class="take-failed-hint">Open Ramble on your phone and tap <strong>Retry</strong> — the recording is still there.</p>
         </div>
-      {% elif note.has_comparison_transcripts %}
-        <section class="take-compare" aria-label="Transcript comparison">
-          {% if note.has_raw_similarity %}
-            <p class="take-similarity">Raw similarity {{ note.raw_similarity_percent }}%</p>
-          {% endif %}
-          {% for row in note.labeled_transcripts %}
-            <article class="take-transcript-block">
-              <h2 class="take-transcript-label">{{ row.label }}</h2>
-              {% if row.tidied %}
-                <div class="take-transcript-text take-transcript-text-tidied take-text-prose">{{ row.tidied|linebreaks }}</div>
-                {% if row.raw %}
-                  <p class="take-transcript-sublabel">Raw</p>
-                  <div class="take-transcript-text take-text-prose">{{ row.raw|linebreaks }}</div>
-                {% endif %}
-              {% elif row.raw %}
-                <div class="take-transcript-text take-text-prose">{{ row.raw|linebreaks }}</div>
-              {% endif %}
-            </article>
-          {% endfor %}
-        </section>
       {% elif note.display_text.strip %}
         <div class="take-text take-text-prose">
           {{ note.display_text|linebreaks }}
