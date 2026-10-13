@@ -1,14 +1,14 @@
 {% if minute_usage %}
 <div class="settings-block panel">
   <p class="settings-label">Minutes</p>
-  <p class="settings-email">{{ minute_usage.used_summary }} · {{ minute_usage.remaining_copy }} · {{ minute_usage.resets_copy }}</p>
+  <p class="settings-email">{{ minute_usage.remaining_copy }}</p>
   <div
     class="settings-meter"
     role="progressbar"
     aria-valuemin="0"
     aria-valuemax="{{ minute_usage.cap_minutes }}"
     aria-valuenow="{{ minute_usage.used_minutes_label }}"
-    aria-label="{{ minute_usage.used_summary }}"
+    aria-label="{{ minute_usage.remaining_copy }}"
   >
     <span style="width: {{ minute_usage.used_percent }}%;"></span>
   </div>

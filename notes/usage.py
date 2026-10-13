@@ -45,12 +45,6 @@ def billing_period_bounds(now=None):
     return start, end
 
 
-def billing_period_resets_label(now=None):
-    """Human label for when the allowance resets (first day of next month)."""
-    _, end = billing_period_bounds(now)
-    return end.strftime("%-d %b")
-
-
 def logged_assembly_seconds(user, *, period_start=None, period_end=None):
     from core.models import ModelUsageLog
 
@@ -82,22 +76,23 @@ def usage_for_user(user):
     remaining = max(0.0, cap - used)
     used_clamped = min(float(cap), used)
     remaining_clamped = max(0.0, remaining)
-    resets_label = billing_period_resets_label()
 
     def _label(value):
         if value >= 10:
             return str(int(value))
         return f"{value:.1f}"
 
-    remaining_label = _label(remaining_clamped)
     if remaining <= 0:
-        remaining_copy = f"You've used your {cap} minutes this month."
-    elif remaining_label == "1":
+        remaining_copy = "0 minutes left this month"
+    elif remaining < 1:
         remaining_copy = "1 minute left this month"
     else:
-        remaining_copy = f"{remaining_label} minutes left this month"
+        left = int(remaining)
+        remaining_copy = (
+            "1 minute left this month" if left == 1 else f"{left} minutes left this month"
+        )
 
-    used_summary = f"{_label(used_clamped)} of {cap} minutes used this month"
+    remaining_label = str(int(remaining_clamped)) if remaining_clamped >= 1 else _label(remaining_clamped)
 
     return {
         "cap_minutes": cap,
@@ -106,9 +101,6 @@ def usage_for_user(user):
         "used_minutes_label": _label(used_clamped),
         "remaining_minutes_label": remaining_label,
         "remaining_copy": remaining_copy,
-        "used_summary": used_summary,
-        "resets_label": resets_label,
-        "resets_copy": f"Resets {resets_label}",
         "used_percent": min(100.0, (used / cap) * 100.0) if cap else 0.0,
         "is_exhausted": remaining <= 0,
     }
