@@ -9,10 +9,5 @@ class WebErrorLoggingMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
-        log_web_error(
-            request=request,
-            message=str(exception) or type(exception).__name__,
-            status_code=500,
-            exc=exception,
-        )
+        request.ramble_uncaught_exception = exception
         return None

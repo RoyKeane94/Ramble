@@ -1,3 +1,4 @@
+import logging
 import traceback
 
 from django.contrib.auth import get_user_model
@@ -7,6 +8,8 @@ from django.db.models import F
 from notes.usage import allowance_seconds
 
 from .models import ErrorLog, ModelUsageLog
+
+_error_logger = logging.getLogger("ramble.errors")
 
 
 def _request_user(request):
@@ -38,7 +41,7 @@ def log_web_error(
         error_type = error_type or type(exc).__name__
         tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     meta = _request_meta(request)
-    return ErrorLog.objects.create(
+    log = ErrorLog.objects.create(
         source=ErrorLog.Source.WEB,
         status_code=status_code,
         error_type=error_type,
@@ -50,6 +53,17 @@ def log_web_error(
         user_agent=meta["user_agent"],
         metadata=metadata or {},
     )
+    code = status_code or "?"
+    _error_logger.error(
+        "[%s] %s %s — %s (ErrorLog #%s)",
+        code,
+        meta["method"],
+        meta["path"],
+        message,
+        log.pk,
+        exc_info=exc,
+    )
+    return log
 
 
 def log_app_error(
@@ -62,7 +76,7 @@ def log_app_error(
     metadata=None,
 ):
     meta = _request_meta(request)
-    return ErrorLog.objects.create(
+    log = ErrorLog.objects.create(
         source=ErrorLog.Source.APP,
         error_type=error_type,
         message=message,
@@ -74,6 +88,14 @@ def log_app_error(
         app_version=app_version,
         metadata=metadata or {},
     )
+    _error_logger.error(
+        "[app] %s %s — %s (ErrorLog #%s)",
+        meta["method"],
+        meta["path"],
+        message,
+        log.pk,
+    )
+    return log
 
 
 def log_model_usage(

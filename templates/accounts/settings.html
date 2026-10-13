@@ -25,6 +25,43 @@
 
   {% include "accounts/minutes.html" %}
 
+  <div class="settings-block panel">
+    <h2 class="day-header">Ramble MCP</h2>
+    <p class="settings-hint">A connector so assistants can search and file your takes — without opening the web app.</p>
+    <p class="settings-label settings-follow">URL</p>
+    <code class="settings-code" id="mcp-url">{{ mcp_url }}</code>
+    <div class="settings-actions">
+      <button type="button" class="btn btn-ghost" data-copy="#mcp-url">Copy URL</button>
+    </div>
+
+    {% if mcp_token_plain %}
+      <p class="settings-ok settings-follow">Copy this token now. It will not be shown again.</p>
+      <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
+      <div class="settings-actions">
+        <button type="button" class="btn btn-primary" data-copy="#mcp-token">Copy token</button>
+      </div>
+    {% elif request.user.has_mcp_token %}
+      <p class="settings-hint settings-follow">
+        Token active · {{ request.user.mcp_token_prefix }}…
+        {% if request.user.mcp_token_created_at %}
+          · created {{ request.user.mcp_token_created_at|date:"j M Y" }}
+        {% endif %}
+      </p>
+      <form method="post" class="settings-actions" onsubmit="return confirm('This disconnects any assistant using the old token.');">
+        {% csrf_token %}
+        <input type="hidden" name="intent" value="mcp_token">
+        <button type="submit" class="btn btn-ghost">Replace token</button>
+      </form>
+    {% else %}
+      <p class="settings-hint settings-follow">Generate a token to connect Cursor, Claude, or Grok. It can read your takes and add them to albums.</p>
+      <form method="post" class="settings-actions">
+        {% csrf_token %}
+        <input type="hidden" name="intent" value="mcp_token">
+        <button type="submit" class="btn btn-primary">Generate token</button>
+      </form>
+    {% endif %}
+  </div>
+
   <form method="post" class="settings-block panel auth-form" novalidate>
     <h2 class="day-header">Password</h2>
     {% csrf_token %}
@@ -54,4 +91,20 @@
     <button type="submit" class="text-link">Sign out</button>
   </form>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-copy]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var node = document.querySelector(button.getAttribute("data-copy"));
+      if (!node) return;
+      navigator.clipboard.writeText(node.textContent.trim()).then(function () {
+        var label = button.textContent;
+        button.textContent = "Copied";
+        setTimeout(function () { button.textContent = label; }, 1200);
+      });
+    });
+  });
+</script>
 {% endblock %}

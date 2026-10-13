@@ -3,13 +3,13 @@ from datetime import timedelta
 from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Album, Note
+from .search import text_search_q
 
 # Month section headers only when that month has more takes than this.
 MONTH_GROUP_THRESHOLD = 8
@@ -113,7 +113,7 @@ def note_list(request):
                 album_param = "recents"
 
     if query:
-        notes = notes.filter(Q_from_query(query))
+        notes = notes.filter(text_search_q(query))
 
     if album_param == "today":
         today_notes = list(notes)
@@ -137,24 +137,6 @@ def note_list(request):
             "search_open": bool(query) or request.GET.get("search") == "1",
             "nav_section": "albums" if from_albums else ("today" if album_param == "today" else "recents"),
         },
-    )
-
-
-def Q_from_query(query):
-    from django.db.models import Q
-
-    return (
-        Q(tidied_text__icontains=query)
-        | Q(raw_transcript__icontains=query)
-        | Q(original_transcript__icontains=query)
-        | Q(boosted_transcript__icontains=query)
-        | Q(gpt_transcript__icontains=query)
-        | Q(gpt_transcribe_transcript__icontains=query)
-        | Q(whisper_1_transcript__icontains=query)
-        | Q(gpt_transcribe_tidied_text__icontains=query)
-        | Q(whisper_1_tidied_text__icontains=query)
-        | Q(gpt_tidied_text__icontains=query)
-        | Q(edited_text__icontains=query)
     )
 
 
@@ -226,12 +208,7 @@ def album_list(request):
 def album_create(request):
     name = request.POST.get("name", "").strip()
     if name:
-        next_index = Album.objects.filter(user=request.user).aggregate(m=Max("sort_index"))["m"]
-        Album.objects.create(
-            user=request.user,
-            name=name[:200],
-            sort_index=(next_index if next_index is not None else -1) + 1,
-        )
+        Album.create_for_user(request.user, name)
     return redirect("notes:albums")
 
 
@@ -362,15 +339,9 @@ def note_albums(request, pk):
     if action == "create":
         name = request.POST.get("name", "").strip()
         if name:
-            next_index = (
-                Album.objects.filter(user=request.user).aggregate(m=Max("sort_index"))["m"]
-            )
-            album = Album.objects.create(
-                user=request.user,
-                name=name[:200],
-                sort_index=(next_index if next_index is not None else -1) + 1,
-            )
+            album = Album.create_for_user(request.user, name)
             album.notes.add(note)
+            note.touch()
     elif action == "toggle":
         album = get_object_or_404(
             Album, pk=request.POST.get("album_id"), user=request.user
@@ -379,5 +350,6 @@ def note_albums(request, pk):
             album.notes.remove(note)
         else:
             album.notes.add(note)
+        note.touch()
 
     return redirect(f"{reverse('notes:detail', kwargs={'pk': pk})}?albums=1")

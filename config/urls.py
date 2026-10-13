@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.urls import include, path
 
 from core.views import bad_request, page_not_found, permission_denied, server_error
+from ramble_mcp.views import mcp_endpoint
 
 handler400 = bad_request
 handler404 = page_not_found
@@ -18,6 +19,8 @@ def healthz(_request):
 
 urlpatterns = [
     path("healthz", healthz),
+    path("mcp", mcp_endpoint),
+    path("mcp/", mcp_endpoint),
     path("admin/", admin.site.urls),
     path("api/", include("notes.api_urls")),
     path("api/", include("core.api_urls")),

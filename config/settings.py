@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "accounts",
     "notes",
     "core",
+    "ramble_mcp",
 ]
 
 MIDDLEWARE = [
@@ -160,3 +161,36 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.environ.get("LOG_LEVEL", "INFO"),
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "ramble": {
+            "handlers": ["console"],
+            "level": os.environ.get("RAMBLE_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+    },
+}

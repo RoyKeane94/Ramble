@@ -2826,6 +2826,32 @@ a.album-chip:focus-visible {
   color: #3D6B4F;
 }
 
+.settings-code {
+  display: block;
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--navy-deep) 6%, transparent);
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--navy-deep);
+  word-break: break-all;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-follow {
+  margin-top: 16px;
+}
+
+.settings-label.settings-follow {
+  margin-top: 14px;
+}
+
 .signout-form { margin-top: 20px; }
 
 .footer {

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
+from .error_pages import render_error_page
 from .forms import SupportRequestForm
 from .logging import log_web_error
 
@@ -13,7 +14,7 @@ def _log_and_render(request, *, template, status_code, message, exception):
         error_type=type(exception).__name__,
         exc=exception,
     )
-    return render(request, template, status=status_code)
+    return render_error_page(request, template, status_code=status_code)
 
 
 def page_not_found(request, exception):
@@ -47,7 +48,21 @@ def bad_request(request, exception):
 
 
 def server_error(request):
-    return render(request, "errors/500.html", status=500)
+    exc = getattr(request, "ramble_uncaught_exception", None)
+    if exc is not None:
+        log_web_error(
+            request=request,
+            message=str(exc) or type(exc).__name__,
+            status_code=500,
+            exc=exc,
+        )
+    else:
+        log_web_error(
+            request=request,
+            message="Internal server error",
+            status_code=500,
+        )
+    return render_error_page(request, "errors/500.html", status_code=500)
 
 
 def support(request):

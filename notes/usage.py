@@ -45,7 +45,7 @@ def billing_period_bounds(now=None):
     return start, end
 
 
-def logged_assembly_seconds(user, *, period_start=None, period_end=None):
+def logged_assembly_seconds(user, period_start=None, period_end=None):
     from core.models import ModelUsageLog
 
     if not getattr(user, "pk", None):
@@ -67,7 +67,8 @@ def logged_assembly_seconds(user, *, period_start=None, period_end=None):
 
 def assembly_seconds_for_user(user, now=None):
     """Assembly audio billed against the current monthly allowance."""
-    return logged_assembly_seconds(user, *billing_period_bounds(now))
+    start, end = billing_period_bounds(now)
+    return logged_assembly_seconds(user, period_start=start, period_end=end)
 
 
 def usage_for_user(user):

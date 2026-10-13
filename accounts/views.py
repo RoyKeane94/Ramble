@@ -38,6 +38,7 @@ class RambleLogoutView(LogoutView):
 def settings(request):
     password_form = StyledPasswordChangeForm(request.user)
     password_saved = False
+    mcp_token_plain = None
 
     if request.method == "POST" and request.POST.get("intent") == "password":
         password_form = StyledPasswordChangeForm(request.user, request.POST)
@@ -46,9 +47,12 @@ def settings(request):
             update_session_auth_hash(request, user)
             password_saved = True
             password_form = StyledPasswordChangeForm(request.user)
+    elif request.method == "POST" and request.POST.get("intent") == "mcp_token":
+        mcp_token_plain = request.user.issue_mcp_token()
 
     notes = Note.objects.filter(user=request.user)
     latest = notes.order_by("-updated_at").first()
+    mcp_url = request.build_absolute_uri("/mcp").rstrip("/")
     return render(
         request,
         "accounts/settings.html",
@@ -58,5 +62,7 @@ def settings(request):
             "note_count": notes.count(),
             "last_synced": latest.updated_at if latest else None,
             "minute_usage": usage_for_user(request.user),
+            "mcp_url": mcp_url,
+            "mcp_token_plain": mcp_token_plain,
         },
     )

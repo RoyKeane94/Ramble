@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Max
 from django.utils import timezone
 
 
@@ -216,6 +217,10 @@ class Note(models.Model):
     def has_transcription_route(self):
         return bool(self.chosen_transcription_model_label)
 
+    def touch(self):
+        self.save(update_fields=["updated_at"])
+
+
 class Album(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -233,6 +238,15 @@ class Album(models.Model):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def create_for_user(cls, user, name):
+        next_index = cls.objects.filter(user=user).aggregate(m=Max("sort_index"))["m"]
+        return cls.objects.create(
+            user=user,
+            name=name[:200],
+            sort_index=(next_index if next_index is not None else -1) + 1,
+        )
 
     @property
     def take_count(self):
