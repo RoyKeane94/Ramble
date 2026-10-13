@@ -176,14 +176,18 @@ def album_list(request):
             "href": roll,
             "tone": 0,
         },
-        {
-            "title": "Today",
-            "count": today.count(),
-            "updated_label": _updated_label(today.first().created_at if today.exists() else None),
-            "href": f"{roll}?album=today",
-            "tone": 1,
-        },
     ]
+
+    if today.exists():
+        tiles.append(
+            {
+                "title": "Today",
+                "count": today.count(),
+                "updated_label": _updated_label(today.first().created_at),
+                "href": f"{roll}?album=today",
+                "tone": 1,
+            }
+        )
 
     if favourites.exists():
         tiles.append(
@@ -244,10 +248,11 @@ def detail_album_rail_entries(user, note):
     notes = Note.objects.filter(user=user)
     roll = reverse("notes:list")
     membership_ids = set(note.albums.values_list("id", flat=True))
-    entries = [
-        {"name": "Recents", "href": roll, "contained": False},
-        {"name": "Today", "href": f"{roll}?album=today", "contained": False},
-    ]
+    entries = [{"name": "Recents", "href": roll, "contained": False}]
+    now = timezone.localtime(timezone.now())
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1)).exists():
+        entries.append({"name": "Today", "href": f"{roll}?album=today", "contained": False})
     favourites = notes.filter(is_starred=True)
     if favourites.exists():
         entries.append(

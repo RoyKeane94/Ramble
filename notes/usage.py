@@ -1,4 +1,5 @@
 from django.db.models import Q, Sum
+from django.utils import timezone
 
 DEFAULT_MINUTE_CAP = 600
 ASSEMBLY_OPERATION = "assembly_cloud"
@@ -29,30 +30,50 @@ def allowance_seconds(operation, success, audio_seconds, metadata):
     return 0.0
 
 
-def logged_assembly_seconds(user):
+def billing_period_bounds(now=None):
+    """
+    Current calendar month in the project timezone (settings.TIME_ZONE).
+    Returns (start, end) as aware datetimes with end exclusive.
+    """
+    now = now or timezone.now()
+    local = timezone.localtime(now)
+    start = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        end = start.replace(year=start.year + 1, month=1)
+    else:
+        end = start.replace(month=start.month + 1)
+    return start, end
+
+
+def billing_period_resets_label(now=None):
+    """Human label for when the allowance resets (first day of next month)."""
+    _, end = billing_period_bounds(now)
+    return end.strftime("%-d %b")
+
+
+def logged_assembly_seconds(user, *, period_start=None, period_end=None):
     from core.models import ModelUsageLog
 
     if not getattr(user, "pk", None):
         return 0.0
-    seconds = (
-        ModelUsageLog.objects.filter(
-            user=user,
-            operation=ASSEMBLY_OPERATION,
-            audio_seconds__gt=0,
-        )
-        .filter(Q(success=True) | Q(metadata__transcript_id__gt=""))
-        .aggregate(total=Sum("audio_seconds"))["total"]
-    )
+    if period_start is None or period_end is None:
+        period_start, period_end = billing_period_bounds()
+
+    qs = ModelUsageLog.objects.filter(
+        user=user,
+        operation=ASSEMBLY_OPERATION,
+        audio_seconds__gt=0,
+        created_at__gte=period_start,
+        created_at__lt=period_end,
+    ).filter(Q(success=True) | Q(metadata__transcript_id__gt=""))
+
+    seconds = qs.aggregate(total=Sum("audio_seconds"))["total"]
     return max(0.0, float(seconds or 0))
 
 
-def assembly_seconds_for_user(user):
-    stored = max(0.0, float(getattr(user, "billed_seconds", 0) or 0))
-    logged = logged_assembly_seconds(user)
-    total = max(stored, logged)
-    if logged > stored and getattr(user, "pk", None):
-        type(user).objects.filter(pk=user.pk, billed_seconds__lt=logged).update(billed_seconds=logged)
-    return total
+def assembly_seconds_for_user(user, now=None):
+    """Assembly audio billed against the current monthly allowance."""
+    return logged_assembly_seconds(user, *billing_period_bounds(now))
 
 
 def usage_for_user(user):
@@ -61,6 +82,7 @@ def usage_for_user(user):
     remaining = max(0.0, cap - used)
     used_clamped = min(float(cap), used)
     remaining_clamped = max(0.0, remaining)
+    resets_label = billing_period_resets_label()
 
     def _label(value):
         if value >= 10:
@@ -69,11 +91,13 @@ def usage_for_user(user):
 
     remaining_label = _label(remaining_clamped)
     if remaining <= 0:
-        remaining_copy = f"You've used your {cap} minutes."
+        remaining_copy = f"You've used your {cap} minutes this month."
     elif remaining_label == "1":
-        remaining_copy = "1 minute left"
+        remaining_copy = "1 minute left this month"
     else:
-        remaining_copy = f"{remaining_label} minutes left"
+        remaining_copy = f"{remaining_label} minutes left this month"
+
+    used_summary = f"{_label(used_clamped)} of {cap} minutes used this month"
 
     return {
         "cap_minutes": cap,
@@ -82,6 +106,9 @@ def usage_for_user(user):
         "used_minutes_label": _label(used_clamped),
         "remaining_minutes_label": remaining_label,
         "remaining_copy": remaining_copy,
+        "used_summary": used_summary,
+        "resets_label": resets_label,
+        "resets_copy": f"Resets {resets_label}",
         "used_percent": min(100.0, (used / cap) * 100.0) if cap else 0.0,
         "is_exhausted": remaining <= 0,
     }

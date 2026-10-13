@@ -37,11 +37,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
     minute_cap = models.PositiveIntegerField(
         default=600,
-        help_text="Recording allowance for this account, in minutes.",
+        help_text="Recording allowance per calendar month, in minutes.",
     )
     billed_seconds = models.FloatField(
         default=0,
-        help_text="AssemblyAI audio already counted against this account, in seconds.",
+        help_text="Lifetime AssemblyAI audio total (audit); monthly allowance uses usage logs.",
     )
 
     objects = UserManager()

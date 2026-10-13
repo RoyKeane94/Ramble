@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from notes.usage import assembly_seconds_for_user
+
 from .models import User
 
 
@@ -12,9 +14,9 @@ class UserAdmin(admin.ModelAdmin):
     readonly_fields = ("date_joined", "last_login")
     filter_horizontal = ("groups", "user_permissions")
 
-    @admin.display(description="Minutes used")
+    @admin.display(description="Minutes used (month)")
     def minutes_used(self, obj):
-        return f"{float(obj.billed_seconds or 0) / 60:.1f}"
+        return f"{assembly_seconds_for_user(obj) / 60:.1f}"
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Allowance", {"fields": ("minute_cap", "billed_seconds")}),
