@@ -96,8 +96,13 @@ def group_notes_for_roll(notes, month_counts=None):
 
 
 @login_required
-def note_list(request):
-    album_param = request.GET.get("album", "recents")
+def note_library(request):
+    return note_list(request, fixed_album="library")
+
+
+@login_required
+def note_list(request, fixed_album=None):
+    album_param = fixed_album or request.GET.get("album", "recents")
     query = request.GET.get("q", "").strip()
     notes = Note.objects.filter(user=request.user).prefetch_related("albums")
     has_recents = notes.exists()
@@ -116,6 +121,8 @@ def note_list(request):
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         notes = notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1))
         album_title = "Today"
+    elif album_param == "library":
+        album_title = "Your library"
     elif album_param not in ("", "recents"):
         try:
             album_id = UUID(album_param)
@@ -134,7 +141,9 @@ def note_list(request):
         notes = notes.filter(text_search_q(query))
 
     has_results = notes.exists()
-    paginate_roll = album_param == "today" or current_album is not None
+    paginate_roll = (
+        album_param in ("today", "library") or current_album is not None
+    )
     page_obj = None
     if paginate_roll:
         page_obj = Paginator(notes, ROLL_PAGE_SIZE).get_page(request.GET.get("page"))
@@ -152,6 +161,13 @@ def note_list(request):
         grouped = OrderedDict([("Today", today_notes)]) if today_notes else OrderedDict()
         if paginate_roll and has_results:
             summary_by_header = {"Today": list(notes)}
+    elif album_param == "library":
+        month_counts = roll_month_counts(notes)
+        grouped = group_notes_for_roll(display_notes, month_counts=month_counts)
+        if paginate_roll and has_results:
+            summary_by_header = dict(
+                group_notes_for_roll(notes, month_counts=month_counts)
+            )
     else:
         month_counts = roll_month_counts(notes) if paginate_roll and current_album else None
         grouped = group_notes_for_roll(display_notes, month_counts=month_counts)
@@ -173,7 +189,16 @@ def note_list(request):
             "has_results": has_results,
             "page_obj": page_obj,
             "search_open": bool(query) or request.GET.get("search") == "1",
-            "nav_section": "albums" if from_albums else ("today" if album_param == "today" else "recents"),
+            "nav_section": (
+                "albums"
+                if from_albums
+                else (
+                    "library"
+                    if album_param == "library"
+                    else ("today" if album_param == "today" else "recents")
+                )
+            ),
+            "library_page": album_param == "library",
         },
     )
 
@@ -187,14 +212,24 @@ def album_list(request):
     today = notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1))
     albums = list(Album.objects.filter(user=request.user).prefetch_related("notes"))
     roll = reverse("notes:list")
+    library = reverse("notes:library")
+    total_takes = notes.count()
+    recents_take_count = min(total_takes, RECENTS_LIMIT) if total_takes else 0
 
     tiles = [
         {
+            "title": "Your library",
+            "count": total_takes,
+            "updated_label": _updated_label(notes.first().created_at if notes.exists() else None),
+            "href": library,
+            "tone": 0,
+        },
+        {
             "title": "Recents",
-            "count": notes.count(),
+            "count": recents_take_count,
             "updated_label": _updated_label(notes.first().created_at if notes.exists() else None),
             "href": roll,
-            "tone": 0,
+            "tone": 1,
         },
     ]
 
@@ -205,7 +240,7 @@ def album_list(request):
                 "count": today.count(),
                 "updated_label": _updated_label(today.first().created_at),
                 "href": f"{roll}?album=today",
-                "tone": 1,
+                "tone": 2,
             }
         )
 
@@ -216,7 +251,7 @@ def album_list(request):
                 "count": favourites.count(),
                 "updated_label": _updated_label(favourites.first().created_at),
                 "href": f"{roll}?album=starred",
-                "tone": 2,
+                "tone": 3,
             }
         )
 
@@ -227,7 +262,7 @@ def album_list(request):
                 "count": album.take_count,
                 "updated_label": album.updated_label,
                 "href": f"{roll}?album={album.id}",
-                "tone": index % 4,
+                "tone": (index + 4) % 4,
             }
         )
 
@@ -262,8 +297,12 @@ def detail_album_rail_entries(user, note):
     """All library albums for the take detail sidebar (same set as Albums page, minus tiles meta)."""
     notes = Note.objects.filter(user=user)
     roll = reverse("notes:list")
+    library = reverse("notes:library")
     membership_ids = set(note.albums.values_list("id", flat=True))
-    entries = [{"name": "Recents", "href": roll, "contained": False}]
+    entries = [
+        {"name": "Your library", "href": library, "contained": False},
+        {"name": "Recents", "href": roll, "contained": False},
+    ]
     now = timezone.localtime(timezone.now())
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     if notes.filter(created_at__gte=start, created_at__lt=start + timedelta(days=1)).exists():

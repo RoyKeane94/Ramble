@@ -12,6 +12,7 @@ urlpatterns = [
     path("terms/", views.terms, name="terms"),
     path("support/", support, name="support"),
     path("roll/", views.note_list, name="list"),
+    path("library/", views.note_library, name="library"),
     path("albums/", views.album_list, name="albums"),
     path("albums/new/", views.album_create, name="album_create"),
     path("albums/<uuid:pk>/delete/", views.album_delete, name="album_delete"),
