@@ -1,0 +1,15 @@
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<nav class="roll-pagination" aria-label="Pages">
+  {% if page_obj.has_previous %}
+    <a class="text-link" href="?album={{ album }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+  {% else %}
+    <span class="roll-pagination-spacer" aria-hidden="true"></span>
+  {% endif %}
+  <span class="roll-pagination-status">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a class="text-link" href="?album={{ album }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}&amp;page={{ page_obj.next_page_number }}">Next</a>
+  {% else %}
+    <span class="roll-pagination-spacer" aria-hidden="true"></span>
+  {% endif %}
+</nav>
+{% endif %}

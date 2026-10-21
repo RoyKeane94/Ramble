@@ -71,6 +71,7 @@
         </section>
       {% endfor %}
     </div>
+    {% include "notes/roll_pagination.html" %}
   {% elif query %}
     <p class="empty-copy">No matching takes. Try a different search.</p>
   {% elif album == "starred" %}

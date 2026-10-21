@@ -871,6 +871,26 @@ a.album-chip:focus-visible {
   width: 100%;
 }
 
+.roll-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 4px;
+}
+
+.roll-pagination-status {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.roll-pagination-spacer {
+  flex: 0 0 4.5rem;
+}
+
 .frame-preview-empty {
   margin: 0;
   font-size: 13px;

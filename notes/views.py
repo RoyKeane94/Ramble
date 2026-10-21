@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -13,6 +14,8 @@ from .search import text_search_q
 
 # Month section headers only when that month has more takes than this.
 MONTH_GROUP_THRESHOLD = 8
+RECENTS_LIMIT = 10
+ROLL_PAGE_SIZE = 10
 
 
 def roll_day_summary(notes):
@@ -31,11 +34,20 @@ def roll_day_summary(notes):
     return " · ".join(parts)
 
 
-def roll_day_groups(grouped):
-    return [
-        {"header": header, "notes": day_notes, "summary": roll_day_summary(day_notes)}
-        for header, day_notes in grouped.items()
-    ]
+def roll_day_groups(grouped, summary_by_header=None):
+    groups = []
+    for header, day_notes in grouped.items():
+        summary_notes = day_notes
+        if summary_by_header is not None and header in summary_by_header:
+            summary_notes = summary_by_header[header]
+        groups.append(
+            {
+                "header": header,
+                "notes": day_notes,
+                "summary": roll_day_summary(summary_notes),
+            }
+        )
+    return groups
 
 
 def home(request):
@@ -59,13 +71,19 @@ def terms(request):
     return render(request, "pages/terms.html")
 
 
-def group_notes_for_roll(notes):
+def roll_month_counts(notes):
+    counts = Counter()
+    for note in notes:
+        local = timezone.localtime(note.created_at)
+        counts[(local.year, local.month)] += 1
+    return counts
+
+
+def group_notes_for_roll(notes, month_counts=None):
     """Today/Yesterday/day for thin months; month headers when a month is dense."""
     note_list = list(notes)
-    month_counts = Counter()
-    for note in note_list:
-        local = timezone.localtime(note.created_at)
-        month_counts[(local.year, local.month)] += 1
+    if month_counts is None:
+        month_counts = roll_month_counts(note_list)
 
     grouped = OrderedDict()
     for note in note_list:
@@ -115,25 +133,45 @@ def note_list(request):
     if query:
         notes = notes.filter(text_search_q(query))
 
+    has_results = notes.exists()
+    paginate_roll = album_param == "today" or current_album is not None
+    page_obj = None
+    if paginate_roll:
+        page_obj = Paginator(notes, ROLL_PAGE_SIZE).get_page(request.GET.get("page"))
+        display_notes = page_obj.object_list
+    elif album_param in ("", "recents"):
+        display_notes = notes[:RECENTS_LIMIT]
+    else:
+        display_notes = notes
+
+    summary_by_header = None
     if album_param == "today":
-        today_notes = list(notes)
+        today_notes = list(display_notes)
         for note in today_notes:
             note.show_row_day = False
         grouped = OrderedDict([("Today", today_notes)]) if today_notes else OrderedDict()
+        if paginate_roll and has_results:
+            summary_by_header = {"Today": list(notes)}
     else:
-        grouped = group_notes_for_roll(notes)
+        month_counts = roll_month_counts(notes) if paginate_roll and current_album else None
+        grouped = group_notes_for_roll(display_notes, month_counts=month_counts)
+        if paginate_roll and current_album and has_results:
+            summary_by_header = dict(
+                group_notes_for_roll(notes, month_counts=month_counts)
+            )
 
     return render(
         request,
         "notes/list.html",
         {
-            "roll_day_groups": roll_day_groups(grouped),
+            "roll_day_groups": roll_day_groups(grouped, summary_by_header=summary_by_header),
             "album": album_param,
             "album_title": album_title,
             "current_album": current_album,
             "query": query,
             "has_recents": has_recents,
-            "has_results": notes.exists(),
+            "has_results": has_results,
+            "page_obj": page_obj,
             "search_open": bool(query) or request.GET.get("search") == "1",
             "nav_section": "albums" if from_albums else ("today" if album_param == "today" else "recents"),
         },
