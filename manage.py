@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-
+ 
 
 def main():
     root = Path(__file__).resolve().parent.parent
