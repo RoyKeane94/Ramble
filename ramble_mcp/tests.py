@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
 from ramble_mcp.views import mcp_endpoint
@@ -181,6 +181,21 @@ class McpTests(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response["Access-Control-Allow-Origin"], "https://claude.ai")
         self.assertIn("Authorization", response["Access-Control-Allow-Headers"])
+
+    @override_settings(CORS_ALLOW_ALL_ORIGINS=False, CORS_ALLOWED_ORIGINS=[])
+    def test_options_preflight_returns_allow_headers(self):
+        response = self.client.options(
+            "/mcp",
+            HTTP_ORIGIN="https://claude.ai",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="authorization,content-type,mcp-protocol-version",
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "https://claude.ai")
+        self.assertIn("Authorization", response["Access-Control-Allow-Headers"])
+        self.assertIn("POST", response["Access-Control-Allow-Methods"])
+        self.assertIn("OPTIONS", response["Access-Control-Allow-Methods"])
+        self.assertIn("MCP-Protocol-Version", response["Access-Control-Allow-Headers"])
 
     def test_settings_shows_mcp_and_issues_token(self):
         self.client.force_login(self.user)

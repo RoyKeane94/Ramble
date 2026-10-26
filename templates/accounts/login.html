@@ -17,7 +17,7 @@
         <h1 class="auth-title">Log in</h1>
       </div>
 
-      <form method="post" class="auth-form" novalidate>
+      <form method="post" class="auth-form" autocomplete="on" novalidate>
         {% csrf_token %}
         {% if form.non_field_errors %}
           <p class="auth-error">{{ form.non_field_errors.0 }}</p>

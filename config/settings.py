@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -63,6 +64,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
+    "axes",
     "accounts",
     "notes",
     "core",
@@ -81,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.WebErrorLoggingMiddleware",
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -114,6 +117,10 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
 ]
@@ -141,8 +148,45 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "notes:list"
 LOGOUT_REDIRECT_URL = "notes:home"
 
+_RESERVED_ADMIN_URLS = {
+    "login",
+    "register",
+    "logout",
+    "settings",
+    "api",
+    "mcp",
+    "healthz",
+    "roll",
+    "library",
+    "albums",
+    "notes",
+    "privacy",
+    "terms",
+    "support",
+}
+
+
+def _admin_url():
+    raw = os.environ.get("ADMIN_URL", "").strip().strip("/")
+    if not raw:
+        if DEBUG:
+            return "admin"
+        raise ImproperlyConfigured("ADMIN_URL is required in production.")
+    if raw.split("/")[0] in _RESERVED_ADMIN_URLS:
+        raise ImproperlyConfigured(f"ADMIN_URL cannot use the reserved path '{raw}'.")
+    return raw
+
+
+ADMIN_URL = _admin_url()
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+AXES_IPWARE_META_PRECEDENCE_ORDER = ("HTTP_X_FORWARDED_FOR", "REMOTE_ADDR")
+
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = _csv("CORS_ALLOWED_ORIGINS")
+CORS_URLS_REGEX = r"^/(?!mcp(?:/|$)).*"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

@@ -4,11 +4,11 @@
 {% load static %}
 <link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
 <link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
-<meta name="theme-color" content="#F7F5F2">
+<meta name="theme-color" content="#ffffff">
 {% endblock %}
 
 {% block title %}Ramble{% endblock %}
-{% block meta_description %}Say it now. Read it any time. Talk for a moment — Ramble brings the words back tidied, and still yours.{% endblock %}
+{% block meta_description %}Tap record and talk — a tidied note of your exact words on your phone and laptop. Say it now. Read it any time. Always your words.{% endblock %}
 {% block body_class %}is-landing-page{% endblock %}
 
 {% block content %}
@@ -16,9 +16,9 @@
   <section class="hero-landing" aria-label="Ramble">
     <div class="hero-landing-copy">
       <h1 class="hero-title">You had the thought.<br>Say it before it goes.</h1>
-      <p class="hero-lede">Talk for a moment. Ramble brings the words back tidied, and still yours.</p>
+      <p class="hero-lede">Tap record and talk. The moment you stop, a tidied note of your exact words is waiting on your phone and your laptop.</p>
       <p class="hero-lede hero-lede-tagline">
-        <span class="hero-lede-tagline-line">Say it now. Read it any time.</span>
+        <span class="hero-lede-tagline-line">Say it now. Read it any time. Always your words.</span>
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#list">Get on the list</a>
@@ -81,7 +81,7 @@
         <div class="step-block-copy reveal">
           <h2 class="step-lead">It lands where you'll find it.</h2>
           <h3 class="step-name">Keep</h3>
-          <p class="step-desc">It lands in Recents, not a file you will never open. Same roll on the phone and at the desk.</p>
+          <p class="step-desc">Same roll on your phone and at the desk.</p>
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--keep" aria-hidden="true">
@@ -106,11 +106,35 @@
                     <li>
                       <div class="frame frame-static">
                         <div class="frame-copy">
-                          <p class="frame-preview">The idea for the landing page — we should make the steps feel more like scrolling through a product tour…</p>
+                          <p class="frame-preview">Launch week checklist: press list, demo slot, and who owns the live run on Tuesday.</p>
                         </div>
-                        <p class="frame-meta">
-                          <span class="frame-meta-text">3:08 pm · 0:14</span>
-                        </p>
+                        <div class="frame-side">
+                          <p class="frame-meta">
+                            <span class="frame-meta-text">3:08 pm · 0:14</span>
+                          </p>
+                          <div class="album-rail album-rail--stack">
+                            <p class="album-chips album-chips--stack" aria-hidden="true">
+                              <span class="album-chip">Product launch</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="frame frame-static">
+                        <div class="frame-copy">
+                          <p class="frame-preview">Met Amy from Robinsons today and their response to our new product is very encouraging. They have a couple of questions that they will share…</p>
+                        </div>
+                        <div class="frame-side">
+                          <p class="frame-meta">
+                            <span class="frame-meta-text">2:40 pm · 0:33</span>
+                          </p>
+                          <div class="album-rail album-rail--stack">
+                            <p class="album-chips album-chips--stack" aria-hidden="true">
+                              <span class="album-chip">Client meetings</span>
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </li>
                   </ul>
@@ -121,21 +145,18 @@
                     <li>
                       <div class="frame frame-static">
                         <div class="frame-copy">
-                          <p class="frame-preview">We've managed to get a lot done on the house. Ramble has progressed.</p>
+                          <p class="frame-preview">Had a coffee with Pete over at Black Bull and he is keen to get his sales team lined up on Ramble, as he can see good use cases for this…</p>
                         </div>
-                        <p class="frame-meta">
-                          <span class="frame-meta-text">2:40 pm · 0:33</span>
-                        </p>
-                      </div>
-                    </li>
-                    <li>
-                      <div class="frame frame-static">
-                        <div class="frame-copy">
-                          <p class="frame-preview">Need to call the plumber about the kitchen tap.</p>
+                        <div class="frame-side">
+                          <p class="frame-meta">
+                            <span class="frame-meta-text">9:12 am · 0:08</span>
+                          </p>
+                          <div class="album-rail album-rail--stack">
+                            <p class="album-chips album-chips--stack" aria-hidden="true">
+                              <span class="album-chip">Client meetings</span>
+                            </p>
+                          </div>
                         </div>
-                        <p class="frame-meta">
-                          <span class="frame-meta-text">9:12 am · 0:08</span>
-                        </p>
                       </div>
                     </li>
                   </ul>
@@ -152,7 +173,7 @@
         <div class="step-block-copy reveal">
           <h2 class="step-lead">Read it like you wrote it.</h2>
           <h3 class="step-name">Read</h3>
-          <p class="step-desc">Tidied text first. If there is something to do, one line sits under the words. That is all.</p>
+          <p class="step-desc">Always your words, never rewritten.</p>
         </div>
         <div class="step-block-visual reveal reveal-visual">
           <div class="step-visual-frame step-visual-frame--read" aria-hidden="true">

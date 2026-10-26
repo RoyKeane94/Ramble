@@ -7,7 +7,7 @@
   <p class="page-kicker">Account</p>
   <h1 class="page-title">Create account</h1>
   <p class="hero-lede">One account for the app and the web roll.</p>
-  <form method="post" class="auth-form" novalidate>
+  <form method="post" class="auth-form" autocomplete="on" novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}
       <p class="auth-error">{{ form.non_field_errors.0 }}</p>

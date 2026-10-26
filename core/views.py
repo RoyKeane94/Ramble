@@ -1,4 +1,8 @@
+from datetime import datetime, timedelta, timezone
+
+from django.conf import settings
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
 from .error_pages import render_error_page
@@ -63,6 +67,33 @@ def server_error(request):
             status_code=500,
         )
     return render_error_page(request, "errors/500.html", status_code=500)
+
+
+def robots_txt(_request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /mcp",
+        "Disallow: /mcp/",
+    ]
+    admin_url = f"/{settings.ADMIN_URL.strip('/')}/"
+    if admin_url != "/admin/":
+        lines.append(f"Disallow: {admin_url}")
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
+def security_txt(request):
+    expires = (datetime.now(timezone.utc) + timedelta(days=364)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    body = (
+        f"Contact: {request.build_absolute_uri('/support/')}\n"
+        f"Expires: {expires}\n"
+        f"Preferred-Languages: en\n"
+        f"Canonical: {request.build_absolute_uri('/.well-known/security.txt')}\n"
+        f"Policy: {request.build_absolute_uri('/privacy/')}\n"
+    )
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
 def support(request):

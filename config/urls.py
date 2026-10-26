@@ -1,9 +1,17 @@
+from django.conf import settings
 from django.contrib import admin
 from django.db import connection
 from django.http import HttpResponse
 from django.urls import include, path
 
-from core.views import bad_request, page_not_found, permission_denied, server_error
+from core.views import (
+    bad_request,
+    page_not_found,
+    permission_denied,
+    robots_txt,
+    security_txt,
+    server_error,
+)
 from ramble_mcp.views import mcp_endpoint
 
 handler400 = bad_request
@@ -19,9 +27,11 @@ def healthz(_request):
 
 urlpatterns = [
     path("healthz", healthz),
+    path("robots.txt", robots_txt),
+    path(".well-known/security.txt", security_txt),
     path("mcp", mcp_endpoint),
     path("mcp/", mcp_endpoint),
-    path("admin/", admin.site.urls),
+    path(f"{settings.ADMIN_URL}/", admin.site.urls),
     path("api/", include("notes.api_urls")),
     path("api/", include("core.api_urls")),
     path("api/auth/", include("accounts.api_urls")),

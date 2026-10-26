@@ -26,3 +26,23 @@ class SecurityHeaderTests(SimpleTestCase):
             response["Strict-Transport-Security"],
             "max-age=31536000; includeSubDomains; preload",
         )
+
+
+class WellKnownEndpointTests(SimpleTestCase):
+    def test_robots_txt_disallows_admin_and_mcp(self):
+        response = self.client.get("/robots.txt")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/plain", response["Content-Type"])
+        self.assertIn("Disallow: /admin/", response.content.decode())
+        self.assertIn("Disallow: /mcp", response.content.decode())
+
+    def test_security_txt(self):
+        response = self.client.get("/.well-known/security.txt")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/plain", response["Content-Type"])
+        body = response.content.decode()
+        self.assertIn("Contact:", body)
+        self.assertIn("/support/", body)
+        self.assertIn("Expires:", body)
+        self.assertIn("Canonical:", body)
+        self.assertIn("/.well-known/security.txt", body)
