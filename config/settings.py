@@ -71,6 +71,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "core.middleware.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -98,6 +99,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.minute_usage",
                 "core.context_processors.nav_page",
+                "notes.context_processors.app_shell",
             ],
         },
     }
@@ -153,14 +155,56 @@ REST_FRAMEWORK = {
 }
 
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "").strip()
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+DATA_UPLOAD_MAX_MEMORY_SIZE = 40 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 40 * 1024 * 1024
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "media-src 'self' blob:; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+PERMISSIONS_POLICY = (
+    "accelerometer=(), "
+    "autoplay=(), "
+    "camera=(), "
+    "display-capture=(), "
+    "encrypted-media=(), "
+    "fullscreen=(self), "
+    "geolocation=(), "
+    "gyroscope=(), "
+    "magnetometer=(), "
+    "microphone=(self), "
+    "midi=(), "
+    "payment=(), "
+    "picture-in-picture=(), "
+    "publickey-credentials-get=(), "
+    "screen-wake-lock=(), "
+    "usb=(), "
+    "web-share=(self), "
+    "xr-spatial-tracking=(), "
+    "clipboard-write=(self), "
+    "interest-cohort=()"
+)
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    CONTENT_SECURITY_POLICY += "; upgrade-insecure-requests"
 
 LOGGING = {
     "version": 1,

@@ -36,18 +36,9 @@ class RambleLogoutView(LogoutView):
 
 @login_required
 def settings(request):
-    password_form = StyledPasswordChangeForm(request.user)
-    password_saved = False
     mcp_token_plain = None
 
-    if request.method == "POST" and request.POST.get("intent") == "password":
-        password_form = StyledPasswordChangeForm(request.user, request.POST)
-        if password_form.is_valid():
-            user = password_form.save()
-            update_session_auth_hash(request, user)
-            password_saved = True
-            password_form = StyledPasswordChangeForm(request.user)
-    elif request.method == "POST" and request.POST.get("intent") == "mcp_token":
+    if request.method == "POST" and request.POST.get("intent") == "mcp_token":
         mcp_token_plain = request.user.issue_mcp_token()
 
     notes = Note.objects.filter(user=request.user)
@@ -57,12 +48,33 @@ def settings(request):
         request,
         "accounts/settings.html",
         {
-            "password_form": password_form,
-            "password_saved": password_saved,
             "note_count": notes.count(),
             "last_synced": latest.updated_at if latest else None,
             "minute_usage": usage_for_user(request.user),
             "mcp_url": mcp_url,
             "mcp_token_plain": mcp_token_plain,
+        },
+    )
+
+
+@login_required
+def change_password(request):
+    password_form = StyledPasswordChangeForm(request.user)
+    password_saved = False
+
+    if request.method == "POST":
+        password_form = StyledPasswordChangeForm(request.user, request.POST)
+        if password_form.is_valid():
+            user = password_form.save()
+            update_session_auth_hash(request, user)
+            password_saved = True
+            password_form = StyledPasswordChangeForm(request.user)
+
+    return render(
+        request,
+        "accounts/change_password.html",
+        {
+            "password_form": password_form,
+            "password_saved": password_saved,
         },
     )

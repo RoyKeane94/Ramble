@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -223,6 +224,7 @@ def album_list(request):
             "updated_label": _updated_label(notes.first().created_at if notes.exists() else None),
             "href": library,
             "tone": 0,
+            "system": True,
         },
         {
             "title": "Recents",
@@ -230,6 +232,7 @@ def album_list(request):
             "updated_label": _updated_label(notes.first().created_at if notes.exists() else None),
             "href": roll,
             "tone": 1,
+            "system": True,
         },
     ]
 
@@ -241,6 +244,7 @@ def album_list(request):
                 "updated_label": _updated_label(today.first().created_at),
                 "href": f"{roll}?album=today",
                 "tone": 2,
+                "system": True,
             }
         )
 
@@ -252,6 +256,7 @@ def album_list(request):
                 "updated_label": _updated_label(favourites.first().created_at),
                 "href": f"{roll}?album=starred",
                 "tone": 3,
+                "system": True,
             }
         )
 
@@ -393,6 +398,8 @@ def note_delete(request, pk):
     note = get_object_or_404(Note, pk=pk, user=request.user)
     if request.method == "POST":
         note.delete()
+        if request.headers.get("X-Ramble-App") == "1":
+            return JsonResponse({"ok": True})
         return redirect("notes:list")
     return redirect("notes:detail", pk=pk)
 
@@ -403,6 +410,8 @@ def note_star(request, pk):
     if request.method == "POST":
         note.is_starred = not note.is_starred
         note.save(update_fields=["is_starred", "updated_at"])
+        if request.headers.get("X-Ramble-App") == "1":
+            return JsonResponse({"is_starred": note.is_starred})
     return redirect("notes:detail", pk=pk)
 
 

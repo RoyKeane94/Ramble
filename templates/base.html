@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#F7F5F2">
   <meta name="description" content="{% block meta_description %}You talk. Ramble keeps a readable version of what you said.{% endblock %}">
   <title>{% block title %}Ramble{% endblock %}</title>
   {% load static %}
@@ -14,15 +14,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=landing59">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app33">
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% if user.is_authenticated %}is-signed-in {% endif %}{% block body_class %}{% endblock %}"{% block body_attrs %}{% endblock %}>
   <div class="atmosphere" aria-hidden="true"></div>
   <div class="site">
     <header class="navbar">
       <div class="navbar-inner">
-        <a class="wordmark" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
-        <div class="nav-links">
+        <a class="wordmark desktop-chrome" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
+        <div class="nav-links desktop-chrome">
           {% if user.is_authenticated %}
             {% with section=nav_section|default:nav_page %}
             <a class="nav-link{% if section == 'recents' %} is-current{% endif %}" href="{% url 'notes:list' %}">Recents</a>
@@ -47,7 +47,28 @@
             {% endwith %}
           {% endif %}
         </div>
+        {% if user.is_authenticated %}
+        <div class="app-bar">
+          <div class="app-bar-leading">
+            {% block app_leading %}{% endblock %}
+          </div>
+          <p class="app-bar-title">{% block app_title %}Ramble{% endblock %}</p>
+          <div class="app-bar-trailing">
+            {% block app_trailing %}
+              <a class="app-icon-btn" href="{% url 'settings' %}" aria-label="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V20a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H10a1.7 1.7 0 0 0 1-1.5V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V10c.3.7.9 1.2 1.6 1.3H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+                </svg>
+              </a>
+            {% endblock %}
+          </div>
+        </div>
+        {% endif %}
       </div>
+      {% if show_app_roll_nav %}
+        {% include "includes/app_filters.html" %}
+      {% endif %}
     </header>
     <main>
       {% block content %}{% endblock %}
@@ -56,6 +77,12 @@
     {% include "includes/legal_footer.html" %}
     {% endblock %}
   </div>
+  {% if user.is_authenticated %}
+    {% include "includes/app_share_sheet.html" %}
+    {% include "includes/app_shutter.html" %}
+    {% if app_config %}{{ app_config|json_script:"ramble-app-config" }}{% endif %}
+    <script src="{% static 'js/ramble-app.js' %}?v=app33"></script>
+  {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

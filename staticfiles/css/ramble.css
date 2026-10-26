@@ -23,7 +23,7 @@
 }
 
 :root {
-  --paper: #FFFFFF;
+  --paper: #F7F5F2;
   --surface: #F6F7F9;
   --navy: #051A9C;
   --navy-deep: #07144F;
@@ -1057,8 +1057,20 @@ a.frame:focus-visible {
 .take-edit-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 18px;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 20px;
+}
+
+.take-edit-actions .btn {
+  flex-shrink: 0;
+}
+
+.take-edit-cancel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  line-height: 1.2;
 }
 
 .visually-hidden {

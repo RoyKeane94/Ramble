@@ -1,6 +1,10 @@
+from django.utils.dateparse import parse_datetime
 from rest_framework import status, viewsets
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from .develop import DevelopError, develop_note
 from .models import Album, Note
 from .serializers import AlbumSerializer, NoteSerializer
 
@@ -62,3 +66,35 @@ class AlbumViewSet(viewsets.ModelViewSet):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
         return queryset.filter(**filter_kwargs).first()
+
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def develop_take(request):
+    audio = request.FILES.get("audio")
+    if audio is None:
+        return Response({"detail": "Audio is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        duration = float(request.data.get("duration") or 0)
+    except (TypeError, ValueError):
+        duration = 0.0
+
+    created_raw = str(request.data.get("created_at") or "").strip()
+    if created_raw.endswith("Z"):
+        created_raw = created_raw[:-1] + "+00:00"
+    created_at = parse_datetime(created_raw) if created_raw else None
+    audio_bytes = audio.read()
+    try:
+        note = develop_note(
+            request=request,
+            audio_bytes=audio_bytes,
+            content_type=audio.content_type,
+            duration=duration,
+            note_id=request.data.get("id"),
+            created_at=created_at,
+        )
+    except DevelopError as exc:
+        return Response({"detail": str(exc)}, status=exc.status)
+
+    return Response(NoteSerializer(note).data, status=status.HTTP_200_OK)

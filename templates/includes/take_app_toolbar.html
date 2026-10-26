@@ -1,0 +1,25 @@
+{% if not editing %}
+<div class="app-toolbar-pill" data-take-toolbar>
+  <form method="post" action="{% url 'notes:star' note.id %}" class="app-icon-form">
+    {% csrf_token %}
+    <button type="submit" class="app-icon-btn{% if note.is_starred %} is-active{% endif %}" data-take-star aria-label="{% if note.is_starred %}Unstar{% else %}Star{% endif %}">
+      {% if note.is_starred %}
+        {% include "includes/sf/star.fill.html" %}
+      {% else %}
+        {% include "includes/sf/star.html" %}
+      {% endif %}
+    </button>
+  </form>
+  <button type="button" class="app-icon-btn" data-app-share="take-text" aria-label="Share" {% if not note.display_text.strip %}disabled{% endif %}>
+    {% include "includes/sf/square.and.arrow.up.html" %}
+  </button>
+  {% if not note.is_developing and not note.transcription_failed and note.display_text.strip %}
+    <a class="app-icon-btn" href="{% url 'notes:detail' note.id %}?edit=1" aria-label="Edit">
+      {% include "includes/sf/square.and.pencil.html" %}
+    </a>
+  {% endif %}
+  <a class="app-icon-btn{% if managing_albums %} is-active{% endif %}" href="{% url 'notes:detail' note.id %}?albums=1" aria-label="Add to album">
+    {% include "includes/sf/rectangle.stack.badge.plus.html" %}
+  </a>
+</div>
+{% endif %}

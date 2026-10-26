@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 
 {% block title %}Settings · Ramble{% endblock %}
+{% block body_attrs %} data-app-page="settings" data-app-shutter="off"{% endblock %}
+{% block app_title %}Settings{% endblock %}
+{% block app_trailing %}
+  <a class="app-done" href="{% url 'notes:list' %}">Done</a>
+{% endblock %}
 
 {% block content %}
 <section class="shell">
-  <header class="page-head">
+  <header class="page-head desktop-chrome">
     <p class="page-kicker">Account</p>
     <h1 class="page-title">Settings</h1>
   </header>
@@ -27,7 +32,7 @@
 
   <div class="settings-block panel">
     <h2 class="day-header">Ramble MCP</h2>
-    <p class="settings-hint">A connector so assistants can search and file your takes — without opening the web app.</p>
+    <p class="settings-hint">A connector so assistants can search and file your takes without opening the web app.</p>
     <p class="settings-label settings-follow">URL</p>
     <code class="settings-code" id="mcp-url">{{ mcp_url }}</code>
     <div class="settings-actions">
@@ -62,24 +67,15 @@
     {% endif %}
   </div>
 
-  <form method="post" class="settings-block panel auth-form" novalidate>
+  <div class="settings-block panel">
     <h2 class="day-header">Password</h2>
-    {% csrf_token %}
-    <input type="hidden" name="intent" value="password">
-    {% if password_saved %}
-      <p class="settings-ok">Password updated.</p>
-    {% endif %}
-    {% if password_form.non_field_errors %}
-      <p class="auth-error">{{ password_form.non_field_errors.0 }}</p>
-    {% endif %}
-    {% for field in password_form %}
-      {{ field }}
-      {% for error in field.errors %}
-        <p class="auth-error">{{ error }}</p>
-      {% endfor %}
-    {% endfor %}
-    <button type="submit" class="btn btn-primary">Update password</button>
-  </form>
+    <a class="settings-row-link" href="{% url 'change_password' %}">
+      <span class="settings-row-link-label">Change password</span>
+      <svg class="settings-row-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18 15 12 9 6"/>
+      </svg>
+    </a>
+  </div>
 
   <div class="settings-block panel">
     <h2 class="day-header">Help</h2>

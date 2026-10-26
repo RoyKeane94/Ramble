@@ -1,0 +1,25 @@
+{% if user.is_authenticated %}
+<nav class="app-filters" aria-label="Roll filters" data-app-roll-nav>
+  <div class="app-filters-row">
+    <div class="app-filter-chips">
+      <a class="app-filter{% if not show_albums_library and not current_album and album != 'today' and album != 'starred' and album != 'library' %} is-on{% endif %}" href="{% url 'notes:list' %}" data-roll-filter="recents">Recents</a>
+      <a class="app-filter{% if album == 'today' %} is-on{% endif %}{% if not has_today %} is-dimmed{% endif %}" href="{% url 'notes:list' %}?album=today" data-roll-filter="today">Today</a>
+      {% if has_favourites %}
+        <a class="app-filter{% if album == 'starred' %} is-on{% endif %}" href="{% url 'notes:list' %}?album=starred" data-roll-filter="starred">Favourites</a>
+      {% endif %}
+      {% if current_album %}
+        <span class="app-filter is-on app-filter-album">{{ current_album.name }}</span>
+      {% endif %}
+      <a class="app-filter{% if show_albums_library %} is-on{% endif %}" href="{% url 'notes:albums' %}" data-roll-filter="albums">Albums</a>
+    </div>
+  </div>
+  <div class="app-sync-banner" hidden data-app-sync>
+    <button type="button" class="app-sync-btn" data-app-sync-retry>
+      <span>
+        <strong data-app-sync-title>Waiting for better signal</strong>
+        <small data-app-sync-detail></small>
+      </span>
+    </button>
+  </div>
+</nav>
+{% endif %}

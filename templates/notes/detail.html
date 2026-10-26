@@ -1,10 +1,24 @@
 {% extends "base.html" %}
 
 {% block title %}Take · Ramble{% endblock %}
+{% block body_attrs %} data-app-page="take" data-app-shutter="off"{% endblock %}
+{% block app_title %}{% if managing_albums and not editing %}Add to album{% endif %}{% endblock %}
+{% block app_leading %}
+  <a class="app-icon-btn" href="{% url 'notes:list' %}" aria-label="Back">
+    {% include "includes/sf/chevron.left.html" %}
+  </a>
+{% endblock %}
+{% block app_trailing %}
+  {% if managing_albums and not editing %}
+    <a class="app-done take-albums-done" href="{% url 'notes:detail' note.id %}">Done</a>
+  {% else %}
+    {% include "includes/take_app_toolbar.html" %}
+  {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="shell shell-roll shell-take{% if not managing_albums and not editing %} shell-take--with-albums{% endif %}">
-  <a class="take-back" href="{% url 'notes:list' %}">← Recents</a>
+  <a class="take-back desktop-chrome" href="{% url 'notes:list' %}">← Recents</a>
 
   <div class="take-layout">
   <div class="take-main">
@@ -58,10 +72,9 @@
   <textarea id="take-text" class="visually-hidden" readonly aria-hidden="true">{{ note.display_text }}</textarea>
 
   {% if managing_albums and not editing %}
-    <section class="take-albums" aria-label="Add to album">
-      <div class="take-albums-head">
+    <section class="take-albums take-albums--app-title" aria-label="Add to album">
+      <div class="take-albums-head desktop-chrome">
         <h2 class="take-albums-title">Add to album</h2>
-        <a class="text-link" href="{% url 'notes:detail' note.id %}">Done</a>
       </div>
 
       <form method="post" action="{% url 'notes:albums_for_note' note.id %}" class="take-album-create panel">
@@ -70,6 +83,9 @@
         <input type="text" name="name" class="take-album-input" placeholder="New album name" maxlength="200" required autocomplete="off">
         <button type="submit" class="text-link take-album-create-btn">Create</button>
       </form>
+      <p class="take-albums-done-row desktop-chrome">
+        <a class="text-link take-albums-done" href="{% url 'notes:detail' note.id %}">Done</a>
+      </p>
 
       {% if album_rows %}
         <ul class="take-album-list albums-grid albums-grid--library take-album-pick-grid">
@@ -98,13 +114,13 @@
   {% elif editing %}
     <form method="post" action="{% url 'notes:edit' note.id %}" class="take-edit-form">
       {% csrf_token %}
-      <article class="take-body">
+      <article class="take-body take-body--edit">
         <textarea name="text" class="take-text take-text-edit" rows="1" autofocus>{{ note.display_text }}</textarea>
+        <div class="take-edit-actions">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <a class="text-link take-edit-cancel" href="{% url 'notes:detail' note.id %}">Cancel</a>
+        </div>
       </article>
-      <div class="take-edit-actions">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a class="text-link" href="{% url 'notes:detail' note.id %}">Cancel</a>
-      </div>
     </form>
   {% else %}
     <article class="take-body">
@@ -112,6 +128,11 @@
         <div class="take-text take-text-prose is-failed">
           <p class="take-failed-title">{{ note.failure_message }}</p>
           <p class="take-failed-hint">Open Ramble on your phone and tap <strong>Retry</strong> — the recording is still there.</p>
+        </div>
+      {% elif note.is_developing %}
+        <div class="take-text take-text-prose is-developing">
+          <p class="frame-preview">Developing…</p>
+          <div class="develop-bar" data-waiting="0"></div>
         </div>
       {% elif note.display_text.strip %}
         <div class="take-text take-text-prose">
@@ -129,6 +150,8 @@
   {% endif %}
   </div>
 </div>
+<template id="take-icon-star">{% include "includes/sf/star.html" %}</template>
+<template id="take-icon-star-fill">{% include "includes/sf/star.fill.html" %}</template>
 {% endblock %}
 
 {% block extra_js %}
