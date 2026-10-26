@@ -328,8 +328,31 @@
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
+        voiceIsolation: true,
       },
     };
+  }
+
+  function fallbackAudioConstraints() {
+    return {
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    };
+  }
+
+  async function acquireRecordingStream() {
+    try {
+      return await navigator.mediaDevices.getUserMedia(preferredAudioConstraints());
+    } catch (err) {
+      var name = err && err.name;
+      if (name !== "OverconstrainedError" && name !== "ConstraintNotSatisfiedError") {
+        throw err;
+      }
+      return await navigator.mediaDevices.getUserMedia(fallbackAudioConstraints());
+    }
   }
 
   async function beginRecording() {
@@ -353,7 +376,7 @@
     }
 
     try {
-      state.stream = await navigator.mediaDevices.getUserMedia(preferredAudioConstraints());
+      state.stream = await acquireRecordingStream();
     } catch (err) {
       showError("Microphone access is needed to record.");
       return;
