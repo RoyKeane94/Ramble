@@ -59,7 +59,7 @@
   }
 
   function recordingAllowed() {
-    return isMobile() && document.body.dataset.appShutter !== "off";
+    return false;
   }
 
   function resetRecordingUi() {
@@ -107,7 +107,7 @@
       screen.hidden = true;
       screen.setAttribute("aria-hidden", "true");
     }
-    if (on) {
+    if (on && recordingAllowed()) {
       document.documentElement.style.setProperty("--app-bottom-clearance", "148px");
     } else {
       document.documentElement.style.removeProperty("--app-bottom-clearance");
@@ -1606,15 +1606,17 @@
     }
     prefetchTakeToolbarLinks();
     bindPageLifecycle();
-    bindShutter();
-    bindSync();
-    recoverLiveRecording().then(flushQueue).catch(function () {
-      flushQueue();
-    });
-    allTakes().then(function (takes) {
-      takes.forEach(insertOptimisticRow);
-      updateSyncBanner();
-    }).catch(function () {});
+    if (recordingAllowed()) {
+      bindShutter();
+      bindSync();
+      recoverLiveRecording().then(flushQueue).catch(function () {
+        flushQueue();
+      });
+      allTakes().then(function (takes) {
+        takes.forEach(insertOptimisticRow);
+        updateSyncBanner();
+      }).catch(function () {});
+    }
   }
 
   if (document.readyState === "loading") {
