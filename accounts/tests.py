@@ -45,6 +45,49 @@ class LoginRateLimitTests(TestCase):
             {"username": self.user.email, "password": "wrong-password"},
         )
         self.assertEqual(locked.status_code, 429)
+        self.assertContains(locked, "Too many failed sign-in attempts", status_code=429)
+
+    @override_settings(AXES_FAILURE_LIMIT=3, AXES_COOLOFF_TIME=None)
+    def test_api_login_locks_after_repeated_failures(self):
+        for _ in range(2):
+            response = self.client.post(
+                "/api/auth/login/",
+                {"email": self.user.email, "password": "wrong-password"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 400)
+
+        locked = self.client.post(
+            "/api/auth/login/",
+            {"email": self.user.email, "password": "wrong-password"},
+            content_type="application/json",
+        )
+        self.assertEqual(locked.status_code, 429)
+        self.assertIn("Too many failed sign-in attempts", locked.json()["detail"])
+
+    @override_settings(AXES_FAILURE_LIMIT=3, AXES_COOLOFF_TIME=None)
+    def test_admin_login_locks_after_repeated_failures(self):
+        login_url = f"/{settings.ADMIN_URL}/login/"
+        for _ in range(2):
+            response = self.client.post(
+                login_url,
+                {
+                    "username": "rate@example.com",
+                    "password": "wrong-password",
+                    "next": f"/{settings.ADMIN_URL}/",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+
+        locked = self.client.post(
+            login_url,
+            {
+                "username": "rate@example.com",
+                "password": "wrong-password",
+                "next": f"/{settings.ADMIN_URL}/",
+            },
+        )
+        self.assertEqual(locked.status_code, 429)
 
 
 class AdminLoginTests(TestCase):

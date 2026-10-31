@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
+from .lockout import LOCKOUT_MESSAGE
+
 
 def _token_payload(user):
     token, _ = Token.objects.get_or_create(user=user)
@@ -20,7 +22,11 @@ def _token_payload(user):
 def login(request):
     email = (request.data.get("email") or "").strip()
     password = request.data.get("password") or ""
-    user = authenticate(request, username=email, password=password)
+    # Use the Django request so django-axes can flag lockouts for middleware/handlers.
+    django_request = getattr(request, "_request", request)
+    user = authenticate(django_request, username=email, password=password)
+    if getattr(django_request, "axes_locked_out", False):
+        return Response({"detail": LOCKOUT_MESSAGE}, status=status.HTTP_429_TOO_MANY_REQUESTS)
     if user is None:
         return Response({"detail": "Invalid email or password."}, status=status.HTTP_400_BAD_REQUEST)
     return Response(_token_payload(user))

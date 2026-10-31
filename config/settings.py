@@ -187,8 +187,12 @@ ADMIN_URL = _admin_url()
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
-AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+# Lock when either the username or the IP exceeds the failure limit.
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = True
+AXES_LOCKOUT_CALLABLE = "accounts.lockout.axes_lockout_response"
 AXES_IPWARE_META_PRECEDENCE_ORDER = ("HTTP_X_FORWARDED_FOR", "REMOTE_ADDR")
+IPWARE_ALGORITHM = "legacy"
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = _csv("CORS_ALLOWED_ORIGINS")
