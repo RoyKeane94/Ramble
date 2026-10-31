@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -76,9 +75,6 @@ def robots_txt(_request):
         "Disallow: /mcp",
         "Disallow: /mcp/",
     ]
-    admin_url = f"/{settings.ADMIN_URL.strip('/')}/"
-    if admin_url != "/admin/":
-        lines.append(f"Disallow: {admin_url}")
     return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
 
 

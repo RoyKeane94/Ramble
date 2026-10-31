@@ -13,12 +13,17 @@ class AuthPageTests(TestCase):
         self.assertContains(response, 'autocomplete="current-password"')
         self.assertNotContains(response, 'autocomplete="off"')
 
-    def test_register_autocomplete_and_no_store(self):
-        response = self.client.get(reverse("register"))
-        self.assertEqual(response["Cache-Control"], "no-store")
-        self.assertContains(response, 'autocomplete="email"')
-        self.assertContains(response, 'autocomplete="new-password"')
-        self.assertNotContains(response, 'autocomplete="off"')
+    def test_register_page_is_gone(self):
+        response = self.client.get("/register/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_register_api_is_gone(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            {"email": "new@example.com", "password": "password12"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 class LoginRateLimitTests(TestCase):

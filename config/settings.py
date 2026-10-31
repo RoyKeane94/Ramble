@@ -172,7 +172,13 @@ def _admin_url():
         if DEBUG:
             return "admin"
         raise ImproperlyConfigured("ADMIN_URL is required in production.")
-    if raw.split("/")[0] in _RESERVED_ADMIN_URLS:
+    first = raw.split("/")[0]
+    # Path segment(s) only — reject hosts/URLs like "yourramble.com/admin".
+    if "://" in raw or "." in first or first.lower() == "localhost":
+        raise ImproperlyConfigured(
+            "ADMIN_URL must be a path (e.g. 'admin' or 'secret-panel'), not a URL or hostname."
+        )
+    if first in _RESERVED_ADMIN_URLS:
         raise ImproperlyConfigured(f"ADMIN_URL cannot use the reserved path '{raw}'.")
     return raw
 

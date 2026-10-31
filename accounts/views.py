@@ -2,37 +2,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render
 
-from django.contrib.auth import login
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
-from django.views.generic import CreateView
 
 from notes.models import Note
 from notes.usage import usage_for_user
 
-from .forms import EmailAuthenticationForm, RegisterForm, StyledPasswordChangeForm
+from .forms import EmailAuthenticationForm, StyledPasswordChangeForm
 
 
 class RambleLoginView(LoginView):
     template_name = "accounts/login.html"
     authentication_form = EmailAuthenticationForm
     redirect_authenticated_user = True
-
-
-class RegisterView(CreateView):
-    form_class = RegisterForm
-    template_name = "accounts/register.html"
-    success_url = reverse_lazy("notes:list")
-
-    def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
-        response["Cache-Control"] = "no-store"
-        return response
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
-        return response
 
 
 class RambleLogoutView(LogoutView):

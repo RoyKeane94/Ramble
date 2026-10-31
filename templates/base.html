@@ -37,13 +37,8 @@
             {% endwith %}
           {% else %}
             {% with page=nav_page %}
-            {% if page == 'home' or page == 'privacy' or page == 'terms' or page == 'support' or page == 'login' %}
               <a class="nav-link{% if page == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
               <a class="btn btn-primary nav-cta" href="{% if page == 'home' %}#list{% else %}{% url 'notes:home' %}#list{% endif %}">Get on the list</a>
-            {% else %}
-              <a class="nav-link{% if page == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
-              <a class="btn btn-primary nav-cta" href="{% url 'register' %}">Get started</a>
-            {% endif %}
             {% endwith %}
           {% endif %}
         </div>

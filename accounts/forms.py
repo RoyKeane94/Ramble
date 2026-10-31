@@ -1,8 +1,5 @@
 from django import forms
-from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
-
-User = get_user_model()
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 
 FIELD_ATTRS = {
     "class": "field auth-input",
@@ -30,43 +27,6 @@ class EmailAuthenticationForm(AuthenticationForm):
             }
         ),
     )
-
-
-class RegisterForm(UserCreationForm):
-    email = forms.EmailField(
-        widget=forms.EmailInput(
-            attrs={
-                **FIELD_ATTRS,
-                "placeholder": "Email",
-                "autofocus": True,
-                "autocomplete": "email",
-            }
-        ),
-    )
-    password1 = forms.CharField(
-        label="Password",
-        widget=forms.PasswordInput(
-            attrs={
-                **FIELD_ATTRS,
-                "placeholder": "Password",
-                "autocomplete": "new-password",
-            }
-        ),
-    )
-    password2 = forms.CharField(
-        label="Confirm password",
-        widget=forms.PasswordInput(
-            attrs={
-                **FIELD_ATTRS,
-                "placeholder": "Confirm password",
-                "autocomplete": "new-password",
-            }
-        ),
-    )
-
-    class Meta:
-        model = User
-        fields = ("email",)
 
 
 class StyledPasswordChangeForm(PasswordChangeForm):
