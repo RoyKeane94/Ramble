@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Album, Note
+from .webhooks import note_is_ready, notify_take_ready
 
 
 class NoteSerializer(serializers.ModelSerializer):
@@ -49,13 +50,18 @@ class NoteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.setdefault("next_action_text", "")
         self._keep_completed_transcript(None, validated_data)
-        return super().create(validated_data)
+        note = super().create(validated_data)
+        notify_take_ready(note, previously_ready=False)
+        return note
 
     def update(self, instance, validated_data):
         if "next_action_text" in validated_data and validated_data["next_action_text"] is None:
             validated_data["next_action_text"] = ""
+        previously_ready = note_is_ready(instance)
         self._keep_completed_transcript(instance, validated_data)
-        return super().update(instance, validated_data)
+        note = super().update(instance, validated_data)
+        notify_take_ready(note, previously_ready=previously_ready)
+        return note
 
     def _keep_completed_transcript(self, instance, validated_data):
         incoming_text = self._completed_text(validated_data, instance)

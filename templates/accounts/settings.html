@@ -65,6 +65,21 @@
         <button type="submit" class="btn btn-primary">Generate token</button>
       </form>
     {% endif %}
+
+    {% if request.user.has_mcp_token %}
+      <p class="settings-label settings-follow">New-take alerts</p>
+      {% if request.user.has_take_ready_webhook %}
+        <p class="settings-ok">
+          Webhook connected
+          {% if request.user.take_ready_webhook_saved_at %}
+            · {{ request.user.take_ready_webhook_saved_at|date:"j M Y" }}
+          {% endif %}
+        </p>
+        <p class="settings-hint">Grok Bot will be pinged when a take finishes. Set up or clear it from the Bot with Ramble MCP.</p>
+      {% else %}
+        <p class="settings-hint">Not connected. Ask Grok Bot to set up Ramble new-take alerts — it creates a webhook routine and saves it via MCP.</p>
+      {% endif %}
+    {% endif %}
   </div>
 
   <div class="settings-block panel">

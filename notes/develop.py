@@ -10,6 +10,7 @@ from django.conf import settings
 from core.logging import log_model_usage
 from notes.models import Note
 from notes.usage import usage_for_user
+from notes.webhooks import notify_take_ready
 
 log = logging.getLogger("ramble.develop")
 
@@ -156,6 +157,7 @@ def _complete_note(note, raw, tidied):
     note.processing_error = ""
     note.processing_stage = "finishing"
     note.save()
+    notify_take_ready(note, previously_ready=False)
 
 
 def _fail_note(note, message):

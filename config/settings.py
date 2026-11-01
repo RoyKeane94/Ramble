@@ -210,6 +210,12 @@ REST_FRAMEWORK = {
 
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "").strip()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+# Tests can set True so take-ready webhook POSTs run inline after on_commit.
+TAKE_READY_WEBHOOK_INLINE = os.environ.get("TAKE_READY_WEBHOOK_INLINE", "").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 DATA_UPLOAD_MAX_MEMORY_SIZE = 40 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 40 * 1024 * 1024
 

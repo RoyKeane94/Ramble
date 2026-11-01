@@ -14,7 +14,11 @@ INSTRUCTIONS = (
     "Use list_recent_takes for a daily or weekly digest. "
     "Use get_take for full text. "
     "Use update_take to file a take into an album or star it. "
-    "Pass updated_since when you only want what changed."
+    "Pass updated_since when you only want what changed. "
+    "For new-take alerts: create a Grok Bot routine with a webhook trigger whose instruction is "
+    "to call get_take (or list_recent_takes) when Ramble pings; then call save_take_ready_webhook "
+    "with that routine's POST url and Bearer key. "
+    "Ramble sends one {event: take.ready, take_id} ping per new ready take — pull text via MCP."
 )
 
 

@@ -52,6 +52,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     mcp_token_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
     mcp_token_prefix = models.CharField(max_length=12, blank=True, default="")
     mcp_token_created_at = models.DateTimeField(null=True, blank=True)
+    # Grok Bot routine webhook — set via MCP save_take_ready_webhook.
+    take_ready_webhook_url = models.URLField(max_length=500, blank=True, default="")
+    take_ready_webhook_key = models.CharField(max_length=200, blank=True, default="")
+    take_ready_webhook_saved_at = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 
@@ -64,6 +68,34 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def has_mcp_token(self):
         return bool(self.mcp_token_hash)
+
+    @property
+    def has_take_ready_webhook(self):
+        return bool(self.take_ready_webhook_url.strip() and self.take_ready_webhook_key.strip())
+
+    def save_take_ready_webhook(self, url, key):
+        self.take_ready_webhook_url = (url or "").strip()
+        self.take_ready_webhook_key = (key or "").strip()
+        self.take_ready_webhook_saved_at = timezone.now()
+        self.save(
+            update_fields=[
+                "take_ready_webhook_url",
+                "take_ready_webhook_key",
+                "take_ready_webhook_saved_at",
+            ]
+        )
+
+    def clear_take_ready_webhook(self):
+        self.take_ready_webhook_url = ""
+        self.take_ready_webhook_key = ""
+        self.take_ready_webhook_saved_at = None
+        self.save(
+            update_fields=[
+                "take_ready_webhook_url",
+                "take_ready_webhook_key",
+                "take_ready_webhook_saved_at",
+            ]
+        )
 
     def issue_mcp_token(self):
         raw = MCP_TOKEN_PREFIX + secrets.token_urlsafe(32)

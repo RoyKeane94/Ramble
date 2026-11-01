@@ -94,6 +94,9 @@ class McpTests(TestCase):
                 "list_albums",
                 "update_take",
                 "create_album",
+                "save_take_ready_webhook",
+                "clear_take_ready_webhook",
+                "get_take_ready_webhook_status",
             ],
         )
 
@@ -202,8 +205,48 @@ class McpTests(TestCase):
         page = self.client.get("/settings/")
         self.assertContains(page, "Ramble MCP")
         self.assertContains(page, "/mcp")
+        self.assertContains(page, "New-take alerts")
+        self.assertContains(page, "Not connected")
         created = self.client.post("/settings/", {"intent": "mcp_token"})
         self.assertContains(created, "Copy this token now")
         self.assertContains(created, "rmbl_")
         self.user.refresh_from_db()
         self.assertTrue(self.user.has_mcp_token)
+
+        self.user.save_take_ready_webhook(
+            "https://api2.cursor.sh/automations/webhook/example",
+            "whsec_test_key",
+        )
+        connected = self.client.get("/settings/")
+        self.assertContains(connected, "Webhook connected")
+        self.assertNotContains(connected, "Not connected")
+
+    def test_save_and_clear_take_ready_webhook(self):
+        status = self.call("get_take_ready_webhook_status")["structuredContent"]
+        self.assertFalse(status["configured"])
+
+        saved = self.call(
+            "save_take_ready_webhook",
+            {
+                "url": "https://api2.cursor.sh/automations/webhook/example",
+                "key": "whsec_test_key",
+            },
+        )["structuredContent"]
+        self.assertTrue(saved["configured"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.has_take_ready_webhook)
+        self.assertEqual(
+            self.user.take_ready_webhook_url,
+            "https://api2.cursor.sh/automations/webhook/example",
+        )
+
+        bad = self.call(
+            "save_take_ready_webhook",
+            {"url": "http://insecure.example/hook", "key": "x"},
+        )
+        self.assertTrue(bad.get("isError"))
+
+        cleared = self.call("clear_take_ready_webhook")["structuredContent"]
+        self.assertFalse(cleared["configured"])
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_take_ready_webhook)

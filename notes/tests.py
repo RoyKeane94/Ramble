@@ -1,5 +1,5 @@
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -69,3 +69,34 @@ class DevelopApiTests(TestCase):
         self.assertFalse(note.is_processing)
         self.assertFalse(note.processing_failed)
         self.assertEqual(note.preview_line, "Transcription failed")
+
+    @override_settings(
+        ASSEMBLYAI_API_KEY="test-key",
+        OPENAI_API_KEY="",
+        TAKE_READY_WEBHOOK_INLINE=True,
+    )
+    @patch("notes.webhooks.urllib.request.urlopen")
+    @patch("notes.develop._assembly_poll", return_value="Hello from the walk.")
+    @patch("notes.develop._assembly_submit", return_value="tr_1")
+    @patch("notes.develop._assembly_upload", return_value="https://example.com/audio")
+    def test_develop_pings_take_ready_webhook(self, _upload, _submit, _poll, urlopen):
+        self.user.issue_mcp_token()
+        self.user.save_take_ready_webhook(
+            "https://api2.cursor.sh/automations/webhook/example",
+            "whsec_test_key",
+        )
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = False
+        urlopen.return_value = mock_response
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.post_audio(id="33333333-3333-3333-3333-333333333333")
+        self.assertEqual(response.status_code, 200)
+        urlopen.assert_called_once()
+        request = urlopen.call_args[0][0]
+        self.assertEqual(request.full_url, "https://api2.cursor.sh/automations/webhook/example")
+        self.assertEqual(request.get_header("Authorization"), "Bearer whsec_test_key")
+        self.assertIn(b'"event": "take.ready"', request.data)
+        self.assertIn(b"33333333-3333-3333-3333-333333333333", request.data)
