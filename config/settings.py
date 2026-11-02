@@ -151,6 +151,7 @@ LOGOUT_REDIRECT_URL = "notes:home"
 _RESERVED_ADMIN_URLS = {
     "login",
     "register",
+    "signup",
     "logout",
     "settings",
     "api",
@@ -210,6 +211,17 @@ REST_FRAMEWORK = {
 
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "").strip()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "").strip()
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
+# Price ID for £9.99/month GBP (required for embedded Checkout form).
+STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "").strip()
+# Customer Portal configuration (bpc_…).
+STRIPE_PORTAL_CONFIGURATION_ID = os.environ.get("STRIPE_PORTAL_CONFIGURATION_ID", "").strip()
+APP_STORE_URL = os.environ.get(
+    "APP_STORE_URL",
+    "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+).strip()
 # Tests can set True so take-ready webhook POSTs run inline after on_commit.
 TAKE_READY_WEBHOOK_INLINE = os.environ.get("TAKE_READY_WEBHOOK_INLINE", "").lower() in {
     "1",
@@ -223,15 +235,16 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
-    "img-src 'self' data:; "
-    "connect-src 'self'; "
+    "img-src 'self' data: https://*.stripe.com; "
+    "connect-src 'self' https://api.stripe.com https://*.stripe.com; "
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://*.stripe.com; "
     "media-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
-    "form-action 'self'; "
+    "form-action 'self' https://checkout.stripe.com https://billing.stripe.com https://hooks.stripe.com https://*.stripe.com; "
     "frame-ancestors 'none'"
 )
 PERMISSIONS_POLICY = (
@@ -246,7 +259,7 @@ PERMISSIONS_POLICY = (
     "magnetometer=(), "
     "microphone=(self), "
     "midi=(), "
-    "payment=(), "
+    "payment=(self), "
     "picture-in-picture=(), "
     "publickey-credentials-get=(), "
     "screen-wake-lock=(), "

@@ -1,7 +1,12 @@
+from unittest.mock import MagicMock, patch
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+
+from .models import PendingSignup, ProcessedStripeEvent
+from .stripe_billing import fulfill_checkout_session, handle_webhook_event
 
 User = get_user_model()
 
@@ -12,6 +17,7 @@ class AuthPageTests(TestCase):
         self.assertContains(response, 'autocomplete="username"')
         self.assertContains(response, 'autocomplete="current-password"')
         self.assertNotContains(response, 'autocomplete="off"')
+        self.assertContains(response, reverse("signup"))
 
     def test_register_page_is_gone(self):
         response = self.client.get("/register/")
@@ -24,6 +30,275 @@ class AuthPageTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_signup_page_shows_price(self):
+        response = self.client.get(reverse("signup"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Create account")
+        self.assertContains(response, "Continue to payment")
+        self.assertContains(response, "Secure payment with Stripe")
+        self.assertContains(response, "Give your thoughts somewhere to go.")
+        self.assertContains(response, "An iPhone app, plus the web.")
+        self.assertContains(response, "Talk into your phone. Read it anywhere, same words.")
+        self.assertContains(response, "£9.99 a month")
+        self.assertContains(response, "Cancel any time.")
+        self.assertContains(response, "Includes the free iPhone app")
+        self.assertContains(response, "download-on-the-app-store.svg")
+        self.assertNotContains(response, "£100 a year")
+
+
+class SignupCheckoutTests(TestCase):
+    @override_settings(
+        STRIPE_SECRET_KEY="sk_test_x",
+        STRIPE_PUBLISHABLE_KEY="pk_test_x",
+        STRIPE_PRICE_ID="price_test_x",
+    )
+    @patch("accounts.views.create_checkout_session")
+    def test_signup_embeds_stripe_checkout(self, mock_create):
+        mock_create.return_value = MagicMock(
+            id="cs_test_123",
+            client_secret="cs_test_123_secret_abc",
+        )
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "email": "new@example.com",
+                "password1": "password12",
+                "password2": "password12",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="checkout-form"')
+        self.assertContains(response, "cs_test_123_secret_abc")
+        self.assertContains(response, "pk_test_x")
+        self.assertContains(response, "js.stripe.com/dahlia/stripe.js")
+        pending = PendingSignup.objects.get(email="new@example.com")
+        self.assertEqual(pending.stripe_checkout_session_id, "cs_test_123")
+        self.assertFalse(User.objects.filter(email="new@example.com").exists())
+        mock_create.assert_called_once()
+        _, kwargs = mock_create.call_args
+        self.assertIn("return_url", kwargs)
+        self.assertIn("{CHECKOUT_SESSION_ID}", kwargs["return_url"])
+
+    def test_signup_does_not_create_account_without_stripe(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "email": "new@example.com",
+                "password1": "password12",
+                "password2": "password12",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Payments are not available")
+        self.assertFalse(User.objects.filter(email="new@example.com").exists())
+        self.assertFalse(PendingSignup.objects.filter(email="new@example.com").exists())
+
+    @override_settings(STRIPE_SECRET_KEY="sk_test_x")
+    @patch("accounts.views.retrieve_checkout_session")
+    def test_success_creates_account_and_logs_in(self, mock_retrieve):
+        pending = PendingSignup.create_for_credentials("paid@example.com", "password12")
+        mock_retrieve.return_value = {
+            "id": "cs_test_paid",
+            "status": "complete",
+            "payment_status": "paid",
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "metadata": {"pending_signup_id": str(pending.pk)},
+            "client_reference_id": str(pending.pk),
+        }
+        response = self.client.get(reverse("signup_success"), {"session_id": "cs_test_paid"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You’re in")
+        self.assertContains(
+            response,
+            "Get the iPhone app and say it the moment it arrives",
+        )
+        self.assertContains(response, "Get Ramble on the App Store")
+        self.assertContains(response, "Sign in on the app with paid@example.com")
+        self.assertContains(
+            response,
+            "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+        )
+        self.assertContains(response, "data:image/svg+xml")
+        self.assertContains(response, reverse("notes:list"))
+        user = User.objects.get(email="paid@example.com")
+        self.assertTrue(user.check_password("password12"))
+        self.assertEqual(user.stripe_customer_id, "cus_123")
+        self.assertEqual(user.stripe_subscription_id, "sub_123")
+        self.assertEqual(user.subscription_status, "active")
+        self.assertTrue(PendingSignup.objects.get(pk=pending.pk).completed_at)
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+
+class FulfillmentTests(TestCase):
+    def test_fulfill_is_idempotent(self):
+        pending = PendingSignup.create_for_credentials("once@example.com", "password12")
+        session = {
+            "id": "cs_test_once",
+            "status": "complete",
+            "payment_status": "paid",
+            "customer": "cus_1",
+            "subscription": "sub_1",
+            "metadata": {"pending_signup_id": str(pending.pk)},
+        }
+        first = fulfill_checkout_session(session)
+        second = fulfill_checkout_session(session)
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(User.objects.filter(email="once@example.com").count(), 1)
+
+    def test_incomplete_session_does_not_create_user(self):
+        pending = PendingSignup.create_for_credentials("wait@example.com", "password12")
+        session = {
+            "id": "cs_test_wait",
+            "status": "open",
+            "payment_status": "unpaid",
+            "metadata": {"pending_signup_id": str(pending.pk)},
+        }
+        self.assertIsNone(fulfill_checkout_session(session))
+        self.assertFalse(User.objects.filter(email="wait@example.com").exists())
+
+
+class BillingPortalTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            "portal@example.com",
+            "password12",
+            stripe_customer_id="cus_portal",
+            subscription_status="active",
+        )
+
+    def test_settings_shows_manage_subscription(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("settings"))
+        self.assertContains(response, "Manage subscription")
+        self.assertContains(response, reverse("billing_portal"))
+        self.assertContains(
+            response,
+            "If you cancel, your account and all your rambles will be deleted",
+        )
+
+    @override_settings(
+        STRIPE_SECRET_KEY="sk_test_x",
+        STRIPE_PORTAL_CONFIGURATION_ID="bpc_test_x",
+    )
+    @patch("accounts.views.create_billing_portal_session")
+    def test_billing_portal_redirects(self, mock_portal):
+        mock_portal.return_value = MagicMock(url="https://billing.stripe.com/session/test")
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("billing_portal"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "https://billing.stripe.com/session/test")
+        _, kwargs = mock_portal.call_args
+        self.assertEqual(kwargs["customer_id"], "cus_portal")
+        self.assertTrue(kwargs["return_url"].endswith("/settings/"))
+
+
+class StripeWebhookHandlerTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            "bill@example.com",
+            "password12",
+            stripe_customer_id="cus_bill",
+            stripe_subscription_id="sub_bill",
+            subscription_status="active",
+        )
+
+    def test_checkout_completed_creates_account_once(self):
+        pending = PendingSignup.create_for_credentials("hook@example.com", "password12")
+        event = {
+            "id": "evt_checkout_1",
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_hook",
+                    "status": "complete",
+                    "payment_status": "paid",
+                    "customer": "cus_hook",
+                    "subscription": "sub_hook",
+                    "metadata": {"pending_signup_id": str(pending.pk)},
+                }
+            },
+        }
+        self.assertTrue(handle_webhook_event(event))
+        self.assertFalse(handle_webhook_event(event))
+        self.assertEqual(User.objects.filter(email="hook@example.com").count(), 1)
+        self.assertEqual(ProcessedStripeEvent.objects.filter(event_id="evt_checkout_1").count(), 1)
+
+    def test_invoice_paid_marks_active(self):
+        self.user.subscription_status = "past_due"
+        self.user.save(update_fields=["subscription_status"])
+        handle_webhook_event(
+            {
+                "id": "evt_invoice_paid",
+                "type": "invoice.paid",
+                "data": {
+                    "object": {
+                        "id": "in_1",
+                        "customer": "cus_bill",
+                        "subscription": "sub_bill",
+                    }
+                },
+            }
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.subscription_status, "active")
+
+    def test_invoice_payment_failed_marks_past_due(self):
+        handle_webhook_event(
+            {
+                "id": "evt_invoice_fail",
+                "type": "invoice.payment_failed",
+                "data": {
+                    "object": {
+                        "id": "in_2",
+                        "customer": "cus_bill",
+                        "subscription": "sub_bill",
+                    }
+                },
+            }
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.subscription_status, "past_due")
+
+    def test_subscription_deleted_removes_account(self):
+        from notes.models import Note
+
+        Note.objects.create(user=self.user, tidied_text="keep me until cancel")
+        handle_webhook_event(
+            {
+                "id": "evt_sub_deleted",
+                "type": "customer.subscription.deleted",
+                "data": {
+                    "object": {
+                        "id": "sub_bill",
+                        "customer": "cus_bill",
+                        "status": "canceled",
+                    }
+                },
+            }
+        )
+        self.assertFalse(User.objects.filter(email="bill@example.com").exists())
+        self.assertEqual(Note.objects.count(), 0)
+
+    def test_subscription_updated_cancel_at_period_end_marks_cancelling(self):
+        handle_webhook_event(
+            {
+                "id": "evt_sub_cancelling",
+                "type": "customer.subscription.updated",
+                "data": {
+                    "object": {
+                        "id": "sub_bill",
+                        "customer": "cus_bill",
+                        "status": "active",
+                        "cancel_at_period_end": True,
+                    }
+                },
+            }
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.subscription_status, "cancelling")
+        self.assertTrue(User.objects.filter(email="bill@example.com").exists())
 
 
 class LoginRateLimitTests(TestCase):

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+{% load static %}
+<link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
+<link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
+{% endblock %}
+
+{% block title %}{{ title }} · Ramble{% endblock %}
+{% block body_class %}is-landing-page is-auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <section class="auth-panel auth-panel-form">
+      <div class="auth-copy">
+        <h1 class="auth-title">{{ title }}</h1>
+        <p class="auth-lede">{{ message }}</p>
+      </div>
+      {% if show_retry %}
+        <p class="auth-switch" style="margin-top: 22px;">
+          <a class="btn btn-primary" href="{% url 'signup' %}">Try again</a>
+        </p>
+      {% else %}
+        <p class="auth-switch" style="margin-top: 22px;">
+          <a href="{% url 'login' %}">Sign in</a>
+        </p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

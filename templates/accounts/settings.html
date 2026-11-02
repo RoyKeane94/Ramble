@@ -31,6 +31,26 @@
   {% include "accounts/minutes.html" %}
 
   <div class="settings-block panel">
+    <h2 class="day-header">Billing</h2>
+    {% if can_manage_billing %}
+      {% if subscription_status == "cancelling" %}
+        <p class="settings-hint">Subscription ending soon. When it ends, your account and all rambles will be permanently deleted.</p>
+      {% elif subscription_status %}
+        <p class="settings-hint">Subscription · {{ subscription_status }}</p>
+      {% else %}
+        <p class="settings-hint">Manage your plan, payment method, and invoices in Stripe.</p>
+      {% endif %}
+      <p class="settings-hint settings-follow">If you cancel, your account and all your rambles will be deleted. This cannot be undone.</p>
+      <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">Manage subscription</button>
+      </form>
+    {% else %}
+      <p class="settings-hint">No Stripe customer on this account yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="settings-block panel">
     <h2 class="day-header">Ramble MCP</h2>
     <p class="settings-hint">A connector so assistants can search and file your takes without opening the web app.</p>
     <p class="settings-label settings-follow">URL</p>
@@ -58,7 +78,7 @@
         <button type="submit" class="btn btn-ghost">Replace token</button>
       </form>
     {% else %}
-      <p class="settings-hint settings-follow">Generate a token to connect Cursor, Claude, or Grok. It can read your takes and add them to albums.</p>
+      <p class="settings-hint settings-follow">Generate a token to connect your GrokBot account.</p>
       <form method="post" class="settings-actions">
         {% csrf_token %}
         <input type="hidden" name="intent" value="mcp_token">

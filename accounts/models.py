@@ -1,8 +1,10 @@
 import hashlib
 import secrets
+import uuid
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
+from django.contrib.auth.hashers import make_password
 from django.db import models
 from django.utils import timezone
 
@@ -56,6 +58,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     take_ready_webhook_url = models.URLField(max_length=500, blank=True, default="")
     take_ready_webhook_key = models.CharField(max_length=200, blank=True, default="")
     take_ready_webhook_saved_at = models.DateTimeField(null=True, blank=True)
+    stripe_customer_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    subscription_status = models.CharField(max_length=32, blank=True, default="")
 
     objects = UserManager()
 
@@ -122,3 +127,41 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 def hash_mcp_token(raw):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+class PendingSignup(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(db_index=True)
+    password_hash = models.CharField(max_length=128)
+    stripe_checkout_session_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return self.email
+
+    @classmethod
+    def create_for_credentials(cls, email, password):
+        email = UserManager.normalize_email(email)
+        cls.objects.filter(email__iexact=email, completed_at__isnull=True).delete()
+        return cls.objects.create(
+            email=email,
+            password_hash=make_password(password),
+        )
+
+
+class ProcessedStripeEvent(models.Model):
+    """Idempotency ledger for Stripe webhook deliveries."""
+
+    event_id = models.CharField(max_length=255, unique=True)
+    event_type = models.CharField(max_length=128)
+    processed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-processed_at",)
+
+    def __str__(self):
+        return f"{self.event_type}:{self.event_id}"

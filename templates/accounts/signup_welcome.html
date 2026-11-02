@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+{% load static %}
+<link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
+<link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
+{% endblock %}
+
+{% block title %}You’re in · Ramble{% endblock %}
+{% block body_class %}is-landing-page is-auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <section class="auth-panel auth-panel-form auth-welcome">
+      <div class="auth-copy">
+        <h1 class="auth-title">You’re in</h1>
+        <p class="auth-lede">Get the iPhone app and say it the moment it arrives. Same account, same words on the web.</p>
+      </div>
+
+      <div class="auth-welcome-app">
+        <img
+          class="auth-welcome-qr"
+          src="{{ app_store_qr }}"
+          width="180"
+          height="180"
+          alt="QR code to download Ramble on the App Store"
+        >
+        <div class="auth-welcome-app-copy">
+          <p class="auth-welcome-app-label">Scan with your iPhone, or open the store:</p>
+          <a class="btn btn-primary auth-welcome-store" href="{{ app_store_url }}" target="_blank" rel="noopener noreferrer">
+            Get Ramble on the App Store
+          </a>
+          {% if account_email %}
+            <p class="auth-welcome-signin">Sign in on the app with {{ account_email }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <p class="auth-switch">
+        <a href="{% url 'notes:list' %}">Continue on the web</a>
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}

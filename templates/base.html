@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app34">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app39">
 </head>
 <body class="{% if user.is_authenticated %}is-signed-in {% endif %}{% block body_class %}{% endblock %}"{% block body_attrs %}{% endblock %}>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -38,7 +38,7 @@
           {% else %}
             {% with page=nav_page %}
               <a class="nav-link{% if page == 'login' %} is-current{% endif %}" href="{% url 'login' %}">Sign in</a>
-              <a class="btn btn-primary nav-cta" href="{% if page == 'home' %}#list{% else %}{% url 'notes:home' %}#list{% endif %}">Get on the list</a>
+              <a class="btn btn-primary nav-cta{% if page == 'signup' %} is-current{% endif %}" href="{% url 'signup' %}">Sign up</a>
             {% endwith %}
           {% endif %}
         </div>

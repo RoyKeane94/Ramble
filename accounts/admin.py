@@ -8,15 +8,25 @@ from .models import User
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     ordering = ("email",)
-    list_display = ("email", "minutes_used", "minute_cap", "is_staff", "is_active", "date_joined")
-    search_fields = ("email",)
-    list_filter = ("is_staff", "is_active", "is_superuser")
+    list_display = (
+        "email",
+        "minutes_used",
+        "minute_cap",
+        "subscription_status",
+        "is_staff",
+        "is_active",
+        "date_joined",
+    )
+    search_fields = ("email", "stripe_customer_id", "stripe_subscription_id")
+    list_filter = ("is_staff", "is_active", "is_superuser", "subscription_status")
     readonly_fields = (
         "date_joined",
         "last_login",
         "mcp_token_prefix",
         "mcp_token_created_at",
         "take_ready_webhook_saved_at",
+        "stripe_customer_id",
+        "stripe_subscription_id",
     )
     filter_horizontal = ("groups", "user_permissions")
 
@@ -26,6 +36,16 @@ class UserAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Allowance", {"fields": ("minute_cap", "billed_seconds")}),
+        (
+            "Billing",
+            {
+                "fields": (
+                    "subscription_status",
+                    "stripe_customer_id",
+                    "stripe_subscription_id",
+                )
+            },
+        ),
         ("Ramble MCP", {"fields": ("mcp_token_prefix", "mcp_token_created_at")}),
         (
             "Take-ready webhook",

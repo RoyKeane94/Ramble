@@ -12,6 +12,7 @@ from core.views import (
     security_txt,
     server_error,
 )
+from accounts.views import stripe_webhook
 from ramble_mcp.views import mcp_endpoint
 
 handler400 = bad_request
@@ -35,6 +36,7 @@ urlpatterns = [
     path("api/", include("notes.api_urls")),
     path("api/", include("core.api_urls")),
     path("api/auth/", include("accounts.api_urls")),
+    path("api/stripe/webhook/", stripe_webhook, name="stripe_webhook"),
     path("", include("accounts.urls")),
     path("", include("notes.urls")),
 ]
