@@ -1,7 +1,7 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_head %}
-{% load static %}
 <link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
 <link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
 {% endblock %}
@@ -67,6 +67,19 @@
 
         <button type="submit" class="btn btn-primary auth-submit">Log in</button>
       </form>
+
+      <p class="auth-app-nudge">
+        Use the same login in the iPhone app
+        <a class="auth-app-nudge-store" href="{{ app_store_url }}" target="_blank" rel="noopener noreferrer">
+          <img
+            class="auth-app-nudge-badge"
+            src="{% static 'img/download-on-the-app-store.svg' %}"
+            width="72"
+            height="24"
+            alt="Download on the App Store"
+          >
+        </a>
+      </p>
 
       <p class="auth-switch">Don’t have an account? <a href="{% url 'signup' %}">Sign up</a></p>
     </section>

@@ -3359,6 +3359,36 @@ a.album-chip:focus-visible {
   font-weight: 600;
 }
 
+.auth-app-nudge {
+  margin: 16px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+}
+
+.auth-app-nudge-store {
+  display: inline-flex;
+  line-height: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.auth-app-nudge-store:hover {
+  opacity: 1;
+}
+
+.auth-app-nudge-badge {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
 .auth-card--checkout {
   max-width: 520px;
 }

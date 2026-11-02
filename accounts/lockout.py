@@ -39,6 +39,11 @@ def axes_lockout_response(request, credentials_or_response=None, credentials=Non
         {
             "form": EmailAuthenticationForm(request),
             "lockout_message": LOCKOUT_MESSAGE,
+            "app_store_url": getattr(
+                settings,
+                "APP_STORE_URL",
+                "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+            ),
         },
         status=status,
     )

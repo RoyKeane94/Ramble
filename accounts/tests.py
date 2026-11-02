@@ -18,6 +18,9 @@ class AuthPageTests(TestCase):
         self.assertContains(response, 'autocomplete="current-password"')
         self.assertNotContains(response, 'autocomplete="off"')
         self.assertContains(response, reverse("signup"))
+        self.assertContains(response, "Use the same login in the iPhone app")
+        self.assertContains(response, "download-on-the-app-store.svg")
+        self.assertContains(response, settings.APP_STORE_URL)
 
     def test_register_page_is_gone(self):
         response = self.client.get("/register/")

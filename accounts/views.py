@@ -36,6 +36,15 @@ class RambleLoginView(LoginView):
     authentication_form = EmailAuthenticationForm
     redirect_authenticated_user = True
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["app_store_url"] = getattr(
+            django_settings,
+            "APP_STORE_URL",
+            "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+        )
+        return context
+
 
 class RambleLogoutView(LogoutView):
     next_page = reverse_lazy("login")
