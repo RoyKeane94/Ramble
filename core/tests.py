@@ -38,6 +38,7 @@ class SecurityHeaderTests(SimpleTestCase):
         self.assertNotIn("script-src 'self' 'unsafe-inline'", csp)
         self.assertIn("microphone=(self)", response["Permissions-Policy"])
         self.assertIn("camera=()", response["Permissions-Policy"])
+        self.assertEqual(response["Cross-Origin-Resource-Policy"], "same-origin")
 
     @override_settings(
         SECURE_HSTS_SECONDS=31536000,

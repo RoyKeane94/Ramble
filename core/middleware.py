@@ -15,6 +15,7 @@ class SecurityHeadersMiddleware:
         permissions_policy = getattr(settings, "PERMISSIONS_POLICY", "")
         if permissions_policy:
             response.headers.setdefault("Permissions-Policy", permissions_policy)
+        response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
         return response
 
 
