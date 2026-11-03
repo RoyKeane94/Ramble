@@ -2997,6 +2997,8 @@ a.album-chip:focus-visible {
 @media (max-width: 800px) {
   :root {
     --content: calc(100% - 2 * var(--pad));
+    /* Keep navbar/footer edges aligned with page content */
+    --chrome: calc(100% - 2 * var(--pad));
   }
 
   .shell-take--with-albums .take-layout {
@@ -3063,12 +3065,23 @@ a.album-chip:focus-visible {
   letter-spacing: -0.0275em;
 }
 
+/* Match header/footer chrome to the auth card edges */
+.is-auth-page .navbar-inner,
+.is-auth-page .footer .footer-inner {
+  width: min(440px, calc(100% - 2 * var(--pad)));
+}
+
+.is-auth-page:has(.auth-shell--signup) .navbar-inner,
+.is-auth-page:has(.auth-shell--signup) .footer .footer-inner {
+  width: min(920px, calc(100% - 2 * var(--pad)));
+}
+
 .is-auth-page main {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 48px 24px 72px;
+  padding: 48px var(--pad) 72px;
 }
 
 .auth-shell {
@@ -3486,7 +3499,7 @@ a.album-chip:focus-visible {
 
 @media (max-width: 480px) {
   .is-auth-page main {
-    padding: 28px 16px 48px;
+    padding: 28px var(--pad) 48px;
   }
 
   .auth-card {
