@@ -31,8 +31,11 @@ class SecurityHeaderTests(SimpleTestCase):
     def test_csp_and_permissions_policy(self):
         middleware = SecurityHeadersMiddleware(lambda _request: HttpResponse("ok"))
         response = middleware(RequestFactory().get("/"))
-        self.assertIn("default-src 'self'", response["Content-Security-Policy"])
-        self.assertIn("https://fonts.googleapis.com", response["Content-Security-Policy"])
+        csp = response["Content-Security-Policy"]
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("https://fonts.googleapis.com", csp)
+        self.assertIn("script-src 'self' https://js.stripe.com", csp)
+        self.assertNotIn("script-src 'self' 'unsafe-inline'", csp)
         self.assertIn("microphone=(self)", response["Permissions-Policy"])
         self.assertIn("camera=()", response["Permissions-Policy"])
 
