@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from .emails import greeting_name, send_welcome_email
 from .models import PendingSignup, ProcessedStripeEvent
 from .stripe_billing import fulfill_checkout_session, handle_webhook_event
 
@@ -160,6 +161,60 @@ class FulfillmentTests(TestCase):
         }
         self.assertIsNone(fulfill_checkout_session(session))
         self.assertFalse(User.objects.filter(email="wait@example.com").exists())
+
+    @patch("accounts.stripe_billing.send_welcome_email")
+    def test_fulfill_sends_welcome_email_once(self, mock_welcome):
+        pending = PendingSignup.create_for_credentials("welcome@example.com", "password12")
+        session = {
+            "id": "cs_test_welcome",
+            "status": "complete",
+            "payment_status": "paid",
+            "customer": "cus_welcome",
+            "subscription": "sub_welcome",
+            "metadata": {"pending_signup_id": str(pending.pk)},
+        }
+        with self.captureOnCommitCallbacks(execute=True):
+            fulfill_checkout_session(session)
+        mock_welcome.assert_called_once_with(email="welcome@example.com")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            fulfill_checkout_session(session)
+        mock_welcome.assert_called_once_with(email="welcome@example.com")
+
+
+class WelcomeEmailTests(TestCase):
+    def test_greeting_name_from_email(self):
+        self.assertEqual(greeting_name("jane.doe+promo@example.com"), "Jane Doe")
+        self.assertEqual(greeting_name("123@example.com"), "there")
+
+    @override_settings(
+        RESEND_API_KEY="re_test",
+        DEFAULT_FROM_EMAIL="Tom <hello@mail.yourramble.com>",
+        EMAIL_REPLY_TO="tom@yourramble.com",
+        PUBLIC_BASE_URL="https://yourramble.com",
+        APP_STORE_URL="https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+    )
+    @patch("accounts.emails.resend.Emails.send")
+    def test_send_welcome_email_payload(self, mock_send):
+        mock_send.return_value = {"id": "email_test"}
+        self.assertTrue(send_welcome_email(email="jane.doe@example.com"))
+        mock_send.assert_called_once()
+        payload = mock_send.call_args.args[0]
+        self.assertEqual(payload["from"], "Tom <hello@mail.yourramble.com>")
+        self.assertEqual(payload["to"], ["jane.doe@example.com"])
+        self.assertEqual(payload["reply_to"], "tom@yourramble.com")
+        self.assertEqual(payload["subject"], "You're in. Here's how to start")
+        self.assertIn("Hi Jane Doe,", payload["html"])
+        self.assertIn("<strong>jane.doe@example.com</strong>", payload["html"])
+        self.assertIn("https://yourramble.com/settings/", payload["html"])
+        self.assertIn("https://yourramble.com/privacy/", payload["html"])
+        self.assertIn("Hi Jane Doe,", payload["text"])
+
+    @override_settings(RESEND_API_KEY="")
+    @patch("accounts.emails.resend.Emails.send")
+    def test_send_welcome_email_skipped_without_key(self, mock_send):
+        self.assertFalse(send_welcome_email(email="skip@example.com"))
+        mock_send.assert_not_called()
 
 
 class BillingPortalTests(TestCase):

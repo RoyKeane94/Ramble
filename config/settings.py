@@ -222,6 +222,13 @@ APP_STORE_URL = os.environ.get(
     "APP_STORE_URL",
     "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
 ).strip()
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://yourramble.com").strip().rstrip("/")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    "Tom <hello@mail.yourramble.com>",
+).strip()
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO", "tom@yourramble.com").strip()
 # Tests can set True so take-ready webhook POSTs run inline after on_commit.
 TAKE_READY_WEBHOOK_INLINE = os.environ.get("TAKE_READY_WEBHOOK_INLINE", "").lower() in {
     "1",

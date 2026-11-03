@@ -1,0 +1,21 @@
+Hi {{ first_name }},
+
+Thanks for signing up to Ramble. I'm Tom, and I built it because my best thoughts kept arriving when there was nowhere to put them.
+
+Getting started takes a minute:
+
+1. Download the iPhone app: {{ app_store_url }}
+2. Sign in with {{ email }}, the same email and password you just used.
+3. Tap once and say whatever's on your mind.
+
+It's there to read or copy any time, on your phone or at {{ site_url }}/. Always your words.
+
+One small ask: try a take today, even a messy one. Most people only get it once they read their first one back.
+
+If anything feels off, just reply to this email. It comes to me.
+
+Tom
+Founder, Ramble
+
+Manage billing: {{ billing_url }}
+Privacy: {{ privacy_url }}

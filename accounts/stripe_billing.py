@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from .emails import send_welcome_email
 from .models import PendingSignup, ProcessedStripeEvent
 
 log = logging.getLogger("ramble.stripe")
@@ -374,6 +375,8 @@ def fulfill_checkout_session(session):
     pending.stripe_checkout_session_id = session_id or pending.stripe_checkout_session_id
     pending.save(update_fields=["completed_at", "stripe_checkout_session_id"])
     log.info("Created user from Stripe checkout email=%s session=%s", user.email, session_id)
+    welcome_email = user.email
+    transaction.on_commit(lambda: send_welcome_email(email=welcome_email))
     return user
 
 
