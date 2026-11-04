@@ -3065,15 +3065,18 @@ a.album-chip:focus-visible {
   letter-spacing: -0.0275em;
 }
 
-/* Match header/footer chrome to the auth card edges */
-.is-auth-page .navbar-inner,
-.is-auth-page .footer .footer-inner {
-  width: min(440px, calc(100% - 2 * var(--pad)));
-}
+/* Match header/footer chrome to the auth card edges — mobile only.
+   Desktop keeps the same --chrome width as the home page. */
+@media (max-width: 800px) {
+  .is-auth-page .navbar-inner,
+  .is-auth-page .footer .footer-inner {
+    width: min(440px, calc(100% - 2 * var(--pad)));
+  }
 
-.is-auth-page:has(.auth-shell--signup) .navbar-inner,
-.is-auth-page:has(.auth-shell--signup) .footer .footer-inner {
-  width: min(920px, calc(100% - 2 * var(--pad)));
+  .is-auth-page:has(.auth-shell--signup) .navbar-inner,
+  .is-auth-page:has(.auth-shell--signup) .footer .footer-inner {
+    width: min(920px, calc(100% - 2 * var(--pad)));
+  }
 }
 
 .is-auth-page main {
@@ -3409,6 +3412,30 @@ a.album-chip:focus-visible {
 .stripe-checkout-form {
   margin-top: 22px;
   min-height: 280px;
+}
+
+.powered-by-stripe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 18px;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: var(--faint);
+  text-decoration: none;
+}
+
+.powered-by-stripe:hover {
+  color: var(--muted);
+}
+
+.powered-by-stripe-logo {
+  display: block;
+  width: 48px;
+  height: auto;
 }
 
 .auth-welcome-app {
