@@ -20,9 +20,6 @@
       <p class="hero-lede hero-lede-tagline">
         <span class="hero-lede-tagline-line">Say it now. Read it any time. Always your words.</span>
       </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#list">Get on the list</a>
-      </div>
     </div>
 
     <div class="hero-landing-visual">
@@ -222,21 +219,6 @@
         <p class="landing-security-desc">Your voice and your rambles stay yours.</p>
       </li>
     </ul>
-  </section>
-
-  <section class="landing-wait" id="list">
-    <h2 class="landing-wait-title">Get on the list</h2>
-    <p class="landing-wait-lede">Phone and web. Free app. You pay on the web. No in-app store.</p>
-    {% if joined %}
-      <p class="landing-wait-ok">You're on the list. We'll be in touch.</p>
-    {% else %}
-      <form method="post" class="landing-wait-form">
-        {% csrf_token %}
-        <label class="visually-hidden" for="waitlist-email">Email</label>
-        <input id="waitlist-email" type="email" name="email" class="field" placeholder="Email" autocomplete="email" required>
-        <button type="submit" class="btn btn-primary">Join</button>
-      </form>
-    {% endif %}
   </section>
 </div>
 {% endblock %}

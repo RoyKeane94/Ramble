@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}KPI · Ramble{% endblock %}
+{% block body_attrs %} data-app-page="kpi" data-app-shutter="off"{% endblock %}
+{% block app_title %}KPI{% endblock %}
+{% block app_trailing %}
+  <a class="app-done" href="{% url 'notes:list' %}">Done</a>
+{% endblock %}
+
+{% block content %}
+<section class="shell shell-full">
+  <header class="page-head desktop-chrome">
+    <h1 class="page-title">KPI</h1>
+  </header>
+
+  <div class="kpi-panel panel">
+    <div class="kpi-scroll">
+      <table class="kpi-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Signed up</th>
+            <th class="num">Takes</th>
+            <th>Signup → 1st</th>
+            <th>1st → 2nd</th>
+            <th>Last take</th>
+            <th class="num">Days since</th>
+            <th class="num">Active days</th>
+            <th class="num">Streak</th>
+            <th class="num">Takes / wk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in kpi_rows %}
+          <tr>
+            <td class="kpi-email">{{ row.email }}</td>
+            <td>{{ row.date_joined|date:"j M Y" }}</td>
+            <td class="num">{{ row.take_count }}</td>
+            <td>{{ row.signup_to_first }}</td>
+            <td>{{ row.first_to_second }}</td>
+            <td>{% if row.last_take_at %}{{ row.last_take_at|date:"j M Y" }}{% else %}-{% endif %}</td>
+            <td class="num">{% if row.days_since_last != None %}{{ row.days_since_last }}{% else %}-{% endif %}</td>
+            <td class="num">{% if row.take_count %}{{ row.active_days }}{% else %}-{% endif %}</td>
+            <td class="num">{% if row.take_count %}{{ row.current_streak }}{% else %}-{% endif %}</td>
+            <td class="num">{% if row.takes_per_week != None %}{{ row.takes_per_week }}{% else %}-{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" class="kpi-empty">No users yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

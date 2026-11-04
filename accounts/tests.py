@@ -1,11 +1,16 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
+
+from notes.models import Note
 
 from .emails import greeting_name, send_welcome_email
+from .kpi import format_duration, user_kpis
 from .models import PendingSignup, ProcessedStripeEvent
 from .stripe_billing import fulfill_checkout_session, handle_webhook_event
 
@@ -443,3 +448,61 @@ class AdminLoginTests(TestCase):
             },
         )
         self.assertEqual(allowed.status_code, 302)
+
+
+class KpiDashboardTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser("boss@example.com", "password12")
+        self.user = User.objects.create_user("member@example.com", "password12")
+        joined = timezone.now() - timedelta(days=10)
+        User.objects.filter(pk=self.user.pk).update(date_joined=joined)
+        self.user.refresh_from_db()
+        first = timezone.now() - timedelta(days=8)
+        second = timezone.now() - timedelta(days=7)
+        Note.objects.create(user=self.user, created_at=first, tidied_text="one")
+        Note.objects.create(user=self.user, created_at=second, tidied_text="two")
+
+    def test_anonymous_redirects_to_login(self):
+        response = self.client.get(reverse("kpi"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_regular_user_forbidden(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("kpi"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_sees_table_and_nav(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("kpi"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "member@example.com")
+        self.assertContains(response, "Signup → 1st")
+        self.assertContains(response, reverse("kpi"))
+        # Nav link only for superuser
+        roll = self.client.get(reverse("notes:list"))
+        self.assertContains(roll, reverse("kpi"))
+
+    def test_regular_user_nav_hides_kpi(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("notes:list"))
+        self.assertNotContains(response, reverse("kpi"))
+
+    def test_user_kpis_compute_gaps(self):
+        rows = {row.email: row for row in user_kpis()}
+        member = rows["member@example.com"]
+        self.assertEqual(member.take_count, 2)
+        self.assertIsNotNone(member.signup_to_first)
+        self.assertIsNotNone(member.first_to_second)
+        self.assertAlmostEqual(
+            member.signup_to_first.total_seconds(),
+            timedelta(days=2).total_seconds(),
+            delta=60,
+        )
+        self.assertAlmostEqual(
+            member.first_to_second.total_seconds(),
+            timedelta(days=1).total_seconds(),
+            delta=60,
+        )
+        self.assertEqual(format_duration(timedelta(days=2, hours=3)), "2d 3h")
+        self.assertEqual(format_duration(None), "-")

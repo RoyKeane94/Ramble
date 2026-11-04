@@ -5,6 +5,7 @@ from django.conf import settings as django_settings
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
@@ -15,6 +16,7 @@ from notes.models import Note
 from notes.usage import usage_for_user
 
 from .forms import EmailAuthenticationForm, SignupForm, StyledPasswordChangeForm
+from .kpi import format_duration, user_kpis
 from .models import PendingSignup
 from .stripe_billing import (
     SUBSCRIPTION_AMOUNT_GBP,
@@ -270,5 +272,34 @@ def change_password(request):
         {
             "password_form": password_form,
             "password_saved": password_saved,
+        },
+    )
+
+
+@login_required
+def kpi_dashboard(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    rows = [
+        {
+            "email": row.email,
+            "date_joined": row.date_joined,
+            "take_count": row.take_count,
+            "signup_to_first": format_duration(row.signup_to_first),
+            "first_to_second": format_duration(row.first_to_second),
+            "last_take_at": row.last_take_at,
+            "days_since_last": row.days_since_last,
+            "active_days": row.active_days,
+            "current_streak": row.current_streak,
+            "takes_per_week": row.takes_per_week,
+        }
+        for row in user_kpis()
+    ]
+    return render(
+        request,
+        "accounts/kpi.html",
+        {
+            "kpi_rows": rows,
+            "nav_section": "kpi",
         },
     )

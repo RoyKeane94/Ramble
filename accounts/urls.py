@@ -5,6 +5,7 @@ from .views import (
     RambleLogoutView,
     billing_portal,
     change_password,
+    kpi_dashboard,
     settings,
     signup,
     signup_cancel,
@@ -20,4 +21,5 @@ urlpatterns = [
     path("settings/", settings, name="settings"),
     path("settings/billing/", billing_portal, name="billing_portal"),
     path("settings/change-password/", change_password, name="change_password"),
+    path("kpi/", kpi_dashboard, name="kpi"),
 ]
