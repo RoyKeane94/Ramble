@@ -2,6 +2,7 @@ from collections import Counter, OrderedDict
 from datetime import timedelta
 from uuid import UUID
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
@@ -61,7 +62,11 @@ def home(request):
         if email and "@" in email:
             joined = True
 
-    return render(request, "pages/home.html", {"joined": joined})
+    return render(
+        request,
+        "pages/home.html",
+        {"joined": joined, "app_store_url": settings.APP_STORE_URL},
+    )
 
 
 def privacy(request):

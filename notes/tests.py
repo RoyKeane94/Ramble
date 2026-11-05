@@ -1,13 +1,26 @@
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 from rest_framework.authtoken.models import Token
 
 from notes.models import Note
 
 User = get_user_model()
+
+
+class HomePageTests(SimpleTestCase):
+    def test_landing_offers_signup_and_app_store(self):
+        response = self.client.get(reverse("notes:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sign up online")
+        self.assertNotContains(response, "Download the app")
+        self.assertContains(response, "download-on-the-app-store.svg")
+        self.assertContains(response, settings.APP_STORE_URL)
+        self.assertContains(response, reverse("signup"))
 
 
 class DevelopApiTests(TestCase):

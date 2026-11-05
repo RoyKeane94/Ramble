@@ -20,6 +20,18 @@
       <p class="hero-lede hero-lede-tagline">
         <span class="hero-lede-tagline-line">Say it now. Read it any time. Always your words.</span>
       </p>
+      <div class="hero-get">
+        <a class="btn btn-primary hero-get-signup" href="{% url 'signup' %}">Sign up online</a>
+        <a class="hero-get-store" href="{{ app_store_url }}" target="_blank" rel="noopener noreferrer">
+          <img
+            class="hero-get-badge"
+            src="{% static 'img/download-on-the-app-store.svg' %}"
+            width="120"
+            height="40"
+            alt="Download on the App Store"
+          >
+        </a>
+      </div>
     </div>
 
     <div class="hero-landing-visual">

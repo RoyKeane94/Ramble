@@ -1603,6 +1603,37 @@ a.album-chip:focus-visible {
   align-items: center;
 }
 
+.hero-get {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  margin-top: 8px;
+}
+
+.hero-get-signup.btn {
+  min-height: 40px;
+  padding: 11px 18px;
+  font-size: 15px;
+}
+
+.hero-get-store {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 7px;
+}
+
+.hero-get-store:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.hero-get-badge {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
 .hero-landing-visual {
   min-width: 0;
   width: 100%;
