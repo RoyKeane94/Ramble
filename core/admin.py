@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ErrorLog, ModelUsageLog, SupportRequest
+from .models import ErrorLog, ModelUsageLog, SupportRequest, TrafficHit
 
 
 @admin.register(ErrorLog)
@@ -79,6 +79,20 @@ class ModelUsageLogAdmin(admin.ModelAdmin):
         "created_at",
     )
     date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(TrafficHit)
+class TrafficHitAdmin(admin.ModelAdmin):
+    list_display = ("day", "path", "referrer", "views")
+    list_filter = ("day",)
+    search_fields = ("path", "referrer")
+    readonly_fields = ("day", "path", "referrer", "visitor_hash", "views")
 
     def has_add_permission(self, request):
         return False

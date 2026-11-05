@@ -72,6 +72,34 @@ class ModelUsageLog(models.Model):
         return f"{self.operation} ({self.model}) — {status}"
 
 
+class TrafficHit(models.Model):
+    """Anonymous page views, grouped so an IP is never stored.
+
+    ``visitor_hash`` changes every day. Rows older than 90 days are removed.
+    """
+
+    day = models.DateField()
+    path = models.CharField(max_length=200)
+    referrer = models.CharField(max_length=255, blank=True, default="")
+    visitor_hash = models.CharField(max_length=64)
+    views = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["day", "path", "referrer", "visitor_hash"],
+                name="traffic_hit_day_path_referrer_visitor",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["day", "visitor_hash"]),
+        ]
+
+    def __str__(self):
+        source = self.referrer or "direct"
+        return f"{self.day} {self.path} ({source}) ×{self.views}"
+
+
 class SupportRequest(models.Model):
     class Topic(models.TextChoices):
         ACCOUNT = "account", "Account & billing"

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app45">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app48">
 </head>
 <body class="{% if user.is_authenticated %}is-signed-in {% endif %}{% block body_class %}{% endblock %}"{% block body_attrs %}{% endblock %}>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -31,7 +31,7 @@
             <a class="nav-link{% if section == 'albums' %} is-current{% endif %}" href="{% url 'notes:albums' %}">Albums</a>
             <a class="nav-link nav-quiet{% if section == 'settings' %} is-current{% endif %}" href="{% url 'settings' %}">Settings</a>
             {% if user.is_superuser %}
-            <a class="nav-link nav-quiet{% if section == 'kpi' %} is-current{% endif %}" href="{% url 'kpi' %}">KPI</a>
+            <a class="nav-link nav-quiet{% if section == 'kpi' %} is-current{% endif %}" href="{% url 'kpi' %}">KPIs</a>
             {% endif %}
             <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
               {% csrf_token %}

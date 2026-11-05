@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}KPI · Ramble{% endblock %}
+{% block title %}KPIs · Ramble{% endblock %}
 {% block body_attrs %} data-app-page="kpi" data-app-shutter="off"{% endblock %}
-{% block app_title %}KPI{% endblock %}
+{% block app_title %}KPIs{% endblock %}
 {% block app_trailing %}
   <a class="app-done" href="{% url 'notes:list' %}">Done</a>
 {% endblock %}
@@ -10,9 +10,77 @@
 {% block content %}
 <section class="shell shell-full">
   <header class="page-head desktop-chrome">
-    <h1 class="page-title">KPI</h1>
+    <h1 class="page-title">KPIs</h1>
   </header>
 
+  <section class="traffic-block" aria-labelledby="traffic-heading">
+    <h2 id="traffic-heading" class="kpi-section-title">Traffic</h2>
+    <div class="traffic-stats">
+      {% for window in traffic.windows %}
+      <article class="traffic-stat panel">
+        <p class="traffic-stat-label">{{ window.label }}</p>
+        <p class="traffic-stat-value">{{ window.visitors }} <span>{{ window.visitor_label }}</span></p>
+        <p class="traffic-stat-sub">{{ window.pageviews_label }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="traffic-columns">
+      <div class="kpi-panel panel">
+        <h3 class="traffic-card-title">Pages <span>30 days</span></h3>
+        <div class="kpi-scroll">
+          <table class="kpi-table">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th class="num">Visitors</th>
+                <th class="num">Views</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for page in traffic.pages %}
+              <tr>
+                <td class="kpi-path">{{ page.path }}</td>
+                <td class="num">{{ page.visitors }}</td>
+                <td class="num">{{ page.views }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="kpi-empty">No visits yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="kpi-panel panel">
+        <h3 class="traffic-card-title">Sources <span>30 days</span></h3>
+        <div class="kpi-scroll">
+          <table class="kpi-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th class="num">Views</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for source in traffic.sources %}
+              <tr>
+                <td>{{ source.label }}</td>
+                <td class="num">{{ source.views }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="kpi-empty">No visits yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="kpi-section-title">Users</h2>
   <div class="kpi-panel panel">
     <div class="kpi-scroll">
       <table class="kpi-table">
@@ -27,7 +95,6 @@
             <th class="num">Days since</th>
             <th class="num">Active days</th>
             <th class="num">Streak</th>
-            <th class="num">Takes / wk</th>
           </tr>
         </thead>
         <tbody>
@@ -42,11 +109,10 @@
             <td class="num">{% if row.days_since_last != None %}{{ row.days_since_last }}{% else %}-{% endif %}</td>
             <td class="num">{% if row.take_count %}{{ row.active_days }}{% else %}-{% endif %}</td>
             <td class="num">{% if row.take_count %}{{ row.current_streak }}{% else %}-{% endif %}</td>
-            <td class="num">{% if row.takes_per_week != None %}{{ row.takes_per_week }}{% else %}-{% endif %}</td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="10" class="kpi-empty">No users yet.</td>
+            <td colspan="9" class="kpi-empty">No users yet.</td>
           </tr>
           {% endfor %}
         </tbody>

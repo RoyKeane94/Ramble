@@ -12,6 +12,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from core.traffic import traffic_report
 from notes.models import Note
 from notes.usage import usage_for_user
 
@@ -291,7 +292,6 @@ def kpi_dashboard(request):
             "days_since_last": row.days_since_last,
             "active_days": row.active_days,
             "current_streak": row.current_streak,
-            "takes_per_week": row.takes_per_week,
         }
         for row in user_kpis()
     ]
@@ -300,6 +300,7 @@ def kpi_dashboard(request):
         "accounts/kpi.html",
         {
             "kpi_rows": rows,
+            "traffic": traffic_report(),
             "nav_section": "kpi",
         },
     )

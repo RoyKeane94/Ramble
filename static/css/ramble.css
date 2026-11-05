@@ -4454,3 +4454,88 @@ a.album-chip:focus-visible {
   white-space: normal;
   padding: 28px 14px;
 }
+
+.kpi-section-title {
+  margin: 28px 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy-deep);
+}
+
+.traffic-block .kpi-section-title {
+  margin: 0 0 14px;
+}
+
+.traffic-stats,
+.traffic-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.traffic-stats {
+  margin-bottom: 12px;
+}
+
+.traffic-stat {
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.traffic-stat-label,
+.traffic-card-title span {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.traffic-stat-value {
+  margin: 6px 0 0;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--navy-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.traffic-stat-value span {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.traffic-stat-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.traffic-card-title {
+  margin: 0;
+  padding: 14px 14px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy-deep);
+}
+
+.traffic-card-title span {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.kpi-table .kpi-path {
+  font-weight: 500;
+  color: var(--navy-deep);
+}
+
+@media (max-width: 720px) {
+  .traffic-stats,
+  .traffic-columns {
+    grid-template-columns: 1fr;
+  }
+}

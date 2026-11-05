@@ -27,7 +27,6 @@ class UserKpi:
     first_to_second: Optional[timedelta]
     active_days: int
     current_streak: int
-    takes_per_week: Optional[float]
     days_since_last: Optional[int]
 
 
@@ -74,20 +73,7 @@ def _current_streak(take_dates: list[date], today: date) -> int:
     return streak
 
 
-def _takes_per_week(
-    take_count: int,
-    first_take_at: Optional[datetime],
-    now: datetime,
-) -> Optional[float]:
-    if take_count <= 0 or first_take_at is None:
-        return None
-    elapsed = max((now - first_take_at).total_seconds(), 0)
-    weeks = max(elapsed / (7 * 86400), 1 / 7)  # floor at ~1 day so early users aren't huge
-    return round(take_count / weeks, 1)
-
-
 def user_kpis() -> list[UserKpi]:
-    now = timezone.now()
     today = timezone.localdate()
 
     users = (
@@ -133,7 +119,6 @@ def user_kpis() -> list[UserKpi]:
                 first_to_second=(second_at - first_at) if first_at and second_at else None,
                 active_days=active_days,
                 current_streak=_current_streak(take_dates, today),
-                takes_per_week=_takes_per_week(user.take_count, first_at, now),
                 days_since_last=days_since_last,
             )
         )
