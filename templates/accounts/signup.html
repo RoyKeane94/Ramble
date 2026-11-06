@@ -112,6 +112,7 @@
           {% endfor %}
 
           <button type="submit" class="btn btn-primary auth-submit">Continue to payment</button>
+          <p class="auth-terms">By signing up, you are agreeing to our <a href="{% url 'notes:terms' %}">Terms of Use</a></p>
           <p class="auth-secure">Secure payment with Stripe</p>
         </form>
 

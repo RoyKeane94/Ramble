@@ -3203,6 +3203,21 @@ a.album-chip:focus-visible {
   color: var(--muted);
 }
 
+.auth-terms {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--muted);
+}
+
+.auth-terms a {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .auth-secure {
   margin: 10px 0 0;
   font-size: 13px;
