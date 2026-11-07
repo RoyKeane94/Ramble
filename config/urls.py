@@ -12,6 +12,7 @@ from core.views import (
     robots_txt,
     security_txt,
     server_error,
+    sitemap_xml,
 )
 from accounts.views import stripe_webhook
 from ramble_mcp.views import mcp_endpoint
@@ -30,6 +31,7 @@ def healthz(_request):
 urlpatterns = [
     path("healthz", healthz),
     path("robots.txt", robots_txt),
+    path("sitemap.xml", sitemap_xml),
     path("llms.txt", llms_txt),
     path(".well-known/security.txt", security_txt),
     path("mcp", mcp_endpoint),

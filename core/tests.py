@@ -44,6 +44,7 @@ class SecurityHeaderTests(SimpleTestCase):
         self.assertIn("microphone=(self)", response["Permissions-Policy"])
         self.assertIn("camera=()", response["Permissions-Policy"])
         self.assertEqual(response["Cross-Origin-Resource-Policy"], "same-origin")
+        self.assertEqual(response["Link"], '</llms.txt>; rel="describedby"')
 
     @override_settings(
         SECURE_HSTS_SECONDS=31536000,
@@ -71,6 +72,8 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("Disallow: /roll/", body)
         self.assertIn("Disallow: /notes/", body)
         self.assertIn("Allow: /llms.txt", body)
+        self.assertIn("Allow: /sitemap.xml", body)
+        self.assertIn("Sitemap: http://testserver/sitemap.xml", body)
         self.assertIn("/llms.txt", body)
         self.assertNotIn("yourramble.com", body)
 
@@ -80,6 +83,19 @@ class WellKnownEndpointTests(SimpleTestCase):
         body = response.content.decode()
         self.assertIn("Disallow: /admin/", body)
         self.assertNotIn("secret-panel", body)
+
+    def test_sitemap_xml(self):
+        response = self.client.get("/sitemap.xml")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("xml", response["Content-Type"])
+        body = response.content.decode()
+        self.assertIn("<urlset", body)
+        self.assertIn("<loc>http://testserver/</loc>", body)
+        self.assertIn("<loc>http://testserver/privacy/</loc>", body)
+        self.assertIn("<loc>http://testserver/terms/</loc>", body)
+        self.assertIn("<loc>http://testserver/support/</loc>", body)
+        self.assertIn("<loc>http://testserver/signup/</loc>", body)
+        self.assertIn("<loc>http://testserver/llms.txt</loc>", body)
 
     def test_llms_txt(self):
         response = self.client.get("/llms.txt")

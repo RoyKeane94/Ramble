@@ -21,6 +21,7 @@ class SecurityHeadersMiddleware:
         if permissions_policy:
             response.headers.setdefault("Permissions-Policy", permissions_policy)
         response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        response.headers.setdefault("Link", '</llms.txt>; rel="describedby"')
         return response
 
 

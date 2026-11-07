@@ -69,11 +69,12 @@ def server_error(request):
     return render_error_page(request, "errors/500.html", status_code=500)
 
 
-def robots_txt(_request):
+def robots_txt(request):
     # Keep Disallow paths generic — never advertise the real ADMIN_URL.
     public_allows = [
         "Allow: /",
         "Allow: /llms.txt",
+        "Allow: /sitemap.xml",
         "Allow: /privacy/",
         "Allow: /terms/",
         "Allow: /support/",
@@ -126,7 +127,43 @@ def robots_txt(_request):
                 *private_disallows,
             ]
         )
+    lines.extend(
+        [
+            "",
+            f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}",
+        ]
+    )
     return HttpResponse("\n".join(lines) + "\n", content_type="text/plain; charset=utf-8")
+
+
+def sitemap_xml(request):
+    """Public marketing URLs for classic search crawlers."""
+    pages = [
+        ("/", "1.0", "weekly"),
+        ("/signup/", "0.8", "monthly"),
+        ("/privacy/", "0.5", "monthly"),
+        ("/terms/", "0.5", "monthly"),
+        ("/support/", "0.5", "monthly"),
+        ("/login/", "0.3", "monthly"),
+        ("/llms.txt", "0.4", "monthly"),
+    ]
+    url_entries = []
+    for path, priority, changefreq in pages:
+        loc = request.build_absolute_uri(path)
+        url_entries.append(
+            "  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <changefreq>{changefreq}</changefreq>\n"
+            f"    <priority>{priority}</priority>\n"
+            "  </url>"
+        )
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(url_entries)
+        + "\n</urlset>\n"
+    )
+    return HttpResponse(body, content_type="application/xml; charset=utf-8")
 
 
 def llms_txt(request):
