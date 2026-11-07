@@ -51,6 +51,21 @@
     </div>
   </section>
 
+  <section class="talk-through" aria-label="Ways to use Ramble">
+    <p class="talk-through-line">
+      <span class="talk-through-prefix">Talk through…</span>
+      <span class="talk-through-slot" aria-live="polite">
+        <span class="talk-through-example is-active">Quick ideas post a meeting.</span>
+        <span class="talk-through-example">An idea for your next post.</span>
+        <span class="talk-through-example">A decision you’re weighing up.</span>
+        <span class="talk-through-example">What’s not working with your product.</span>
+        <span class="talk-through-example">A better way to explain your offer.</span>
+        <span class="talk-through-example">What you want to try next week.</span>
+        <span class="talk-through-example">A thought you don’t want to lose.</span>
+      </span>
+    </p>
+  </section>
+
   <section class="step-flow" aria-label="How Ramble works">
     <article class="step-block">
       <div class="step-block-grid">
@@ -226,5 +241,5 @@
 {% block extra_js %}
 {% load static %}
 <script src="{% static 'js/home-navbar-scroll.js' %}?v=1"></script>
-<script src="{% static 'js/home-scroll-animations.js' %}?v=2"></script>
+<script src="{% static 'js/home-scroll-animations.js' %}?v=4"></script>
 {% endblock %}
