@@ -38,6 +38,18 @@
     heroVideo.currentTime = 0;
   }
 
+  var faqItems = Array.prototype.slice.call(
+    document.querySelectorAll(".landing-faq-item")
+  );
+  faqItems.forEach(function (item) {
+    item.addEventListener("toggle", function () {
+      if (!item.open) return;
+      faqItems.forEach(function (other) {
+        if (other !== item) other.open = false;
+      });
+    });
+  });
+
   var examples = Array.prototype.slice.call(
     document.querySelectorAll(".talk-through-example")
   );
