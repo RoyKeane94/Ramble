@@ -21,6 +21,7 @@
         <p class="traffic-stat-label">{{ window.label }}</p>
         <p class="traffic-stat-value">{{ window.visitors }} <span>{{ window.visitor_label }}</span></p>
         <p class="traffic-stat-sub">{{ window.pageviews_label }}</p>
+        <p class="traffic-stat-sub">avg stay {{ window.avg_stay_label }}</p>
       </article>
       {% endfor %}
     </div>
@@ -34,6 +35,7 @@
                 <th>Page</th>
                 <th class="num">Visitors</th>
                 <th class="num">Views</th>
+                <th class="num">Avg stay</th>
               </tr>
             </thead>
             <tbody>
@@ -42,10 +44,11 @@
                 <td class="kpi-path">{{ page.path }}</td>
                 <td class="num">{{ page.visitors }}</td>
                 <td class="num">{{ page.views }}</td>
+                <td class="num">{{ page.avg_stay_label }}</td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="3" class="kpi-empty">No visits yet.</td>
+                <td colspan="4" class="kpi-empty">No visits yet.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -60,6 +63,7 @@
               <tr>
                 <th>Source</th>
                 <th class="num">Views</th>
+                <th class="num">Avg stay</th>
               </tr>
             </thead>
             <tbody>
@@ -67,10 +71,11 @@
               <tr>
                 <td>{{ source.label }}</td>
                 <td class="num">{{ source.views }}</td>
+                <td class="num">{{ source.avg_stay_label }}</td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="2" class="kpi-empty">No visits yet.</td>
+                <td colspan="3" class="kpi-empty">No visits yet.</td>
               </tr>
               {% endfor %}
             </tbody>

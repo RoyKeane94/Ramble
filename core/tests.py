@@ -1,6 +1,7 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
@@ -12,7 +13,7 @@ from django.utils import timezone
 from config.settings import _admin_url
 from core.middleware import SecurityHeadersMiddleware
 from core.models import TrafficHit
-from core.traffic import prune_traffic, traffic_report, visitor_hash
+from core.traffic import format_stay, prune_traffic, traffic_report, visitor_hash
 
 
 class AdminUrlConfigTests(SimpleTestCase):
@@ -132,6 +133,9 @@ class TrafficRecordingTests(TestCase):
         self.assertEqual(hit.path, "/")
         self.assertEqual(hit.views, 2)
         self.assertEqual(hit.referrer, "")
+        self.assertIsNotNone(hit.first_seen)
+        self.assertIsNotNone(hit.last_seen)
+        self.assertGreaterEqual(hit.last_seen, hit.first_seen)
         self.assertNotIn("127.0.0.1", hit.visitor_hash)
         self.assertEqual(len(hit.visitor_hash), 32)
 
@@ -204,11 +208,24 @@ class TrafficRecordingTests(TestCase):
 class TrafficReportTests(TestCase):
     def test_windows_and_dashboard(self):
         today = timezone.localdate()
+        now = timezone.now()
         TrafficHit.objects.create(
-            day=today, path="/", referrer="google.com", visitor_hash="a" * 32, views=3
+            day=today,
+            path="/",
+            referrer="google.com",
+            visitor_hash="a" * 32,
+            views=3,
+            first_seen=now - timedelta(minutes=2),
+            last_seen=now - timedelta(minutes=1),
         )
         TrafficHit.objects.create(
-            day=today, path="/signup/", referrer="google.com", visitor_hash="a" * 32, views=1
+            day=today,
+            path="/signup/",
+            referrer="google.com",
+            visitor_hash="a" * 32,
+            views=1,
+            first_seen=now,
+            last_seen=now,
         )
         TrafficHit.objects.create(
             day=today - timedelta(days=10),
@@ -216,19 +233,30 @@ class TrafficReportTests(TestCase):
             referrer="",
             visitor_hash="b" * 32,
             views=2,
+            first_seen=now - timedelta(days=10),
+            last_seen=now - timedelta(days=10),
         )
 
         report = traffic_report(today)
         week, month = report["windows"]
         self.assertEqual(week["visitors"], 1)
         self.assertEqual(week["pageviews_label"], "4 page views")
+        self.assertEqual(week["avg_stay_label"], "2m")
         self.assertEqual(month["visitors"], 2)
         self.assertEqual(month["pageviews_label"], "6 page views")
+        self.assertEqual(month["avg_stay_label"], "1m")
         self.assertEqual(report["pages"][0]["path"], "/")
         self.assertEqual(report["pages"][0]["views"], 5)
         self.assertEqual(report["pages"][0]["visitors"], 2)
-        self.assertEqual(report["sources"][0], {"label": "google.com", "views": 4})
-        self.assertEqual(report["sources"][1], {"label": "Direct", "views": 2})
+        self.assertEqual(report["pages"][0]["avg_stay_label"], "30s")
+        self.assertEqual(
+            report["sources"][0],
+            {"label": "google.com", "views": 4, "avg_stay_label": "2m"},
+        )
+        self.assertEqual(
+            report["sources"][1],
+            {"label": "Direct", "views": 2, "avg_stay_label": "<1s"},
+        )
 
         get_user_model().objects.create_superuser("boss@example.com", "password12")
         self.client.force_login(get_user_model().objects.get(email="boss@example.com"))
@@ -237,7 +265,31 @@ class TrafficReportTests(TestCase):
         self.assertContains(response, "google.com")
         self.assertContains(response, "4 page views")
         self.assertContains(response, "6 page views")
+        self.assertContains(response, "avg stay")
+        self.assertContains(response, "Avg stay")
         self.assertContains(response, "Direct")
+
+    def test_avg_stay_from_page_views(self):
+        ua = "Mozilla/5.0 RambleStay"
+        start = datetime(2026, 11, 7, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = start
+            self.client.get("/", HTTP_USER_AGENT=ua)
+            mock_now.return_value = start + timedelta(seconds=90)
+            self.client.get("/signup/", HTTP_USER_AGENT=ua)
+
+        home = TrafficHit.objects.get(path="/")
+        self.assertEqual((home.last_seen - home.first_seen).total_seconds(), 90)
+
+        report = traffic_report(start.date())
+        self.assertEqual(report["windows"][0]["avg_stay_label"], "1m 30s")
+        pages = {row["path"]: row for row in report["pages"]}
+        self.assertEqual(pages["/"]["avg_stay_label"], "1m 30s")
+        self.assertEqual(pages["/signup/"]["avg_stay_label"], "<1s")
+        self.assertEqual(report["sources"][0]["avg_stay_label"], "1m 30s")
+        self.assertEqual(format_stay(None), "-")
+        self.assertEqual(format_stay(0), "<1s")
+        self.assertEqual(format_stay(45), "45s")
 
     def test_prune_drops_rows_older_than_ninety_days(self):
         today = timezone.localdate()

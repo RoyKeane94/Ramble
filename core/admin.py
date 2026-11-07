@@ -89,10 +89,18 @@ class ModelUsageLogAdmin(admin.ModelAdmin):
 
 @admin.register(TrafficHit)
 class TrafficHitAdmin(admin.ModelAdmin):
-    list_display = ("day", "path", "referrer", "views")
+    list_display = ("day", "path", "referrer", "views", "first_seen", "last_seen")
     list_filter = ("day",)
     search_fields = ("path", "referrer")
-    readonly_fields = ("day", "path", "referrer", "visitor_hash", "views")
+    readonly_fields = (
+        "day",
+        "path",
+        "referrer",
+        "visitor_hash",
+        "views",
+        "first_seen",
+        "last_seen",
+    )
 
     def has_add_permission(self, request):
         return False

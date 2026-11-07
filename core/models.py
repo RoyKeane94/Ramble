@@ -83,6 +83,8 @@ class TrafficHit(models.Model):
     referrer = models.CharField(max_length=255, blank=True, default="")
     visitor_hash = models.CharField(max_length=64)
     views = models.PositiveIntegerField(default=0)
+    first_seen = models.DateTimeField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [

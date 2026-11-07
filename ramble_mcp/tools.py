@@ -421,7 +421,7 @@ def tool_definitions(user=None):
             {
                 "name": "get_kpis",
                 "description": (
-                    "Pull Ramble product KPIs: public traffic (visitors, top pages, sources) "
+                    "Pull Ramble product KPIs: public traffic (visitors, avg stay, top pages, sources) "
                     "and per-user habit metrics (takes, signup→1st, 1st→2nd, streak, days since last). "
                     "Same data as the /kpi/ dashboard. Superuser only."
                 ),

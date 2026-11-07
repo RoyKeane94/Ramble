@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError
-from django.db.models import Count, F, Sum
+from django.db.models import Case, Count, F, Max, Min, Sum, Value, When
 from django.utils import timezone
 
 from .models import TrafficHit
@@ -177,29 +177,128 @@ def _session_referrer(request, today: date, visitor: str) -> str:
 
 
 def _increment(day: date, path: str, referrer: str, visitor: str) -> None:
+    now = timezone.now()
+    path = path[:200]
+    _close_previous_page(day, visitor, path, now)
     bucket = {
         "day": day,
-        "path": path[:200],
+        "path": path,
         "referrer": referrer[:255],
         "visitor_hash": visitor,
     }
-    updated = TrafficHit.objects.filter(**bucket).update(views=F("views") + 1)
+    updated = _bump_hit(bucket, now)
     if updated:
         return
     try:
-        TrafficHit.objects.create(**bucket, views=1)
+        TrafficHit.objects.create(
+            **bucket, views=1, first_seen=now, last_seen=now
+        )
     except IntegrityError:
-        TrafficHit.objects.filter(**bucket).update(views=F("views") + 1)
+        _bump_hit(bucket, now)
+
+
+def _close_previous_page(
+    day: date, visitor: str, current_path: str, now
+) -> None:
+    """Mark departure from the visitor's last other page (time-on-page approx)."""
+    previous = (
+        TrafficHit.objects.filter(day=day, visitor_hash=visitor)
+        .exclude(path=current_path)
+        .order_by("-last_seen", "-pk")
+        .first()
+    )
+    if previous is None or previous.last_seen is None:
+        return
+    if previous.last_seen >= now:
+        return
+    TrafficHit.objects.filter(pk=previous.pk).update(last_seen=now)
+
+
+def _bump_hit(bucket: dict, now) -> int:
+    """Increment views and extend last_seen; set first_seen if missing."""
+    return TrafficHit.objects.filter(**bucket).update(
+        views=F("views") + 1,
+        last_seen=now,
+        first_seen=Case(
+            When(first_seen__isnull=True, then=Value(now)),
+            default=F("first_seen"),
+        ),
+    )
+
+
+def format_stay(seconds: float | None) -> str:
+    """Human label for average session span (first → last page view)."""
+    if seconds is None:
+        return "-"
+    total = max(0, int(round(seconds)))
+    if total < 1:
+        return "<1s"
+    if total < 60:
+        return f"{total}s"
+    minutes, secs = divmod(total, 60)
+    if minutes < 60:
+        if secs:
+            return f"{minutes}m {secs}s"
+        return f"{minutes}m"
+    hours, minutes = divmod(minutes, 60)
+    if minutes:
+        return f"{hours}h {minutes}m"
+    return f"{hours}h"
 
 
 def _window(today: date, days: int) -> dict:
-    pageviews, visitors = _totals(_span(today, days))
+    qs = _span(today, days)
+    pageviews, visitors = _totals(qs)
+    avg_stay = _avg_stay_seconds(qs)
     return {
         "label": f"{days} days",
         "visitors": visitors,
         "visitor_label": "visitor" if visitors == 1 else "visitors",
         "pageviews_label": "1 page view" if pageviews == 1 else f"{pageviews} page views",
+        "avg_stay_seconds": avg_stay,
+        "avg_stay_label": format_stay(avg_stay),
     }
+
+
+def _avg_stay_seconds(qs) -> float | None:
+    """Mean site stay: first → last page view that day per visitor."""
+    return _mean_stay(_stay_spans(qs, "day", "visitor_hash"))
+
+
+def _avg_stay_by(qs, *group_fields: str) -> dict:
+    """Mean stay keyed by group field values (e.g. path or referrer)."""
+    spans = _stay_spans(qs, *group_fields, "day", "visitor_hash")
+    buckets: dict[tuple, list[float]] = {}
+    for row in spans:
+        key = tuple(row[field] for field in group_fields)
+        buckets.setdefault(key, []).append(row["seconds"])
+    return {
+        key: sum(values) / len(values)
+        for key, values in buckets.items()
+        if values
+    }
+
+
+def _stay_spans(qs, *group_fields: str) -> list[dict]:
+    sessions = (
+        qs.filter(first_seen__isnull=False, last_seen__isnull=False)
+        .values(*group_fields)
+        .annotate(start=Min("first_seen"), end=Max("last_seen"))
+    )
+    rows: list[dict] = []
+    for row in sessions:
+        if row["start"] is None or row["end"] is None:
+            continue
+        entry = {field: row[field] for field in group_fields}
+        entry["seconds"] = max(0.0, (row["end"] - row["start"]).total_seconds())
+        rows.append(entry)
+    return rows
+
+
+def _mean_stay(spans: list[dict]) -> float | None:
+    if not spans:
+        return None
+    return sum(row["seconds"] for row in spans) / len(spans)
 
 
 def _span(today: date, days: int):
@@ -214,26 +313,37 @@ def _totals(qs) -> tuple[int, int]:
 
 
 def _top_pages(today: date, days: int) -> list[dict]:
+    qs = _span(today, days)
+    stays = _avg_stay_by(qs, "path")
     rows = (
-        _span(today, days)
-        .values("path")
+        qs.values("path")
         .annotate(views=Sum("views"), visitors=Count("visitor_hash", distinct=True))
         .order_by("-views", "path")[:TOP_LIMIT]
     )
     return [
-        {"path": row["path"], "views": row["views"], "visitors": row["visitors"]}
+        {
+            "path": row["path"],
+            "views": row["views"],
+            "visitors": row["visitors"],
+            "avg_stay_label": format_stay(stays.get((row["path"],))),
+        }
         for row in rows
     ]
 
 
 def _top_sources(today: date, days: int) -> list[dict]:
+    qs = _span(today, days)
+    stays = _avg_stay_by(qs, "referrer")
     rows = (
-        _span(today, days)
-        .values("referrer")
+        qs.values("referrer")
         .annotate(views=Sum("views"))
         .order_by("-views", "referrer")[:TOP_LIMIT]
     )
     return [
-        {"label": row["referrer"] or "Direct", "views": row["views"]}
+        {
+            "label": row["referrer"] or "Direct",
+            "views": row["views"],
+            "avg_stay_label": format_stay(stays.get((row["referrer"],))),
+        }
         for row in rows
     ]
