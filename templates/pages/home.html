@@ -35,34 +35,18 @@
     </div>
 
     <div class="hero-landing-visual">
-      <div class="hero-visual-frame hero-visual-frame--mesh step-visual-frame" aria-hidden="true">
-        <div class="panel recents-card recents-card--hero recents-card--demo">
-          <div class="recents-bar">
-            <span class="recents-bar-title">Recents</span>
-            <span class="recents-phase is-talk">Talk</span>
-          </div>
-          <div class="recents-body">
-            <article class="hero-note hero-note--inline">
-              <p class="hero-note-meta"><span class="frame-meta-text">Today · 3:08 pm · <span class="recents-meta-dur">0:00</span></span></p>
-              <p class="album-chips hero-demo-album-chips" id="hero-demo-album-chips" aria-hidden="true" hidden>
-                <span class="album-chip">Super useful ideas</span>
-              </p>
-              <div class="hero-note-body frame-preview frame-preview-live" id="hero-recents-preview">
-                <span class="recents-caret" aria-hidden="true"></span>
-              </div>
-            </article>
-            <div class="hero-demo-album-panel" id="hero-demo-album-panel" hidden>
-              <p class="hero-demo-album-label">Add to album</p>
-              <div class="take-album-row hero-demo-album-row" id="hero-demo-album-row">
-                <div class="take-album-row-copy">
-                  <span class="take-album-row-name">Super useful ideas</span>
-                  <span class="take-album-row-count">3 notes</span>
-                </div>
-                <span class="take-album-check" aria-hidden="true"></span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="hero-visual-frame hero-visual-frame--video">
+        <video
+          class="hero-landing-video"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          aria-label="Ramble product demo"
+        >
+          <source src="{% static 'video/ramble-landing-loop.mp4' %}" type="video/mp4">
+        </video>
       </div>
     </div>
   </section>
@@ -242,5 +226,5 @@
 {% block extra_js %}
 {% load static %}
 <script src="{% static 'js/home-navbar-scroll.js' %}?v=1"></script>
-<script src="{% static 'js/home-scroll-animations.js' %}?v=1"></script>
+<script src="{% static 'js/home-scroll-animations.js' %}?v=2"></script>
 {% endblock %}
