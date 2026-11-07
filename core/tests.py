@@ -67,6 +67,11 @@ class WellKnownEndpointTests(SimpleTestCase):
         body = response.content.decode()
         self.assertIn("Disallow: /admin/", body)
         self.assertIn("Disallow: /mcp", body)
+        self.assertIn("Disallow: /api/", body)
+        self.assertIn("Disallow: /roll/", body)
+        self.assertIn("Disallow: /notes/", body)
+        self.assertIn("Allow: /llms.txt", body)
+        self.assertIn("/llms.txt", body)
         self.assertNotIn("yourramble.com", body)
 
     @override_settings(ADMIN_URL="secret-panel")
@@ -75,6 +80,20 @@ class WellKnownEndpointTests(SimpleTestCase):
         body = response.content.decode()
         self.assertIn("Disallow: /admin/", body)
         self.assertNotIn("secret-panel", body)
+
+    def test_llms_txt(self):
+        response = self.client.get("/llms.txt")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/plain", response["Content-Type"])
+        body = response.content.decode()
+        self.assertTrue(body.startswith("# Ramble\n"))
+        self.assertIn("> Talk your idea through before it disappears.", body)
+        self.assertIn("[Home](", body)
+        self.assertIn("/privacy/", body)
+        self.assertIn("/terms/", body)
+        self.assertIn("/support/", body)
+        self.assertIn("## Optional", body)
+        self.assertIn("apps.apple.com", body)
 
     def test_security_txt(self):
         response = self.client.get("/.well-known/security.txt")

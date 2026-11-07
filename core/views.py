@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -69,13 +70,104 @@ def server_error(request):
 
 
 def robots_txt(_request):
-    lines = [
-        "User-agent: *",
+    # Keep Disallow paths generic — never advertise the real ADMIN_URL.
+    public_allows = [
+        "Allow: /",
+        "Allow: /llms.txt",
+        "Allow: /privacy/",
+        "Allow: /terms/",
+        "Allow: /support/",
+        "Allow: /signup/",
+        "Allow: /login/",
+    ]
+    private_disallows = [
         "Disallow: /admin/",
         "Disallow: /mcp",
         "Disallow: /mcp/",
+        "Disallow: /api/",
+        "Disallow: /healthz",
+        "Disallow: /roll/",
+        "Disallow: /library/",
+        "Disallow: /albums/",
+        "Disallow: /notes/",
+        "Disallow: /settings/",
+        "Disallow: /kpi/",
+        "Disallow: /logout/",
+        "Disallow: /signup/success/",
+        "Disallow: /signup/cancel/",
     ]
-    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+    ai_agents = [
+        "GPTBot",
+        "ChatGPT-User",
+        "Google-Extended",
+        "anthropic-ai",
+        "ClaudeBot",
+        "PerplexityBot",
+        "Applebot-Extended",
+    ]
+
+    lines = [
+        "# Ramble",
+        "# Public product pages are crawlable. Account, note, API, and admin paths are not.",
+        "# For LLMs and AI systems, start with /llms.txt",
+        "",
+        "User-agent: *",
+        *public_allows,
+        *private_disallows,
+        "",
+        "# AI crawlers — same public/private split; prefer /llms.txt for product context",
+    ]
+    for agent in ai_agents:
+        lines.extend(
+            [
+                "",
+                f"User-agent: {agent}",
+                *public_allows[:2],  # / and /llms.txt
+                *private_disallows,
+            ]
+        )
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain; charset=utf-8")
+
+
+def llms_txt(request):
+    """LLM-oriented site map following https://llmstxt.org/"""
+    home = request.build_absolute_uri("/")
+    privacy = request.build_absolute_uri("/privacy/")
+    terms = request.build_absolute_uri("/terms/")
+    support = request.build_absolute_uri("/support/")
+    signup = request.build_absolute_uri("/signup/")
+    login = request.build_absolute_uri("/login/")
+    app_store = getattr(
+        settings,
+        "APP_STORE_URL",
+        "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+    )
+
+    body = f"""# Ramble
+
+> Talk your idea through before it disappears. Ramble tidies what you say into words you can read on your phone or laptop. No rewriting. Always your words.
+
+Ramble is a voice-to-text notes product for iPhone, with the same roll available on the web. You speak a thought; Ramble transcribes it and lightly tidies filler (ums, false starts) and punctuation — it does not rewrite meaning. Notes sync to your phone and laptop. Data is encrypted in transit and at rest. Voice and rambles are not used to train AI.
+
+Recommended uses: quick ideas after a meeting, a thought for a post, a decision you are weighing, what is not working in a product, a clearer way to explain an offer, what to try next week, or any thought you do not want to lose.
+
+## Product
+
+- [Home]({home}): Product overview, hero demo, and how Ramble works (Talk · Keep · Read)
+- [iPhone app on the App Store]({app_store}): Record and capture Rambles on iOS
+- [Sign up]({signup}): Create a Ramble account for web + app sync
+
+## Policies
+
+- [Privacy policy]({privacy}): What is collected, encryption, no training on your content, account deletion
+- [Terms of use]({terms}): Service terms for the iOS app and website
+- [Support]({support}): Contact Ramble support
+
+## Optional
+
+- [Sign in]({login}): Existing account sign-in
+"""
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
 def security_txt(request):

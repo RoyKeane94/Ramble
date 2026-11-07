@@ -6,6 +6,7 @@ from django.urls import include, path
 
 from core.views import (
     bad_request,
+    llms_txt,
     page_not_found,
     permission_denied,
     robots_txt,
@@ -29,6 +30,7 @@ def healthz(_request):
 urlpatterns = [
     path("healthz", healthz),
     path("robots.txt", robots_txt),
+    path("llms.txt", llms_txt),
     path(".well-known/security.txt", security_txt),
     path("mcp", mcp_endpoint),
     path("mcp/", mcp_endpoint),
