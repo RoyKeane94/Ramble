@@ -20,6 +20,7 @@ INSTRUCTIONS = (
     "with that routine's POST url and Bearer key. "
     "Ramble sends one {event: take.ready, take_id} ping per new ready take — pull text via MCP."
 )
+KPI_INSTRUCTIONS = " Use get_kpis for traffic and per-user habit metrics (superuser)."
 
 
 class MethodNotFound(Exception):
@@ -79,18 +80,21 @@ def _dispatch(user, method, params):
     if method == "initialize":
         requested = params.get("protocolVersion") or LATEST_PROTOCOL
         version = requested if requested in SUPPORTED_PROTOCOLS else LATEST_PROTOCOL
+        instructions = INSTRUCTIONS
+        if user.is_superuser:
+            instructions += KPI_INSTRUCTIONS
         return {
             "protocolVersion": version,
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
-            "instructions": INSTRUCTIONS,
+            "instructions": instructions,
         }
     if method in {"notifications/initialized", "notifications/cancelled"}:
         return {}
     if method == "ping":
         return {}
     if method == "tools/list":
-        return {"tools": tool_definitions()}
+        return {"tools": tool_definitions(user)}
     if method == "tools/call":
         name = params.get("name")
         if not name:

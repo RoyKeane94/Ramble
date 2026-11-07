@@ -7,6 +7,8 @@ from uuid import UUID
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
+from accounts.kpi import format_duration, user_kpis
+from core.traffic import traffic_report
 from notes.models import Album, Note
 from notes.search import text_search_q
 
@@ -170,6 +172,33 @@ def get_take_ready_webhook_status(user):
     }
 
 
+def get_kpis(user):
+    """Pull traffic and per-user habit KPIs. Superuser only."""
+    if not user.is_superuser:
+        raise ToolError("get_kpis is only available to superusers.")
+    users = [
+        {
+            "email": row.email,
+            "date_joined": _iso(row.date_joined),
+            "take_count": row.take_count,
+            "first_take_at": _iso(row.first_take_at),
+            "second_take_at": _iso(row.second_take_at),
+            "last_take_at": _iso(row.last_take_at),
+            "signup_to_first": format_duration(row.signup_to_first),
+            "first_to_second": format_duration(row.first_to_second),
+            "active_days": row.active_days,
+            "current_streak": row.current_streak,
+            "days_since_last": row.days_since_last,
+        }
+        for row in user_kpis()
+    ]
+    return {
+        "traffic": traffic_report(),
+        "users": users,
+        "user_count": len(users),
+    }
+
+
 def call_tool(user, name, arguments):
     args = arguments or {}
     if not isinstance(args, dict):
@@ -184,6 +213,7 @@ def call_tool(user, name, arguments):
         "save_take_ready_webhook": save_take_ready_webhook,
         "clear_take_ready_webhook": clear_take_ready_webhook,
         "get_take_ready_webhook_status": get_take_ready_webhook_status,
+        "get_kpis": get_kpis,
     }
     handler = handlers.get(name)
     if handler is None:
@@ -191,8 +221,8 @@ def call_tool(user, name, arguments):
     return handler(user, **_kwargs_for(handler, args))
 
 
-def tool_definitions():
-    return [
+def tool_definitions(user=None):
+    tools = [
         {
             "name": "search_takes",
             "description": (
@@ -386,6 +416,20 @@ def tool_definitions():
             "annotations": {"readOnlyHint": True, "idempotentHint": True},
         },
     ]
+    if user is not None and user.is_superuser:
+        tools.append(
+            {
+                "name": "get_kpis",
+                "description": (
+                    "Pull Ramble product KPIs: public traffic (visitors, top pages, sources) "
+                    "and per-user habit metrics (takes, signup→1st, 1st→2nd, streak, days since last). "
+                    "Same data as the /kpi/ dashboard. Superuser only."
+                ),
+                "inputSchema": {"type": "object", "properties": {}},
+                "annotations": {"readOnlyHint": True, "idempotentHint": True},
+            }
+        )
+    return tools
 
 
 def _kwargs_for(handler, args):

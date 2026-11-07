@@ -250,3 +250,24 @@ class McpTests(TestCase):
         self.assertFalse(cleared["configured"])
         self.user.refresh_from_db()
         self.assertFalse(self.user.has_take_ready_webhook)
+
+    def test_get_kpis_requires_superuser(self):
+        denied = self.call("get_kpis")
+        self.assertTrue(denied.get("isError"))
+        names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
+        self.assertNotIn("get_kpis", names)
+
+        admin = User.objects.create_superuser("admin@example.com", "password12")
+        token = admin.issue_mcp_token()
+        names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
+        self.assertIn("get_kpis", names)
+
+        result = self.call("get_kpis", token=token)["structuredContent"]
+        self.assertIn("traffic", result)
+        self.assertIn("windows", result["traffic"])
+        emails = {row["email"] for row in result["users"]}
+        self.assertIn("tom@example.com", emails)
+        self.assertIn("admin@example.com", emails)
+        member = next(row for row in result["users"] if row["email"] == "tom@example.com")
+        self.assertEqual(member["take_count"], 2)
+        self.assertIn("signup_to_first", member)
