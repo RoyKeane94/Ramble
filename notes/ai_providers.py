@@ -60,6 +60,16 @@ def streaming_sample_rate() -> int:
     return int(getattr(settings, "ASSEMBLYAI_STREAMING_SAMPLE_RATE", 16000))
 
 
+def stream_terminate_timeout_seconds() -> float:
+    """Client-side max wait for AssemblyAI Termination after stop."""
+    raw = getattr(settings, "ASSEMBLYAI_STREAM_TERMINATE_TIMEOUT_SECONDS", 5)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        value = 5.0
+    return max(0.5, min(30.0, value))
+
+
 def public_ai_config() -> dict:
     """Safe payload for authenticated clients — no API keys."""
     return {
@@ -70,6 +80,7 @@ def public_ai_config() -> dict:
             "language_code": language_code(),
             "streaming_websocket_url": ASSEMBLY_STREAMING_WS,
             "sample_rate": streaming_sample_rate(),
+            "terminate_timeout_seconds": stream_terminate_timeout_seconds(),
             "prompt": ASSEMBLY_PROMPT,
         },
         "openai": {
@@ -150,4 +161,5 @@ def mint_streaming_token(
         "websocket_url": ASSEMBLY_STREAMING_WS,
         "sample_rate": streaming_sample_rate(),
         "language_code": language_code(),
+        "terminate_timeout_seconds": stream_terminate_timeout_seconds(),
     }

@@ -231,6 +231,10 @@ ASSEMBLYAI_STREAM_TOKEN_TTL_SECONDS = int(
 ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS = int(
     os.environ.get("ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS", "360") or "360"
 )
+# Max seconds the iOS client waits for AssemblyAI Termination after stop.
+ASSEMBLYAI_STREAM_TERMINATE_TIMEOUT_SECONDS = float(
+    os.environ.get("ASSEMBLYAI_STREAM_TERMINATE_TIMEOUT_SECONDS", "5") or "5"
+)
 OPENAI_TIDY_MODEL = os.environ.get("OPENAI_TIDY_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "").strip()

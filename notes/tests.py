@@ -39,6 +39,7 @@ class TranscriptionConfigApiTests(TestCase):
         self.assertTrue(body["assembly"]["configured"])
         self.assertEqual(body["assembly"]["batch_model"], "universal-3-pro")
         self.assertEqual(body["assembly"]["streaming_model"], "universal-streaming-english")
+        self.assertIn("terminate_timeout_seconds", body["assembly"])
         self.assertTrue(body["openai"]["configured"])
         self.assertEqual(body["openai"]["tidy_model"], "gpt-4o-mini")
         dumped = json.dumps(body)
@@ -72,6 +73,7 @@ class TranscriptionStreamTokenApiTests(TestCase):
         ASSEMBLYAI_STREAM_TOKEN_TTL_SECONDS=60,
         ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS=360,
         ASSEMBLYAI_STREAMING_SAMPLE_RATE=16000,
+        ASSEMBLYAI_STREAM_TERMINATE_TIMEOUT_SECONDS=2,
     )
     @patch("notes.ai_providers.urllib.request.urlopen")
     def test_mints_streaming_token(self, urlopen):
@@ -92,6 +94,7 @@ class TranscriptionStreamTokenApiTests(TestCase):
         self.assertEqual(body["speech_model"], "universal-streaming-english")
         self.assertEqual(body["sample_rate"], 16000)
         self.assertEqual(body["websocket_url"], "wss://streaming.assemblyai.com/v3/ws")
+        self.assertEqual(body["terminate_timeout_seconds"], 2.0)
         request = urlopen.call_args[0][0]
         self.assertEqual(request.get_header("Authorization"), "assembly-test")
         self.assertIn(b'"product": "streaming"', request.data)
@@ -166,6 +169,41 @@ class DevelopApiTests(TestCase):
         note = Note.objects.get(id="22222222-2222-2222-2222-222222222222")
         self.assertFalse(note.is_processing)
         self.assertFalse(note.processing_failed)
+        self.assertEqual(note.preview_line, "Transcription failed")
+
+    @override_settings(ASSEMBLYAI_API_KEY="test-key", OPENAI_API_KEY="openai-test")
+    @patch("notes.develop._tidy_transcript")
+    @patch(
+        "notes.develop._assembly_poll",
+        return_value="Just a short take.",
+    )
+    @patch("notes.develop._assembly_submit", return_value="tr_short")
+    @patch("notes.develop._assembly_upload", return_value="https://example.com/audio")
+    def test_skips_tidy_for_short_takes(self, _upload, _submit, _poll, tidy):
+        response = self.post_audio(
+            id="33333333-3333-3333-3333-333333333333",
+            duration="4",
+        )
+        self.assertEqual(response.status_code, 200)
+        tidy.assert_not_called()
+        note = Note.objects.get(id="33333333-3333-3333-3333-333333333333")
+        self.assertEqual(note.gpt_tidied_text, "Just a short take.")
+
+    @override_settings(ASSEMBLYAI_API_KEY="test-key", OPENAI_API_KEY="")
+    @patch(
+        "notes.develop._assembly_poll",
+        return_value=" ".join(["word"] * 40),
+    )
+    @patch("notes.develop._assembly_submit", return_value="tr_hallucination")
+    @patch("notes.develop._assembly_upload", return_value="https://example.com/audio")
+    def test_rejects_implausible_transcript(self, _upload, _submit, _poll):
+        response = self.post_audio(
+            id="44444444-4444-4444-4444-444444444444",
+            duration="5",
+        )
+        self.assertEqual(response.status_code, 200)
+        note = Note.objects.get(id="44444444-4444-4444-4444-444444444444")
+        self.assertEqual(note.gpt_tidied_text, "")
         self.assertEqual(note.preview_line, "Transcription failed")
 
     @override_settings(

@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import time
 import urllib.error
 import urllib.request
@@ -23,6 +24,11 @@ from notes.webhooks import notify_take_ready
 log = logging.getLogger("ramble.develop")
 
 MAX_AUDIO_BYTES = 40 * 1024 * 1024
+# Skip GPT tidy for very short takes — not worth the latency, and less room to invent.
+MIN_TIDY_DURATION = 5.0
+# Conversational speech is ~2.5 wps; 4.5 leaves headroom for fast talkers.
+MAX_WORDS_PER_SECOND = 4.5
+MIN_WORD_BUDGET = 8
 ALLOWED_AUDIO_TYPES = {
     "audio/webm",
     "audio/mp4",
@@ -80,8 +86,19 @@ def develop_note(*, request, audio_bytes, content_type, duration, note_id=None, 
         _mark_stage(note, "transcribing", 0.22)
         transcript_id = _assembly_submit(remote_url)
         raw = _assembly_poll(transcript_id)
-        _mark_stage(note, "tidying", 0.86)
-        tidied = _tidy_transcript(raw) or raw
+        if _is_implausible_transcript(raw, duration):
+            log.warning(
+                "Rejecting implausible transcript words=%s duration=%.1fs transcript_id=%s",
+                _word_count(raw),
+                duration,
+                transcript_id,
+            )
+            raw = ""
+        if duration < MIN_TIDY_DURATION:
+            tidied = raw
+        else:
+            _mark_stage(note, "tidying", 0.86)
+            tidied = _tidy_transcript(raw) or raw
         success = True
         _complete_note(note, raw=raw, tidied=tidied)
         return note
@@ -172,6 +189,19 @@ def _fail_note(note, message):
             "updated_at",
         ]
     )
+
+
+def _word_count(text):
+    return len([part for part in (text or "").split() if part])
+
+
+def _is_implausible_transcript(text, duration):
+    """True when ASR returned far more words than the recording length can support."""
+    words = _word_count(text)
+    if words <= 0:
+        return False
+    budget = max(MIN_WORD_BUDGET, math.ceil(max(float(duration or 0), 0.0) * MAX_WORDS_PER_SECOND))
+    return words > budget
 
 
 def _normalize_transcript(text):
