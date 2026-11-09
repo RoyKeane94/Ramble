@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +11,90 @@ from rest_framework.authtoken.models import Token
 from notes.models import Note
 
 User = get_user_model()
+
+
+class TranscriptionConfigApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("config@example.com", "password12")
+        self.token = Token.objects.create(user=self.user)
+
+    def test_requires_auth(self):
+        response = self.client.get("/api/transcription/config/")
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(
+        ASSEMBLYAI_API_KEY="assembly-test",
+        OPENAI_API_KEY="openai-test",
+        ASSEMBLYAI_BATCH_MODEL="universal-3-pro",
+        ASSEMBLYAI_STREAMING_MODEL="universal-streaming-english",
+        OPENAI_TIDY_MODEL="gpt-4o-mini",
+    )
+    def test_returns_models_without_keys(self):
+        response = self.client.get(
+            "/api/transcription/config/",
+            HTTP_AUTHORIZATION=f"Token {self.token.key}",
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["assembly"]["configured"])
+        self.assertEqual(body["assembly"]["batch_model"], "universal-3-pro")
+        self.assertEqual(body["assembly"]["streaming_model"], "universal-streaming-english")
+        self.assertTrue(body["openai"]["configured"])
+        self.assertEqual(body["openai"]["tidy_model"], "gpt-4o-mini")
+        dumped = json.dumps(body)
+        self.assertNotIn("assembly-test", dumped)
+        self.assertNotIn("openai-test", dumped)
+        self.assertNotIn("ASSEMBLYAI_API_KEY", dumped)
+        self.assertNotIn("OPENAI_API_KEY", dumped)
+
+
+class TranscriptionStreamTokenApiTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("stream@example.com", "password12")
+        self.token = Token.objects.create(user=self.user)
+
+    def test_requires_auth(self):
+        response = self.client.post("/api/transcription/stream-token/")
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(ASSEMBLYAI_API_KEY="")
+    def test_missing_assembly_key(self):
+        response = self.client.post(
+            "/api/transcription/stream-token/",
+            HTTP_AUTHORIZATION=f"Token {self.token.key}",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 503)
+
+    @override_settings(
+        ASSEMBLYAI_API_KEY="assembly-test",
+        ASSEMBLYAI_STREAMING_MODEL="universal-streaming-english",
+        ASSEMBLYAI_STREAM_TOKEN_TTL_SECONDS=60,
+        ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS=360,
+        ASSEMBLYAI_STREAMING_SAMPLE_RATE=16000,
+    )
+    @patch("notes.ai_providers.urllib.request.urlopen")
+    def test_mints_streaming_token(self, urlopen):
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"token":"temp-token","expires_in_seconds":60}'
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = False
+        urlopen.return_value = mock_response
+
+        response = self.client.post(
+            "/api/transcription/stream-token/",
+            HTTP_AUTHORIZATION=f"Token {self.token.key}",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["token"], "temp-token")
+        self.assertEqual(body["speech_model"], "universal-streaming-english")
+        self.assertEqual(body["sample_rate"], 16000)
+        self.assertEqual(body["websocket_url"], "wss://streaming.assemblyai.com/v3/ws")
+        request = urlopen.call_args[0][0]
+        self.assertEqual(request.get_header("Authorization"), "assembly-test")
+        self.assertIn(b'"product": "streaming"', request.data)
 
 
 class HomePageTests(SimpleTestCase):

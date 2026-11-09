@@ -71,7 +71,13 @@ def report_model_usage(request):
             return None
 
     audio_seconds = _optional_float("audio_seconds")
-    if operation in {"whisper_cloud", "whisper_on_device", "assembly_cloud", "apple_speech"} and audio_seconds is None:
+    if operation in {
+        "whisper_cloud",
+        "whisper_on_device",
+        "assembly_cloud",
+        "assembly_stream",
+        "apple_speech",
+    } and audio_seconds is None:
         audio_seconds = 0.0
 
     log_model_usage(

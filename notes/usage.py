@@ -3,6 +3,8 @@ from django.utils import timezone
 
 DEFAULT_MINUTE_CAP = 600
 ASSEMBLY_OPERATION = "assembly_cloud"
+ASSEMBLY_STREAM_OPERATION = "assembly_stream"
+ASSEMBLY_BILLABLE_OPERATIONS = {ASSEMBLY_OPERATION, ASSEMBLY_STREAM_OPERATION}
 
 
 def cap_for_user(user):
@@ -14,7 +16,7 @@ def cap_for_user(user):
 
 def allowance_seconds(operation, success, audio_seconds, metadata):
     """Seconds that count against the account. Zero when this event should not bill."""
-    if operation != ASSEMBLY_OPERATION:
+    if operation not in ASSEMBLY_BILLABLE_OPERATIONS:
         return 0.0
     try:
         seconds = float(audio_seconds or 0)
@@ -22,6 +24,10 @@ def allowance_seconds(operation, success, audio_seconds, metadata):
         return 0.0
     if seconds <= 0:
         return 0.0
+    if operation == ASSEMBLY_STREAM_OPERATION:
+        # Failed streams fall back to batch ASR; only bill the successful stream path.
+        return seconds if success else 0.0
+
     transcript_id = ""
     if isinstance(metadata, dict):
         transcript_id = str(metadata.get("transcript_id") or "").strip()
@@ -55,11 +61,17 @@ def logged_assembly_seconds(user, period_start=None, period_end=None):
 
     qs = ModelUsageLog.objects.filter(
         user=user,
-        operation=ASSEMBLY_OPERATION,
+        operation__in=ASSEMBLY_BILLABLE_OPERATIONS,
         audio_seconds__gt=0,
         created_at__gte=period_start,
         created_at__lt=period_end,
-    ).filter(Q(success=True) | Q(metadata__transcript_id__gt=""))
+    ).filter(
+        Q(operation=ASSEMBLY_STREAM_OPERATION, success=True)
+        | (
+            Q(operation=ASSEMBLY_OPERATION)
+            & (Q(success=True) | Q(metadata__transcript_id__gt=""))
+        )
+    )
 
     seconds = qs.aggregate(total=Sum("audio_seconds"))["total"]
     return max(0.0, float(seconds or 0))

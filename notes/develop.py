@@ -8,21 +8,19 @@ from uuid import UUID, uuid4
 from django.conf import settings
 
 from core.logging import log_model_usage
+from notes.ai_providers import (
+    ASSEMBLY_API_BASE,
+    ASSEMBLY_PROMPT,
+    GPT_SYSTEM_PROMPT,
+    batch_model,
+    language_code,
+    tidy_model,
+)
 from notes.models import Note
 from notes.usage import usage_for_user
 from notes.webhooks import notify_take_ready
 
 log = logging.getLogger("ramble.develop")
-
-ASSEMBLY_MODEL = "universal-3-pro"
-ASSEMBLY_BASE = "https://api.assemblyai.com"
-ASSEMBLY_PROMPT = (
-    "Single speaker. First-person British English voice note, recorded while walking and thinking aloud."
-)
-GPT_MODEL = "gpt-4o-mini"
-GPT_SYSTEM_PROMPT = """
-Produce a clean British English transcript of this first-person voice note recorded while walking or thinking aloud. Never include filler words such as um, uh, er, ahh, you know, I mean, kind of, or sort of. Never keep throwaway openers that add nothing, including so, well, right, yeah, and okay. Never include false starts; keep only the finished attempt. Always punctuate naturally. Always start a new paragraph when the topic clearly shifts. Do not reword, summarise, or add titles.
-""".strip()
 
 MAX_AUDIO_BYTES = 40 * 1024 * 1024
 ALLOWED_AUDIO_TYPES = {
@@ -98,7 +96,7 @@ def develop_note(*, request, audio_bytes, content_type, duration, note_id=None, 
         log_model_usage(
             request=request,
             operation="assembly_cloud",
-            model=ASSEMBLY_MODEL,
+            model=batch_model(),
             success=success,
             frame_id=note.id,
             audio_seconds=duration,
@@ -151,7 +149,7 @@ def _complete_note(note, raw, tidied):
     note.gpt_transcribe_tidied_text = tidied
     note.did_gpt_tidy = True
     note.did_gpt_transcribe_tidy = True
-    note.chosen_transcription_model = ASSEMBLY_MODEL
+    note.chosen_transcription_model = batch_model()
     note.is_processing = False
     note.processing_failed = False
     note.processing_error = ""
@@ -210,7 +208,7 @@ def _assembly_upload(audio_bytes, content_type):
         mime = "application/octet-stream"
     payload = _http_json(
         "POST",
-        f"{ASSEMBLY_BASE}/v2/upload",
+        f"{ASSEMBLY_API_BASE}/v2/upload",
         headers={**_assembly_headers(), "Content-Type": mime},
         data=audio_bytes,
         timeout=120,
@@ -225,14 +223,14 @@ def _assembly_submit(audio_url):
     body = json.dumps(
         {
             "audio_url": audio_url,
-            "speech_models": [ASSEMBLY_MODEL],
-            "language_code": "en_uk",
+            "speech_models": [batch_model()],
+            "language_code": language_code(),
             "prompt": ASSEMBLY_PROMPT,
         }
     ).encode("utf-8")
     payload = _http_json(
         "POST",
-        f"{ASSEMBLY_BASE}/v2/transcript",
+        f"{ASSEMBLY_API_BASE}/v2/transcript",
         headers={**_assembly_headers(), "Content-Type": "application/json"},
         data=body,
         timeout=60,
@@ -244,7 +242,7 @@ def _assembly_submit(audio_url):
 
 
 def _assembly_poll(transcript_id):
-    url = f"{ASSEMBLY_BASE}/v2/transcript/{transcript_id}"
+    url = f"{ASSEMBLY_API_BASE}/v2/transcript/{transcript_id}"
     for _ in range(90):
         payload = _http_json("GET", url, headers=_assembly_headers(), timeout=30)
         status = str(payload.get("status") or "")
@@ -274,7 +272,7 @@ def _tidy_transcript(raw):
         return raw
     body = json.dumps(
         {
-            "model": GPT_MODEL,
+            "model": tidy_model(),
             "temperature": 0,
             "messages": [
                 {"role": "system", "content": GPT_SYSTEM_PROMPT},

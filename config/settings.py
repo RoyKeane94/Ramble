@@ -213,6 +213,25 @@ REST_FRAMEWORK = {
 
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "").strip()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+# Model IDs are server-owned so they can change without an app release.
+ASSEMBLYAI_BATCH_MODEL = (
+    os.environ.get("ASSEMBLYAI_BATCH_MODEL", "universal-3-pro").strip() or "universal-3-pro"
+)
+ASSEMBLYAI_STREAMING_MODEL = (
+    os.environ.get("ASSEMBLYAI_STREAMING_MODEL", "universal-streaming-english").strip()
+    or "universal-streaming-english"
+)
+ASSEMBLYAI_LANGUAGE_CODE = os.environ.get("ASSEMBLYAI_LANGUAGE_CODE", "en_uk").strip() or "en_uk"
+ASSEMBLYAI_STREAMING_SAMPLE_RATE = int(
+    os.environ.get("ASSEMBLYAI_STREAMING_SAMPLE_RATE", "16000") or "16000"
+)
+ASSEMBLYAI_STREAM_TOKEN_TTL_SECONDS = int(
+    os.environ.get("ASSEMBLYAI_STREAM_TOKEN_TTL_SECONDS", "60") or "60"
+)
+ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS = int(
+    os.environ.get("ASSEMBLYAI_STREAM_MAX_SESSION_SECONDS", "360") or "360"
+)
+OPENAI_TIDY_MODEL = os.environ.get("OPENAI_TIDY_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()

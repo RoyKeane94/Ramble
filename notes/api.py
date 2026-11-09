@@ -1,9 +1,11 @@
 from django.utils.dateparse import parse_datetime
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from .ai_providers import AIProviderError, mint_streaming_token, public_ai_config
 from .develop import DevelopError, develop_note
 from .models import Album, Note
 from .serializers import AlbumSerializer, NoteSerializer
@@ -66,6 +68,38 @@ class AlbumViewSet(viewsets.ModelViewSet):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
         return queryset.filter(**filter_kwargs).first()
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def transcription_config(request):
+    """Return server-owned model names. Never includes API keys."""
+    return Response(public_ai_config())
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def transcription_stream_token(request):
+    """Mint a short-lived AssemblyAI streaming token for the authenticated client."""
+    data = request.data if isinstance(request.data, dict) else {}
+
+    def _optional_int(key):
+        value = data.get(key)
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    try:
+        payload = mint_streaming_token(
+            expires_in_seconds=_optional_int("expires_in_seconds"),
+            max_session_duration_seconds=_optional_int("max_session_duration_seconds"),
+        )
+    except AIProviderError as exc:
+        return Response({"detail": str(exc)}, status=exc.status)
+    return Response(payload)
 
 
 @api_view(["POST"])
