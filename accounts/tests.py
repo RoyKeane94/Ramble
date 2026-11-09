@@ -49,7 +49,7 @@ class AuthPageTests(TestCase):
         response = self.client.get(reverse("signup"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Create account")
-        self.assertContains(response, "Start free trial")
+        self.assertContains(response, "Start your 7 day free trial")
         self.assertContains(response, "By signing up, you are agreeing to our")
         self.assertContains(response, "Terms of Use")
         self.assertContains(response, reverse("notes:terms"))
