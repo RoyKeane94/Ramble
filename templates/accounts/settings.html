@@ -35,6 +35,8 @@
     {% if can_manage_billing %}
       {% if subscription_status == "cancelling" %}
         <p class="settings-hint">Subscription ending soon. When it ends, your account and all rambles will be permanently deleted.</p>
+      {% elif subscription_status == "trialing" %}
+        <p class="settings-hint">Subscription · free trial</p>
       {% elif subscription_status %}
         <p class="settings-hint">Subscription · {{ subscription_status }}</p>
       {% else %}

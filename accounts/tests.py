@@ -12,7 +12,12 @@ from notes.models import Note
 from .emails import greeting_name, send_welcome_email
 from .kpi import format_duration, user_kpis
 from .models import PendingSignup, ProcessedStripeEvent
-from .stripe_billing import fulfill_checkout_session, handle_webhook_event
+from .stripe_billing import (
+    TRIAL_PERIOD_DAYS,
+    create_checkout_session,
+    fulfill_checkout_session,
+    handle_webhook_event,
+)
 
 User = get_user_model()
 
@@ -44,7 +49,7 @@ class AuthPageTests(TestCase):
         response = self.client.get(reverse("signup"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Create account")
-        self.assertContains(response, "Continue to payment")
+        self.assertContains(response, "Start free trial")
         self.assertContains(response, "By signing up, you are agreeing to our")
         self.assertContains(response, "Terms of Use")
         self.assertContains(response, reverse("notes:terms"))
@@ -52,7 +57,7 @@ class AuthPageTests(TestCase):
         self.assertContains(response, "Give your thoughts somewhere to go.")
         self.assertContains(response, "An iPhone app, plus the web.")
         self.assertContains(response, "Talk into your phone. Read it anywhere, same words.")
-        self.assertContains(response, "£9.99 a month")
+        self.assertContains(response, "7 days free, then £9.99 a month")
         self.assertContains(response, "Cancel any time.")
         self.assertContains(response, "Includes the free iPhone app")
         self.assertContains(response, "download-on-the-app-store.svg")
@@ -170,6 +175,37 @@ class FulfillmentTests(TestCase):
         }
         self.assertIsNone(fulfill_checkout_session(session))
         self.assertFalse(User.objects.filter(email="wait@example.com").exists())
+
+    def test_fulfill_trial_checkout_marks_trialing(self):
+        pending = PendingSignup.create_for_credentials("trial@example.com", "password12")
+        session = {
+            "id": "cs_test_trial",
+            "status": "complete",
+            "payment_status": "no_payment_required",
+            "customer": "cus_trial",
+            "subscription": "sub_trial",
+            "metadata": {"pending_signup_id": str(pending.pk)},
+        }
+        user = fulfill_checkout_session(session)
+        self.assertIsNotNone(user)
+        self.assertEqual(user.subscription_status, "trialing")
+
+    @override_settings(
+        STRIPE_SECRET_KEY="sk_test_x",
+        STRIPE_PRICE_ID="price_test_x",
+    )
+    @patch("accounts.stripe_billing.stripe.checkout.Session.create")
+    def test_create_checkout_session_includes_seven_day_trial(self, mock_create):
+        pending = PendingSignup.create_for_credentials("trial-create@example.com", "password12")
+        mock_create.return_value = MagicMock(id="cs_trial")
+        create_checkout_session(
+            pending=pending,
+            return_url="https://example.com/signup/success/?session_id={CHECKOUT_SESSION_ID}",
+        )
+        _, kwargs = mock_create.call_args
+        self.assertEqual(kwargs["subscription_data"]["trial_period_days"], TRIAL_PERIOD_DAYS)
+        self.assertEqual(TRIAL_PERIOD_DAYS, 7)
+        self.assertEqual(kwargs["payment_method_collection"], "always")
 
     @patch("accounts.stripe_billing.send_welcome_email")
     def test_fulfill_sends_welcome_email_once(self, mock_welcome):

@@ -18,6 +18,7 @@ SUBSCRIPTION_AMOUNT_GBP = Decimal("9.99")
 SUBSCRIPTION_AMOUNT_PENCE = 999
 SUBSCRIPTION_LABEL = "Ramble"
 INTEGRATION_IDENTIFIER = "ramble_signup_web_0001"
+TRIAL_PERIOD_DAYS = 7
 
 # Events to register on the Stripe webhook destination.
 WEBHOOK_EVENTS = [
@@ -92,10 +93,11 @@ def create_checkout_session(*, pending: PendingSignup, return_url: str):
             "email": pending.email,
         },
         subscription_data={
+            "trial_period_days": TRIAL_PERIOD_DAYS,
             "metadata": {
                 "pending_signup_id": str(pending.pk),
                 "email": pending.email,
-            }
+            },
         },
         allow_promotion_codes=True,
     )
@@ -173,6 +175,13 @@ def _customer_id_from_session(session) -> str:
 def _session_value(session, key, default=""):
     value = _obj_get(session, key, default)
     return value if value is not None else default
+
+
+def _initial_subscription_status(session) -> str:
+    """Free-trial checkouts complete with no charge due yet."""
+    if _session_value(session, "payment_status") == "no_payment_required":
+        return "trialing"
+    return "active"
 
 
 def _user_for_customer(customer_id: str):
@@ -342,6 +351,8 @@ def fulfill_checkout_session(session):
     customer_id = _customer_id_from_session(session)
     subscription_id = _subscription_id_from_session(session)
 
+    subscription_status = _initial_subscription_status(session)
+
     existing = User.objects.filter(email__iexact=pending.email).first()
     if existing is not None:
         updates = []
@@ -351,8 +362,8 @@ def fulfill_checkout_session(session):
         if subscription_id and existing.stripe_subscription_id != subscription_id:
             existing.stripe_subscription_id = subscription_id
             updates.append("stripe_subscription_id")
-        if existing.subscription_status != "active":
-            existing.subscription_status = "active"
+        if existing.subscription_status != subscription_status:
+            existing.subscription_status = subscription_status
             updates.append("subscription_status")
         if updates:
             existing.save(update_fields=updates)
@@ -366,7 +377,7 @@ def fulfill_checkout_session(session):
         email=pending.email,
         stripe_customer_id=customer_id,
         stripe_subscription_id=subscription_id,
-        subscription_status="active",
+        subscription_status=subscription_status,
     )
     user.password = pending.password_hash
     user.save()
