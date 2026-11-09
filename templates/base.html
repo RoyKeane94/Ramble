@@ -7,6 +7,7 @@
   <meta name="description" content="{% block meta_description %}You talk. Ramble keeps a readable version of what you said.{% endblock %}">
   <title>{% block title %}Ramble{% endblock %}</title>
   {% load static %}
+  {% if PUBLIC_BASE_URL %}<link rel="canonical" href="{{ PUBLIC_BASE_URL }}{{ request.path }}">{% endif %}
   <link rel="describedby" href="/llms.txt">
   <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
   <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}" sizes="32x32">

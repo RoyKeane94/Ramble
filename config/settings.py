@@ -34,14 +34,34 @@ CSRF_TRUSTED_ORIGINS = _csv(
     "http://localhost:8000,http://127.0.0.1:8000",
 )
 
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://yourramble.com").strip().rstrip("/")
+CANONICAL_HOST = _host(PUBLIC_BASE_URL).lower()
+_redirect_hosts = set()
+
+
+def _allow_host(host, *, origin=None):
+    if not host:
+        return
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+    trusted = origin or f"https://{host.lstrip('.')}"
+    if "*" not in trusted and trusted not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(trusted)
+
+
+if CANONICAL_HOST:
+    _allow_host(CANONICAL_HOST)
+    if not CANONICAL_HOST.startswith("www."):
+        www_host = f"www.{CANONICAL_HOST}"
+        _allow_host(www_host)
+        _redirect_hosts.add(www_host)
+
 railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
 if railway_domain:
-    host = _host(railway_domain)
-    if host and host not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(host)
-    origin = f"https://{host}"
-    if origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(origin)
+    host = _host(railway_domain).lower()
+    _allow_host(host)
+    if host and host != CANONICAL_HOST:
+        _redirect_hosts.add(host)
 
 if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PROJECT_ID"):
     for host in (".up.railway.app", ".railway.app"):
@@ -50,6 +70,8 @@ if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PROJECT_ID")
     for origin in ("https://*.up.railway.app", "https://*.railway.app"):
         if origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(origin)
+
+CANONICAL_REDIRECT_HOSTS = frozenset(_redirect_hosts)
 
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
@@ -72,6 +94,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "core.middleware.CanonicalHostRedirectMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "core.middleware.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -103,6 +126,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.minute_usage",
                 "core.context_processors.nav_page",
+                "core.context_processors.public_site",
                 "notes.context_processors.app_shell",
             ],
         },
@@ -247,7 +271,6 @@ APP_STORE_URL = os.environ.get(
     "APP_STORE_URL",
     "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
 ).strip()
-PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://yourramble.com").strip().rstrip("/")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",

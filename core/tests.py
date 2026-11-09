@@ -11,7 +11,7 @@ from django.test import RequestFactory, SimpleTestCase, TestCase, override_setti
 from django.utils import timezone
 
 from config.settings import _admin_url
-from core.middleware import SecurityHeadersMiddleware
+from core.middleware import CanonicalHostRedirectMiddleware, SecurityHeadersMiddleware
 from core.models import TrafficHit
 from core.traffic import format_stay, prune_traffic, traffic_report, visitor_hash
 
@@ -58,6 +58,64 @@ class SecurityHeaderTests(SimpleTestCase):
         self.assertEqual(
             response["Strict-Transport-Security"],
             "max-age=31536000; includeSubDomains; preload",
+        )
+
+
+class CanonicalHostRedirectTests(SimpleTestCase):
+    def _middleware(self):
+        return CanonicalHostRedirectMiddleware(lambda _request: HttpResponse("ok"))
+
+    @override_settings(
+        CANONICAL_HOST="yourramble.com",
+        CANONICAL_REDIRECT_HOSTS=frozenset(
+            {"www.yourramble.com", "ramble-production-725d.up.railway.app"}
+        ),
+    )
+    def test_www_redirects_to_apex(self):
+        request = RequestFactory().get("/login/?next=/")
+        request.META["HTTP_HOST"] = "www.yourramble.com"
+        response = self._middleware()(request)
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], "https://yourramble.com/login/?next=/")
+
+    @override_settings(
+        CANONICAL_HOST="yourramble.com",
+        CANONICAL_REDIRECT_HOSTS=frozenset(
+            {"www.yourramble.com", "ramble-production-725d.up.railway.app"}
+        ),
+    )
+    def test_railway_host_redirects_to_apex(self):
+        request = RequestFactory().get("/signup/")
+        request.META["HTTP_HOST"] = "ramble-production-725d.up.railway.app"
+        response = self._middleware()(request)
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], "https://yourramble.com/signup/")
+
+    @override_settings(
+        CANONICAL_HOST="yourramble.com",
+        CANONICAL_REDIRECT_HOSTS=frozenset({"www.yourramble.com"}),
+    )
+    def test_canonical_host_passthrough(self):
+        request = RequestFactory().get("/login/")
+        request.META["HTTP_HOST"] = "yourramble.com"
+        response = self._middleware()(request)
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    def test_base_template_canonical_link(self):
+        from django.contrib.auth.models import AnonymousUser
+        from django.template.loader import render_to_string
+
+        request = RequestFactory().get("/login/")
+        request.user = AnonymousUser()
+        html = render_to_string(
+            "base.html",
+            {"PUBLIC_BASE_URL": "https://yourramble.com"},
+            request=request,
+        )
+        self.assertIn(
+            '<link rel="canonical" href="https://yourramble.com/login/">',
+            html,
         )
 
 
