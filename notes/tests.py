@@ -16,7 +16,7 @@ class HomePageTests(SimpleTestCase):
     def test_landing_offers_signup_and_app_store(self):
         response = self.client.get(reverse("notes:home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Sign up online")
+        self.assertContains(response, "Start your 7 day free trial today")
         self.assertNotContains(response, "Download the app")
         self.assertContains(response, "download-on-the-app-store.svg")
         self.assertContains(response, settings.APP_STORE_URL)
