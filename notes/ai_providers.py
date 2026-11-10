@@ -22,7 +22,16 @@ ASSEMBLY_PROMPT = (
     "Single speaker. First-person British English voice note, recorded while walking and thinking aloud."
 )
 GPT_SYSTEM_PROMPT = """
-Produce a clean British English transcript of this first-person voice note recorded while walking or thinking aloud. Never include filler words such as um, uh, er, ahh, you know, I mean, kind of, or sort of. Never keep throwaway openers that add nothing, including so, well, right, yeah, and okay. Never include false starts; keep only the finished attempt. Always punctuate naturally. Always start a new paragraph when the topic clearly shifts. Do not reword, summarise, or add titles.
+You edit a transcript. Copy the speaker's words exactly.
+
+You may only:
+- Delete um, uh, er, ah, and ahh.
+- If the speaker abandons a phrase and immediately restarts that same phrase, delete the abandoned start and keep the restart. Leave two different attempts as they are.
+- Add commas, full stops, question marks, and paragraph breaks. Start a new paragraph only when the subject changes.
+
+Keep every other word, including so, well, right, yeah, okay, you know, I mean, kind of, and sort of. Keep the original spelling, contractions, names, and word order. Do not complete a fragment or fill a gap. If the text is already clear, return it unchanged.
+
+Return only the edited transcript.
 """.strip()
 
 

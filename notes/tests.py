@@ -40,8 +40,13 @@ class TranscriptionConfigApiTests(TestCase):
         self.assertEqual(body["assembly"]["batch_model"], "universal-3-pro")
         self.assertEqual(body["assembly"]["streaming_model"], "universal-streaming-english")
         self.assertIn("terminate_timeout_seconds", body["assembly"])
+        self.assertEqual(
+            body["assembly"]["prompt"],
+            "Single speaker. First-person British English voice note, recorded while walking and thinking aloud.",
+        )
         self.assertTrue(body["openai"]["configured"])
         self.assertEqual(body["openai"]["tidy_model"], "gpt-4o-mini")
+        self.assertIn("Copy the speaker's words exactly.", body["openai"]["system_prompt"])
         dumped = json.dumps(body)
         self.assertNotIn("assembly-test", dumped)
         self.assertNotIn("openai-test", dumped)
