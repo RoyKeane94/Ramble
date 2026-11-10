@@ -28,6 +28,7 @@ from .stripe_billing import (
     fulfill_checkout_session,
     handle_webhook_event,
     publishable_key,
+    refresh_user_subscription,
     retrieve_checkout_session,
 )
 
@@ -235,6 +236,9 @@ def settings(request):
 
     if request.method == "POST" and request.POST.get("intent") == "mcp_token":
         mcp_token_plain = request.user.issue_mcp_token()
+    elif request.method == "GET" and (request.user.stripe_customer_id or "").strip():
+        # Portal returns here; sync so cancel shows up even if webhooks are delayed.
+        refresh_user_subscription(request.user)
 
     notes = Note.objects.filter(user=request.user)
     latest = notes.order_by("-updated_at").first()
@@ -250,6 +254,7 @@ def settings(request):
             "mcp_token_plain": mcp_token_plain,
             "can_manage_billing": bool((request.user.stripe_customer_id or "").strip()),
             "subscription_status": (request.user.subscription_status or "").strip(),
+            "account_active": bool(request.user.account_active),
         },
     )
 

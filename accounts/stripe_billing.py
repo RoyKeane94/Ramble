@@ -196,11 +196,42 @@ def _user_for_subscription(subscription_id: str):
     return User.objects.filter(stripe_subscription_id=subscription_id).first()
 
 
+def _apply_account_active(user, *, active: bool, updates: list[str]) -> None:
+    if user.account_active != active:
+        user.account_active = active
+        updates.append("account_active")
+
+
+def _cancellation_details(subscription):
+    details = _obj_get(subscription, "cancellation_details") or {}
+    if hasattr(details, "to_dict"):
+        details = details.to_dict()
+    if not isinstance(details, dict):
+        return {}
+    return details
+
+
+def cancellation_requested(subscription) -> bool:
+    """
+    True when the customer has asked to cancel.
+
+    Paid plans often use cancel_at_period_end=True. Trials commonly keep
+    cancel_at_period_end=False and instead set cancel_at / canceled_at.
+    """
+    if bool(_obj_get(subscription, "cancel_at_period_end")):
+        return True
+    if _obj_get(subscription, "canceled_at"):
+        return True
+    if _obj_get(subscription, "cancel_at"):
+        return True
+    reason = (_cancellation_details(subscription).get("reason") or "").strip()
+    return reason == "cancellation_requested"
+
+
 def sync_subscription(subscription) -> None:
     sub_id = _id_value(_obj_get(subscription, "id"))
     customer_id = _id_value(_obj_get(subscription, "customer"))
     status = _obj_get(subscription, "status") or ""
-    cancel_at_period_end = bool(_obj_get(subscription, "cancel_at_period_end"))
     if not sub_id:
         return
 
@@ -210,11 +241,33 @@ def sync_subscription(subscription) -> None:
         return
 
     if status == "canceled":
-        delete_account_for_cancelled_subscription(subscription)
+        deactivate_account_for_cancelled_subscription(subscription)
         return
 
-    # Surface scheduled cancellation clearly in Settings.
-    display_status = "cancelling" if cancel_at_period_end and status == "active" else status
+    # Cancel requested in Stripe/portal — pause recording immediately (access until period
+    # end is a billing concern; product entitlement ends when they cancel).
+    if cancellation_requested(subscription):
+        updates = []
+        if customer_id and user.stripe_customer_id != customer_id:
+            user.stripe_customer_id = customer_id
+            updates.append("stripe_customer_id")
+        if user.stripe_subscription_id != sub_id:
+            user.stripe_subscription_id = sub_id
+            updates.append("stripe_subscription_id")
+        if user.subscription_status != "cancelling":
+            user.subscription_status = "cancelling"
+            updates.append("subscription_status")
+        _apply_account_active(user, active=False, updates=updates)
+        if updates:
+            user.save(update_fields=updates)
+        log.info(
+            "Marked account inactive after cancel scheduled user=%s subscription=%s",
+            user.email,
+            sub_id,
+        )
+        return
+
+    display_status = status
 
     updates = []
     if customer_id and user.stripe_customer_id != customer_id:
@@ -226,6 +279,8 @@ def sync_subscription(subscription) -> None:
     if user.subscription_status != display_status:
         user.subscription_status = display_status
         updates.append("subscription_status")
+    if status in {"active", "trialing", "past_due"}:
+        _apply_account_active(user, active=True, updates=updates)
     if updates:
         user.save(update_fields=updates)
         log.info(
@@ -236,34 +291,69 @@ def sync_subscription(subscription) -> None:
         )
 
 
-def delete_account_for_cancelled_subscription(subscription) -> None:
-    """Remove the Ramble account (and cascaded rambles) when the subscription ends."""
+def refresh_user_subscription(user) -> bool:
+    """
+    Pull the latest Stripe subscription for this user and sync local status.
+    Used when returning from the billing portal (webhooks may lag or miss localhost).
+    """
+    customer_id = (getattr(user, "stripe_customer_id", "") or "").strip()
+    subscription_id = (getattr(user, "stripe_subscription_id", "") or "").strip()
+    if not customer_id and not subscription_id:
+        return False
+
+    try:
+        configure_stripe()
+        subscription = None
+        if subscription_id:
+            try:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+            except stripe.error.InvalidRequestError:
+                subscription = None
+        if subscription is None and customer_id:
+            listed = stripe.Subscription.list(customer=customer_id, status="all", limit=10)
+            # Prefer an open subscription; otherwise the most recent.
+            open_statuses = {"active", "trialing", "past_due", "unpaid", "paused"}
+            open_subs = [s for s in listed.data if (s.status or "") in open_statuses]
+            subscription = open_subs[0] if open_subs else (listed.data[0] if listed.data else None)
+        if subscription is None:
+            return False
+        sync_subscription(subscription)
+        user.refresh_from_db()
+        return True
+    except StripeNotConfigured:
+        return False
+    except Exception:
+        log.exception("Failed to refresh Stripe subscription for user=%s", getattr(user, "email", ""))
+        return False
+
+
+def deactivate_account_for_cancelled_subscription(subscription) -> None:
+    """Mark the Ramble account inactive when the Stripe subscription ends."""
     sub_id = _id_value(_obj_get(subscription, "id"))
     customer_id = _id_value(_obj_get(subscription, "customer"))
     user = _user_for_subscription(sub_id) or _user_for_customer(customer_id)
     if user is None:
         log.info(
-            "No user to delete for cancelled subscription=%s customer=%s",
+            "No user to deactivate for cancelled subscription=%s customer=%s",
             sub_id,
             customer_id,
         )
         return
-    if user.is_staff or user.is_superuser:
-        user.subscription_status = "canceled"
-        user.save(update_fields=["subscription_status"])
-        log.warning(
-            "Skipped account delete for staff user=%s after subscription cancel",
-            user.email,
-        )
-        return
 
-    email = user.email
-    user_id = user.pk
-    user.delete()
+    updates = []
+    if user.subscription_status != "canceled":
+        user.subscription_status = "canceled"
+        updates.append("subscription_status")
+    if user.stripe_subscription_id:
+        user.stripe_subscription_id = ""
+        updates.append("stripe_subscription_id")
+    _apply_account_active(user, active=False, updates=updates)
+    if updates:
+        user.save(update_fields=updates)
     log.info(
-        "Deleted account after subscription cancelled email=%s user_id=%s subscription=%s",
-        email,
-        user_id,
+        "Marked account inactive after subscription cancelled email=%s user_id=%s subscription=%s",
+        user.email,
+        user.pk,
         sub_id,
     )
 
@@ -286,6 +376,7 @@ def handle_invoice_paid(invoice) -> None:
     if user.subscription_status != "active":
         user.subscription_status = "active"
         updates.append("subscription_status")
+    _apply_account_active(user, active=True, updates=updates)
     if updates:
         user.save(update_fields=updates)
     log.info("invoice.paid user=%s invoice=%s", user.email, _obj_get(invoice, "id"))
@@ -365,6 +456,7 @@ def fulfill_checkout_session(session):
         if existing.subscription_status != subscription_status:
             existing.subscription_status = subscription_status
             updates.append("subscription_status")
+        _apply_account_active(existing, active=True, updates=updates)
         if updates:
             existing.save(update_fields=updates)
         if pending.completed_at is None:
@@ -378,6 +470,7 @@ def fulfill_checkout_session(session):
         stripe_customer_id=customer_id,
         stripe_subscription_id=subscription_id,
         subscription_status=subscription_status,
+        account_active=True,
     )
     user.password = pending.password_hash
     user.save()
@@ -421,7 +514,7 @@ def handle_webhook_event(event) -> bool:
     elif event_type == "invoice.payment_failed":
         handle_invoice_payment_failed(data_object)
     elif event_type == "customer.subscription.deleted":
-        delete_account_for_cancelled_subscription(data_object)
+        deactivate_account_for_cancelled_subscription(data_object)
     elif event_type in {
         "customer.subscription.created",
         "customer.subscription.updated",

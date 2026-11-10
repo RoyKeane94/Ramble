@@ -145,6 +145,7 @@ class SignupCheckoutTests(TestCase):
         self.assertEqual(user.stripe_customer_id, "cus_123")
         self.assertEqual(user.stripe_subscription_id, "sub_123")
         self.assertEqual(user.subscription_status, "active")
+        self.assertTrue(user.account_active)
         self.assertTrue(PendingSignup.objects.get(pk=pending.pk).completed_at)
         self.assertTrue(response.wsgi_request.user.is_authenticated)
 
@@ -271,15 +272,27 @@ class BillingPortalTests(TestCase):
             subscription_status="active",
         )
 
-    def test_settings_shows_manage_subscription(self):
+    @patch("accounts.views.refresh_user_subscription", return_value=False)
+    def test_settings_shows_manage_subscription(self, _refresh):
         self.client.force_login(self.user)
         response = self.client.get(reverse("settings"))
         self.assertContains(response, "Manage subscription")
         self.assertContains(response, reverse("billing_portal"))
         self.assertContains(
             response,
-            "If you cancel, your account and all your rambles will be deleted",
+            "If you cancel, recording pauses immediately",
         )
+
+    @patch("accounts.views.refresh_user_subscription", return_value=False)
+    def test_settings_shows_upgrade_when_inactive(self, _refresh):
+        self.user.account_active = False
+        self.user.subscription_status = "canceled"
+        self.user.save(update_fields=["account_active", "subscription_status"])
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("settings"))
+        self.assertContains(response, "Upgrade account")
+        self.assertContains(response, "Account inactive")
+        self.assertNotContains(response, "Manage subscription")
 
     @override_settings(
         STRIPE_SECRET_KEY="sk_test_x",
@@ -364,10 +377,10 @@ class StripeWebhookHandlerTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.subscription_status, "past_due")
 
-    def test_subscription_deleted_removes_account(self):
+    def test_subscription_deleted_marks_account_inactive(self):
         from notes.models import Note
 
-        Note.objects.create(user=self.user, tidied_text="keep me until cancel")
+        Note.objects.create(user=self.user, tidied_text="keep me after cancel")
         handle_webhook_event(
             {
                 "id": "evt_sub_deleted",
@@ -381,10 +394,36 @@ class StripeWebhookHandlerTests(TestCase):
                 },
             }
         )
-        self.assertFalse(User.objects.filter(email="bill@example.com").exists())
-        self.assertEqual(Note.objects.count(), 0)
+        self.user.refresh_from_db()
+        self.assertTrue(User.objects.filter(email="bill@example.com").exists())
+        self.assertFalse(self.user.account_active)
+        self.assertEqual(self.user.subscription_status, "canceled")
+        self.assertEqual(self.user.stripe_subscription_id, "")
+        self.assertEqual(self.user.stripe_customer_id, "cus_bill")
+        self.assertEqual(Note.objects.count(), 1)
 
-    def test_subscription_updated_cancel_at_period_end_marks_cancelling(self):
+    def test_invoice_paid_reactivates_inactive_account(self):
+        self.user.account_active = False
+        self.user.subscription_status = "canceled"
+        self.user.save(update_fields=["account_active", "subscription_status"])
+        handle_webhook_event(
+            {
+                "id": "evt_invoice_reactivate",
+                "type": "invoice.paid",
+                "data": {
+                    "object": {
+                        "id": "in_reactivate",
+                        "customer": "cus_bill",
+                        "subscription": "sub_bill",
+                    }
+                },
+            }
+        )
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.account_active)
+        self.assertEqual(self.user.subscription_status, "active")
+
+    def test_subscription_updated_cancel_at_period_end_marks_inactive(self):
         handle_webhook_event(
             {
                 "id": "evt_sub_cancelling",
@@ -401,7 +440,60 @@ class StripeWebhookHandlerTests(TestCase):
         )
         self.user.refresh_from_db()
         self.assertEqual(self.user.subscription_status, "cancelling")
+        self.assertFalse(self.user.account_active)
         self.assertTrue(User.objects.filter(email="bill@example.com").exists())
+
+    def test_subscription_updated_trial_cancel_at_marks_inactive(self):
+        """Trial cancels set cancel_at/canceled_at, not cancel_at_period_end."""
+        handle_webhook_event(
+            {
+                "id": "evt_sub_trial_cancel",
+                "type": "customer.subscription.updated",
+                "data": {
+                    "object": {
+                        "id": "sub_bill",
+                        "customer": "cus_bill",
+                        "status": "trialing",
+                        "cancel_at_period_end": False,
+                        "canceled_at": 1794339849,
+                        "cancel_at": 1794858884,
+                        "cancellation_details": {"reason": "cancellation_requested"},
+                    }
+                },
+            }
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.subscription_status, "cancelling")
+        self.assertFalse(self.user.account_active)
+
+
+class AuthAPIAccountActiveTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("status@example.com", "password12")
+
+    def test_me_includes_account_active(self):
+        login = self.client.post(
+            "/api/auth/login/",
+            {"email": self.user.email, "password": "password12"},
+            content_type="application/json",
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertTrue(login.json()["account_active"])
+        token = login.json()["token"]
+        response = self.client.get(
+            "/api/auth/me/",
+            HTTP_AUTHORIZATION=f"Token {token}",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["account_active"])
+
+        self.user.account_active = False
+        self.user.save(update_fields=["account_active"])
+        response = self.client.get(
+            "/api/auth/me/",
+            HTTP_AUTHORIZATION=f"Token {token}",
+        )
+        self.assertFalse(response.json()["account_active"])
 
 
 class LoginRateLimitTests(TestCase):

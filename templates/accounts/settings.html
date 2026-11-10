@@ -33,8 +33,8 @@
   <div class="settings-block panel">
     <h2 class="day-header">Billing</h2>
     {% if can_manage_billing %}
-      {% if subscription_status == "cancelling" %}
-        <p class="settings-hint">Subscription ending soon. When it ends, your account and all rambles will be permanently deleted.</p>
+      {% if not account_active %}
+        <p class="settings-hint">Account inactive. Upgrade to record again — your existing rambles stay saved.</p>
       {% elif subscription_status == "trialing" %}
         <p class="settings-hint">Subscription · free trial</p>
       {% elif subscription_status %}
@@ -42,10 +42,12 @@
       {% else %}
         <p class="settings-hint">Manage your plan, payment method, and invoices in Stripe.</p>
       {% endif %}
-      <p class="settings-hint settings-follow">If you cancel, your account and all your rambles will be deleted. This cannot be undone.</p>
+      {% if account_active %}
+        <p class="settings-hint settings-follow">If you cancel, recording pauses immediately. Your rambles stay on your account.</p>
+      {% endif %}
       <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
         {% csrf_token %}
-        <button type="submit" class="btn btn-primary">Manage subscription</button>
+        <button type="submit" class="btn btn-primary">{% if account_active %}Manage subscription{% else %}Upgrade account{% endif %}</button>
       </form>
     {% else %}
       <p class="settings-hint">No Stripe customer on this account yet.</p>

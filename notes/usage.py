@@ -116,4 +116,5 @@ def usage_for_user(user):
         "remaining_copy": remaining_copy,
         "used_percent": min(100.0, (used / cap) * 100.0) if cap else 0.0,
         "is_exhausted": remaining <= 0,
+        "account_active": bool(getattr(user, "account_active", True)),
     }

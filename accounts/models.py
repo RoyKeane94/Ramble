@@ -42,6 +42,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    # Product entitlement (recording). Separate from Django auth `is_active`.
+    account_active = models.BooleanField(
+        default=True,
+        help_text="False after Stripe subscription ends; user can still sign in.",
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
     minute_cap = models.PositiveIntegerField(
         default=600,

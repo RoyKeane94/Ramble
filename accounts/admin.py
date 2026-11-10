@@ -12,13 +12,20 @@ class UserAdmin(admin.ModelAdmin):
         "email",
         "minutes_used",
         "minute_cap",
+        "account_active",
         "subscription_status",
         "is_staff",
         "is_active",
         "date_joined",
     )
     search_fields = ("email", "stripe_customer_id", "stripe_subscription_id")
-    list_filter = ("is_staff", "is_active", "is_superuser", "subscription_status")
+    list_filter = (
+        "account_active",
+        "is_staff",
+        "is_active",
+        "is_superuser",
+        "subscription_status",
+    )
     readonly_fields = (
         "date_joined",
         "last_login",
@@ -40,6 +47,7 @@ class UserAdmin(admin.ModelAdmin):
             "Billing",
             {
                 "fields": (
+                    "account_active",
                     "subscription_status",
                     "stripe_customer_id",
                     "stripe_subscription_id",
