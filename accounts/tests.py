@@ -276,12 +276,14 @@ class BillingPortalTests(TestCase):
     def test_settings_shows_manage_subscription(self, _refresh):
         self.client.force_login(self.user)
         response = self.client.get(reverse("settings"))
+        self.assertContains(response, "Active subscription")
         self.assertContains(response, "Manage subscription")
         self.assertContains(response, reverse("billing_portal"))
         self.assertContains(
             response,
             "If you cancel, recording pauses immediately",
         )
+        self.assertNotContains(response, "free trial")
 
     @patch("accounts.views.refresh_user_subscription", return_value=False)
     def test_settings_shows_upgrade_when_inactive(self, _refresh):
@@ -290,9 +292,10 @@ class BillingPortalTests(TestCase):
         self.user.save(update_fields=["account_active", "subscription_status"])
         self.client.force_login(self.user)
         response = self.client.get(reverse("settings"))
+        self.assertContains(response, "Inactive subscription")
         self.assertContains(response, "Upgrade account")
-        self.assertContains(response, "Account inactive")
         self.assertNotContains(response, "Manage subscription")
+        self.assertNotContains(response, "free trial")
 
     @override_settings(
         STRIPE_SECRET_KEY="sk_test_x",

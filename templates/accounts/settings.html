@@ -33,17 +33,11 @@
   <div class="settings-block panel">
     <h2 class="day-header">Billing</h2>
     {% if can_manage_billing %}
-      {% if not account_active %}
-        <p class="settings-hint">Account inactive. Upgrade to record again — your existing rambles stay saved.</p>
-      {% elif subscription_status == "trialing" %}
-        <p class="settings-hint">Subscription · free trial</p>
-      {% elif subscription_status %}
-        <p class="settings-hint">Subscription · {{ subscription_status }}</p>
-      {% else %}
-        <p class="settings-hint">Manage your plan, payment method, and invoices in Stripe.</p>
-      {% endif %}
+      <p class="settings-hint">{% if account_active %}Active subscription{% else %}Inactive subscription{% endif %}</p>
       {% if account_active %}
         <p class="settings-hint settings-follow">If you cancel, recording pauses immediately. Your rambles stay on your account.</p>
+      {% else %}
+        <p class="settings-hint settings-follow">Upgrade to record again — your existing rambles stay saved.</p>
       {% endif %}
       <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
         {% csrf_token %}
