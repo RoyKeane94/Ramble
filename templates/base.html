@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app56">
+  <link rel="stylesheet" href="{% static 'css/ramble.css' %}?v=app57">
 </head>
 <body class="{% if user.is_authenticated %}is-signed-in {% endif %}{% block body_class %}{% endblock %}"{% block body_attrs %}{% endblock %}>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -24,6 +24,9 @@
     <header class="navbar">
       <div class="navbar-inner">
         <a class="wordmark desktop-chrome" href="{% if user.is_authenticated %}{% url 'notes:list' %}{% else %}{% url 'notes:home' %}{% endif %}">Ramble</a>
+        {% if user.is_authenticated and not user.account_active %}
+          <a class="nav-inactive desktop-chrome" href="{% url 'settings' %}">Inactive</a>
+        {% endif %}
         <div class="nav-links desktop-chrome">
           {% if user.is_authenticated %}
             {% with section=nav_section|default:nav_page %}
@@ -52,7 +55,13 @@
           <div class="app-bar-leading">
             {% block app_leading %}{% endblock %}
           </div>
-          <p class="app-bar-title">{% block app_title %}Ramble{% endblock %}</p>
+          <p class="app-bar-title">
+            {% if not user.account_active %}
+              <a class="nav-inactive" href="{% url 'settings' %}">Inactive</a>
+            {% else %}
+              {% block app_title %}Ramble{% endblock %}
+            {% endif %}
+          </p>
           <div class="app-bar-trailing">
             {% block app_trailing %}
               <a class="app-icon-btn" href="{% url 'settings' %}" aria-label="Settings">

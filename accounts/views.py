@@ -16,7 +16,12 @@ from core.traffic import traffic_report
 from notes.models import Note
 from notes.usage import usage_for_user
 
-from .forms import EmailAuthenticationForm, SignupForm, StyledPasswordChangeForm
+from .forms import (
+    EmailAuthenticationForm,
+    SignupForm,
+    StyledPasswordChangeForm,
+    TakeReadyWebhookForm,
+)
 from .kpi import format_duration, user_kpis
 from .models import PendingSignup
 from .stripe_billing import (
@@ -233,12 +238,38 @@ def billing_portal(request):
 @login_required
 def settings(request):
     mcp_token_plain = None
+    webhook_form = TakeReadyWebhookForm()
+    webhook_saved = False
+    webhook_cleared = False
+    show_webhook_form = False
 
-    if request.method == "POST" and request.POST.get("intent") == "mcp_token":
-        mcp_token_plain = request.user.issue_mcp_token()
-    elif request.method == "GET" and (request.user.stripe_customer_id or "").strip():
+    if request.method == "POST":
+        intent = request.POST.get("intent")
+        if intent == "mcp_token":
+            mcp_token_plain = request.user.issue_mcp_token()
+        elif intent == "take_ready_webhook":
+            show_webhook_form = True
+            webhook_form = TakeReadyWebhookForm(request.POST)
+            if webhook_form.is_valid():
+                request.user.save_take_ready_webhook(
+                    webhook_form.cleaned_data["url"],
+                    webhook_form.cleaned_data["key"],
+                )
+                webhook_saved = True
+                webhook_form = TakeReadyWebhookForm()
+                show_webhook_form = False
+        elif intent == "clear_take_ready_webhook":
+            request.user.clear_take_ready_webhook()
+            webhook_cleared = True
+            show_webhook_form = True
+        elif intent == "edit_take_ready_webhook":
+            show_webhook_form = True
+    elif (request.user.stripe_customer_id or "").strip():
         # Portal returns here; sync so cancel shows up even if webhooks are delayed.
         refresh_user_subscription(request.user)
+
+    if not request.user.has_take_ready_webhook:
+        show_webhook_form = True
 
     notes = Note.objects.filter(user=request.user)
     latest = notes.order_by("-updated_at").first()
@@ -255,6 +286,10 @@ def settings(request):
             "can_manage_billing": bool((request.user.stripe_customer_id or "").strip()),
             "subscription_status": (request.user.subscription_status or "").strip(),
             "account_active": bool(request.user.account_active),
+            "webhook_form": webhook_form,
+            "webhook_saved": webhook_saved,
+            "webhook_cleared": webhook_cleared,
+            "show_webhook_form": show_webhook_form,
         },
     )
 

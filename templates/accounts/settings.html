@@ -37,7 +37,7 @@
       {% if account_active %}
         <p class="settings-hint settings-follow">If you cancel, recording pauses immediately. Your rambles stay on your account.</p>
       {% else %}
-        <p class="settings-hint settings-follow">Upgrade to record again — your existing rambles stay saved.</p>
+        <p class="settings-hint settings-follow">Upgrade to record again. Your existing rambles stay saved.</p>
       {% endif %}
       <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
         {% csrf_token %}
@@ -86,16 +86,57 @@
 
     {% if request.user.has_mcp_token %}
       <p class="settings-label settings-follow">New-take alerts</p>
-      {% if request.user.has_take_ready_webhook %}
+      {% if webhook_saved %}
+        <p class="settings-ok">Webhook saved. Grok Bot will be pinged when a take finishes.</p>
+      {% elif webhook_cleared %}
+        <p class="settings-hint">Webhook cleared.</p>
+      {% elif request.user.has_take_ready_webhook %}
         <p class="settings-ok">
           Webhook connected
           {% if request.user.take_ready_webhook_saved_at %}
             · {{ request.user.take_ready_webhook_saved_at|date:"j M Y" }}
           {% endif %}
         </p>
-        <p class="settings-hint">Grok Bot will be pinged when a take finishes. Set up or clear it from the Bot with Ramble MCP.</p>
+        <p class="settings-hint">Grok Bot will be pinged when a take finishes.</p>
       {% else %}
-        <p class="settings-hint">Not connected. Ask Grok Bot to set up Ramble new-take alerts — it creates a webhook routine and saves it via MCP.</p>
+        <p class="settings-hint">Paste the HTTPS URL and Bearer key from your Grok Bot webhook routine.</p>
+      {% endif %}
+
+      {% if request.user.has_take_ready_webhook and not show_webhook_form %}
+        <div class="settings-actions">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="intent" value="edit_take_ready_webhook">
+            <button type="submit" class="btn btn-ghost">Replace webhook</button>
+          </form>
+          <form method="post" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
+            {% csrf_token %}
+            <input type="hidden" name="intent" value="clear_take_ready_webhook">
+            <button type="submit" class="btn btn-ghost">Clear</button>
+          </form>
+        </div>
+      {% else %}
+        <form method="post" class="settings-webhook-form" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="intent" value="take_ready_webhook">
+          {% for field in webhook_form %}
+            <label class="settings-label settings-follow" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}
+              <p class="auth-error">{{ error }}</p>
+            {% endfor %}
+          {% endfor %}
+          <div class="settings-actions">
+            <button type="submit" class="btn btn-primary">{% if request.user.has_take_ready_webhook %}Replace webhook{% else %}Save webhook{% endif %}</button>
+          </div>
+        </form>
+        {% if request.user.has_take_ready_webhook %}
+          <form method="post" class="settings-actions" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
+            {% csrf_token %}
+            <input type="hidden" name="intent" value="clear_take_ready_webhook">
+            <button type="submit" class="btn btn-ghost">Clear</button>
+          </form>
+        {% endif %}
       {% endif %}
     {% endif %}
   </div>

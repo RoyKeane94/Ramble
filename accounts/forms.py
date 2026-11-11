@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
@@ -114,3 +116,46 @@ class StyledPasswordChangeForm(PasswordChangeForm):
             }
         ),
     )
+
+
+class TakeReadyWebhookForm(forms.Form):
+    """HTTPS routine webhook URL + Bearer key from Grok Bot."""
+
+    url = forms.CharField(
+        label="Webhook URL",
+        max_length=500,
+        widget=forms.URLInput(
+            attrs={
+                **FIELD_ATTRS,
+                "placeholder": "https://… webhook URL",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
+        ),
+    )
+    key = forms.CharField(
+        label="Bearer key",
+        max_length=200,
+        widget=forms.PasswordInput(
+            attrs={
+                **FIELD_ATTRS,
+                "placeholder": "Bearer key",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            },
+            render_value=True,
+        ),
+    )
+
+    def clean_url(self):
+        url = (self.cleaned_data.get("url") or "").strip()
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise forms.ValidationError("Use an https webhook URL.")
+        return url
+
+    def clean_key(self):
+        key = (self.cleaned_data.get("key") or "").strip()
+        if not key:
+            raise forms.ValidationError("Bearer key is required.")
+        return key

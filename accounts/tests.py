@@ -294,6 +294,8 @@ class BillingPortalTests(TestCase):
         response = self.client.get(reverse("settings"))
         self.assertContains(response, "Inactive subscription")
         self.assertContains(response, "Upgrade account")
+        self.assertContains(response, 'class="nav-inactive')
+        self.assertContains(response, ">Inactive</a>")
         self.assertNotContains(response, "Manage subscription")
         self.assertNotContains(response, "free trial")
 

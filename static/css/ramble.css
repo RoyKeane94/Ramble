@@ -181,6 +181,7 @@ main { flex: 1; }
 }
 
 .navbar-inner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -190,6 +191,27 @@ main { flex: 1; }
   height: 52px;
   margin: 0 auto;
   padding: 0;
+}
+
+.nav-inactive {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--orange);
+  text-decoration: none;
+}
+
+.nav-inactive:hover {
+  color: var(--orange);
+  opacity: 0.85;
+}
+
+.navbar-inner > .nav-inactive.desktop-chrome {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 
 .wordmark {
@@ -3092,6 +3114,14 @@ a.album-chip:focus-visible {
   margin-top: 12px;
 }
 
+.settings-webhook-form .field {
+  margin-top: 6px;
+}
+
+.settings-webhook-form .auth-error {
+  margin-top: 6px;
+}
+
 .settings-follow {
   margin-top: 16px;
 }
@@ -3907,6 +3937,12 @@ a.album-chip:focus-visible {
     letter-spacing: 3px;
     color: var(--navy);
     text-align: center;
+  }
+
+  body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .app-bar-title .nav-inactive {
+    letter-spacing: 0.02em;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .app-icon-btn,

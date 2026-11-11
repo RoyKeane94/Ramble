@@ -206,7 +206,7 @@ class McpTests(TestCase):
         self.assertContains(page, "Ramble MCP")
         self.assertContains(page, "/mcp")
         self.assertContains(page, "New-take alerts")
-        self.assertContains(page, "Not connected")
+        self.assertContains(page, "Save webhook")
         created = self.client.post("/settings/", {"intent": "mcp_token"})
         self.assertContains(created, "Copy this token now")
         self.assertContains(created, "rmbl_")
@@ -219,7 +219,69 @@ class McpTests(TestCase):
         )
         connected = self.client.get("/settings/")
         self.assertContains(connected, "Webhook connected")
-        self.assertNotContains(connected, "Not connected")
+        self.assertContains(connected, "Replace webhook")
+        self.assertNotContains(connected, "Save webhook")
+
+    def test_settings_saves_replaces_and_clears_take_ready_webhook(self):
+        self.client.force_login(self.user)
+        saved = self.client.post(
+            "/settings/",
+            {
+                "intent": "take_ready_webhook",
+                "url": "https://api2.cursor.sh/automations/webhook/one",
+                "key": "whsec_one",
+            },
+        )
+        self.assertContains(saved, "Webhook saved")
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.take_ready_webhook_url,
+            "https://api2.cursor.sh/automations/webhook/one",
+        )
+        self.assertEqual(self.user.take_ready_webhook_key, "whsec_one")
+
+        edit = self.client.post("/settings/", {"intent": "edit_take_ready_webhook"})
+        self.assertContains(edit, "Replace webhook")
+        self.assertContains(edit, "Webhook URL")
+
+        replaced = self.client.post(
+            "/settings/",
+            {
+                "intent": "take_ready_webhook",
+                "url": "https://api2.cursor.sh/automations/webhook/two",
+                "key": "whsec_two",
+            },
+        )
+        self.assertContains(replaced, "Webhook saved")
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.take_ready_webhook_url,
+            "https://api2.cursor.sh/automations/webhook/two",
+        )
+        self.assertEqual(self.user.take_ready_webhook_key, "whsec_two")
+
+        rejected = self.client.post(
+            "/settings/",
+            {
+                "intent": "take_ready_webhook",
+                "url": "http://insecure.example/hook",
+                "key": "x",
+            },
+        )
+        self.assertContains(rejected, "Use an https webhook URL.")
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.take_ready_webhook_url,
+            "https://api2.cursor.sh/automations/webhook/two",
+        )
+
+        cleared = self.client.post(
+            "/settings/",
+            {"intent": "clear_take_ready_webhook"},
+        )
+        self.assertContains(cleared, "Webhook cleared")
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_take_ready_webhook)
 
     def test_save_and_clear_take_ready_webhook(self):
         status = self.call("get_take_ready_webhook_status")["structuredContent"]
