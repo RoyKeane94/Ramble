@@ -197,9 +197,23 @@ class TrafficRecordingTests(TestCase):
         self.assertNotIn("127.0.0.1", hit.visitor_hash)
         self.assertEqual(len(hit.visitor_hash), 32)
 
-    def test_query_string_is_not_stored(self):
+    def test_query_string_path_is_not_stored(self):
         self.client.get("/?utm_source=twitter", HTTP_USER_AGENT="Mozilla/5.0 RambleTest")
-        self.assertEqual(TrafficHit.objects.get().path, "/")
+        hit = TrafficHit.objects.get()
+        self.assertEqual(hit.path, "/")
+        self.assertEqual(hit.referrer, "twitter")
+
+    def test_utm_source_beats_referrer(self):
+        self.client.get(
+            "/?utm_source=Newsletter",
+            HTTP_USER_AGENT="Mozilla/5.0 RambleTest",
+            HTTP_REFERER="https://mail.example.com/open",
+        )
+        self.assertEqual(TrafficHit.objects.get().referrer, "newsletter")
+
+    def test_click_id_fallback_without_referrer(self):
+        self.client.get("/?gclid=abc", HTTP_USER_AGENT="Mozilla/5.0 RambleTest")
+        self.assertEqual(TrafficHit.objects.get().referrer, "google-ads")
 
     def test_external_referrer_is_hostname_only(self):
         self.client.get(
@@ -220,13 +234,25 @@ class TrafficRecordingTests(TestCase):
         signup = TrafficHit.objects.get(path="/signup/")
         self.assertEqual(signup.referrer, "news.ycombinator.com")
 
-    def test_canonical_host_referrer_counts_as_direct(self):
+    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    def test_same_site_referrer_counts_as_internal(self):
         self.client.get(
             "/signup/",
             HTTP_USER_AGENT="Mozilla/5.0 RambleTest",
             HTTP_REFERER="https://yourramble.com/",
         )
-        self.assertEqual(TrafficHit.objects.get().referrer, "")
+        self.assertEqual(TrafficHit.objects.get().referrer, "internal")
+
+    def test_direct_then_in_site_click_becomes_internal(self):
+        ua = "Mozilla/5.0 RambleTest"
+        self.client.get("/", HTTP_USER_AGENT=ua)
+        self.client.get(
+            "/signup/",
+            HTTP_USER_AGENT=ua,
+            HTTP_REFERER="http://testserver/",
+        )
+        self.assertEqual(TrafficHit.objects.get(path="/").referrer, "")
+        self.assertEqual(TrafficHit.objects.get(path="/signup/").referrer, "internal")
 
     def test_signed_in_visit_is_ignored(self):
         user = get_user_model().objects.create_user("member@example.com", "password12")
@@ -316,16 +342,31 @@ class TrafficReportTests(TestCase):
             {"label": "Direct", "views": 2, "avg_stay_label": "<1s"},
         )
 
+        TrafficHit.objects.create(
+            day=today,
+            path="/privacy/",
+            referrer="internal",
+            visitor_hash="c" * 32,
+            views=1,
+            first_seen=now,
+            last_seen=now,
+        )
+        report = traffic_report(today)
+        labels = {row["label"]: row["views"] for row in report["sources"]}
+        self.assertEqual(labels["Internal"], 1)
+        self.assertEqual(labels["Direct"], 2)
+
         get_user_model().objects.create_superuser("boss@example.com", "password12")
         self.client.force_login(get_user_model().objects.get(email="boss@example.com"))
         response = self.client.get("/kpi/")
         self.assertContains(response, "Traffic")
         self.assertContains(response, "google.com")
-        self.assertContains(response, "4 page views")
-        self.assertContains(response, "6 page views")
+        self.assertContains(response, "5 page views")
+        self.assertContains(response, "7 page views")
         self.assertContains(response, "avg stay")
         self.assertContains(response, "Avg stay")
         self.assertContains(response, "Direct")
+        self.assertContains(response, "Internal")
 
     def test_avg_stay_from_page_views(self):
         ua = "Mozilla/5.0 RambleStay"

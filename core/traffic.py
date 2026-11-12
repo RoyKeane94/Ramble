@@ -2,12 +2,20 @@
 
 A visitor is a daily hash of IP and user agent. The hash is not reversible and
 changes the next day, so the same person on two days counts as two visitors.
+
+Source labels stored on ``TrafficHit.referrer``:
+
+- ``""`` — Direct (no referrer, no campaign param)
+- ``internal`` — same-site Referer (in-app navigation between pages)
+- campaign token — ``utm_source`` / ``src`` / ``ref``, or a click-id fallback
+- hostname — external Referer host (e.g. ``google.com``)
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 from datetime import date, timedelta
 from urllib.parse import urlparse
 
@@ -21,6 +29,22 @@ from .models import TrafficHit
 
 RETENTION_DAYS = 90
 TOP_LIMIT = 8
+
+SOURCE_DIRECT = ""
+SOURCE_INTERNAL = "internal"
+
+_SOURCE_LABELS = {
+    SOURCE_DIRECT: "Direct",
+    SOURCE_INTERNAL: "Internal",
+}
+
+_CAMPAIGN_KEYS = ("utm_source", "src", "ref")
+_CLICK_ID_SOURCES = (
+    ("gclid", "google-ads"),
+    ("fbclid", "facebook"),
+    ("msclkid", "microsoft-ads"),
+)
+_SOURCE_TOKEN = re.compile(r"[^a-z0-9._+-]+")
 
 TRACKED_PATHS = frozenset(
     {
@@ -71,8 +95,8 @@ def record_page_view(request, response) -> None:
         request.META.get("HTTP_USER_AGENT", ""),
         today,
     )
-    referrer = _session_referrer(request, today, visitor)
-    _increment(today, request.path, referrer, visitor)
+    source = _session_source(request, today, visitor)
+    _increment(today, request.path, source, visitor)
     if cache.add(f"traffic-pruned-{today.isoformat()}", 1, 60 * 60 * 24):
         prune_traffic(today)
 
@@ -151,29 +175,68 @@ def _site_hosts(request) -> set[str]:
     return hosts
 
 
-def _external_referrer(request) -> str:
+def source_label(referrer: str) -> str:
+    """Human label for a stored source token."""
+    return _SOURCE_LABELS.get(referrer, referrer or "Direct")
+
+
+def _clean_source_token(value: str) -> str:
+    cleaned = _SOURCE_TOKEN.sub("-", value.strip().lower()).strip(".-")
+    return cleaned[:64]
+
+
+def _campaign_source(request) -> str:
+    """Attribution from share/ad links when Referer is often stripped."""
+    for key in _CAMPAIGN_KEYS:
+        raw = request.GET.get(key, "")
+        if not raw:
+            continue
+        token = _clean_source_token(raw)
+        if token and token != SOURCE_INTERNAL:
+            return token
+    for param, label in _CLICK_ID_SOURCES:
+        if request.GET.get(param):
+            return label
+    return SOURCE_DIRECT
+
+
+def _referrer_source(request) -> str:
     raw = request.META.get("HTTP_REFERER", "")
     if not raw:
-        return ""
+        return SOURCE_DIRECT
     host = (urlparse(raw).hostname or "").lower()
     if host.startswith("www."):
         host = host[4:]
-    if not host or host in _site_hosts(request):
-        return ""
+    if not host:
+        return SOURCE_DIRECT
+    if host in _site_hosts(request):
+        return SOURCE_INTERNAL
     return host[:255]
 
 
-def _session_referrer(request, today: date, visitor: str) -> str:
-    """Keep the first external source for this visitor for the rest of the day."""
+def _resolve_source(request) -> str:
+    """Campaign params beat Referer; same-site Referer is Internal, not Direct."""
+    campaign = _campaign_source(request)
+    if campaign:
+        return campaign
+    return _referrer_source(request)
+
+
+def _session_source(request, today: date, visitor: str) -> str:
+    """Keep the first non-Direct source for this visitor for the rest of the day.
+
+    Direct landings can still upgrade to Internal (in-site clicks) or an
+    external/campaign source later the same day.
+    """
     existing = (
         TrafficHit.objects.filter(day=today, visitor_hash=visitor)
-        .exclude(referrer="")
+        .exclude(referrer=SOURCE_DIRECT)
         .values_list("referrer", flat=True)
         .first()
     )
     if existing:
         return existing
-    return _external_referrer(request)
+    return _resolve_source(request)
 
 
 def _increment(day: date, path: str, referrer: str, visitor: str) -> None:
@@ -341,7 +404,7 @@ def _top_sources(today: date, days: int) -> list[dict]:
     )
     return [
         {
-            "label": row["referrer"] or "Direct",
+            "label": source_label(row["referrer"]),
             "views": row["views"],
             "avg_stay_label": format_stay(stays.get((row["referrer"],))),
         }

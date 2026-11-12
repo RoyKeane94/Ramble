@@ -98,7 +98,12 @@ class TrafficHit(models.Model):
         ]
 
     def __str__(self):
-        source = self.referrer or "direct"
+        if not self.referrer:
+            source = "Direct"
+        elif self.referrer == "internal":
+            source = "Internal"
+        else:
+            source = self.referrer
         return f"{self.day} {self.path} ({source}) ×{self.views}"
 
 
