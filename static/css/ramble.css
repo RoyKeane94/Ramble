@@ -4723,7 +4723,55 @@ a.album-chip:focus-visible {
 }
 
 .traffic-block .kpi-section-title {
+  margin: 0;
+}
+
+.traffic-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
   margin: 0 0 14px;
+}
+
+.traffic-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.traffic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.traffic-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.traffic-chip:hover {
+  color: var(--navy-deep);
+  border-color: color-mix(in srgb, var(--navy) 18%, transparent);
+}
+
+.traffic-chip.is-on {
+  color: var(--navy-deep);
+  background: var(--navy-soft);
+  border-color: color-mix(in srgb, var(--navy) 22%, transparent);
 }
 
 .traffic-stats,
@@ -4735,6 +4783,50 @@ a.album-chip:focus-visible {
 
 .traffic-stats {
   margin-bottom: 12px;
+}
+
+.traffic-stats-single {
+  grid-template-columns: 1fr;
+}
+
+.traffic-graph-panel {
+  margin-top: 0;
+}
+
+.traffic-graph {
+  min-height: 240px;
+  padding: 0 8px 4px;
+}
+
+.traffic-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.traffic-graph-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.traffic-graph-key::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.traffic-graph-key-visitors::before {
+  background: var(--navy);
+}
+
+.traffic-graph-key-views::before {
+  background: var(--orange);
 }
 
 .traffic-stat {
@@ -4797,5 +4889,13 @@ a.album-chip:focus-visible {
   .traffic-stats,
   .traffic-columns {
     grid-template-columns: 1fr;
+  }
+
+  .traffic-heading-row {
+    align-items: flex-start;
+  }
+
+  .traffic-toolbar {
+    width: 100%;
   }
 }

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}KPIs · Ramble{% endblock %}
 {% block body_attrs %} data-app-page="kpi" data-app-shutter="off"{% endblock %}
@@ -14,20 +15,61 @@
   </header>
 
   <section class="traffic-block" aria-labelledby="traffic-heading">
-    <h2 id="traffic-heading" class="kpi-section-title">Traffic</h2>
-    <div class="traffic-stats">
-      {% for window in traffic.windows %}
-      <article class="traffic-stat panel">
-        <p class="traffic-stat-label">{{ window.label }}</p>
-        <p class="traffic-stat-value">{{ window.visitors }} <span>{{ window.visitor_label }}</span></p>
-        <p class="traffic-stat-sub">{{ window.pageviews_label }}</p>
-        <p class="traffic-stat-sub">avg stay {{ window.avg_stay_label }}</p>
-      </article>
-      {% endfor %}
+    <div class="traffic-heading-row">
+      <h2 id="traffic-heading" class="kpi-section-title">Traffic</h2>
+      <div class="traffic-toolbar" role="group" aria-label="Traffic controls">
+        <div class="traffic-chips" role="group" aria-label="Time period">
+          {% for choice in traffic.periods %}
+          <a
+            class="traffic-chip{% if choice.selected %} is-on{% endif %}"
+            href="?period={{ choice.key }}&view={{ traffic.view }}"
+            {% if choice.selected %}aria-current="true"{% endif %}
+          >{{ choice.label }}</a>
+          {% endfor %}
+        </div>
+        <div class="traffic-chips traffic-chips-view" role="group" aria-label="Display">
+          <a
+            class="traffic-chip{% if traffic.view == 'table' %} is-on{% endif %}"
+            href="?period={{ traffic.period }}&view=table"
+            {% if traffic.view == 'table' %}aria-current="true"{% endif %}
+          >Table</a>
+          <a
+            class="traffic-chip{% if traffic.view == 'graph' %} is-on{% endif %}"
+            href="?period={{ traffic.period }}&view=graph"
+            {% if traffic.view == 'graph' %}aria-current="true"{% endif %}
+          >Graph</a>
+        </div>
+      </div>
     </div>
+
+    <div class="traffic-stats traffic-stats-single">
+      <article class="traffic-stat panel">
+        <p class="traffic-stat-label">{{ traffic.summary.label }}</p>
+        <p class="traffic-stat-value">{{ traffic.summary.visitors }} <span>{{ traffic.summary.visitor_label }}</span></p>
+        <p class="traffic-stat-sub">{{ traffic.summary.pageviews_label }}</p>
+        <p class="traffic-stat-sub">avg stay {{ traffic.summary.avg_stay_label }}</p>
+      </article>
+    </div>
+
+    {% if traffic.view == 'graph' %}
+    <div class="kpi-panel panel traffic-graph-panel">
+      <h3 class="traffic-card-title">Daily traffic <span>{{ traffic.period_label }}</span></h3>
+      <div
+        class="traffic-graph"
+        data-traffic-graph
+        role="img"
+        aria-label="Daily visitors and page views for {{ traffic.period_label }}"
+      ></div>
+      {{ traffic.series|json_script:"traffic-series" }}
+      <div class="traffic-graph-legend" aria-hidden="true">
+        <span class="traffic-graph-key traffic-graph-key-visitors">Visitors</span>
+        <span class="traffic-graph-key traffic-graph-key-views">Page views</span>
+      </div>
+    </div>
+    {% else %}
     <div class="traffic-columns">
       <div class="kpi-panel panel">
-        <h3 class="traffic-card-title">Pages <span>30 days</span></h3>
+        <h3 class="traffic-card-title">Pages <span>{{ traffic.period_label }}</span></h3>
         <div class="kpi-scroll">
           <table class="kpi-table">
             <thead>
@@ -56,7 +98,7 @@
         </div>
       </div>
       <div class="kpi-panel panel">
-        <h3 class="traffic-card-title">Sources <span>30 days</span></h3>
+        <h3 class="traffic-card-title">Sources <span>{{ traffic.period_label }}</span></h3>
         <div class="kpi-scroll">
           <table class="kpi-table">
             <thead>
@@ -83,6 +125,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
   </section>
 
   <h2 class="kpi-section-title">Users</h2>
@@ -125,4 +168,10 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+{% if traffic.view == 'graph' %}
+<script src="{% static 'js/kpi-traffic.js' %}?v=app1"></script>
+{% endif %}
 {% endblock %}

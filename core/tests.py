@@ -323,6 +323,9 @@ class TrafficReportTests(TestCase):
 
         report = traffic_report(today)
         week, month = report["windows"]
+        self.assertEqual(report["period"], "30")
+        self.assertEqual(report["summary"]["visitors"], 2)
+        self.assertEqual(report["summary"]["pageviews_label"], "6 page views")
         self.assertEqual(week["visitors"], 1)
         self.assertEqual(week["pageviews_label"], "4 page views")
         self.assertEqual(week["avg_stay_label"], "2m")
@@ -341,6 +344,16 @@ class TrafficReportTests(TestCase):
             report["sources"][1],
             {"label": "Direct", "views": 2, "avg_stay_label": "<1s"},
         )
+        self.assertEqual(len(report["series"]), 30)
+        self.assertEqual(report["series"][-1]["day"], today.isoformat())
+        self.assertEqual(report["series"][-1]["views"], 4)
+        self.assertEqual(report["series"][-1]["visitors"], 1)
+
+        day_report = traffic_report(today, period="1")
+        self.assertEqual(day_report["period"], "1")
+        self.assertEqual(day_report["summary"]["pageviews_label"], "4 page views")
+        self.assertEqual(len(day_report["series"]), 1)
+        self.assertEqual(day_report["pages"][0]["views"], 3)
 
         TrafficHit.objects.create(
             day=today,
@@ -361,12 +374,26 @@ class TrafficReportTests(TestCase):
         response = self.client.get("/kpi/")
         self.assertContains(response, "Traffic")
         self.assertContains(response, "google.com")
-        self.assertContains(response, "5 page views")
         self.assertContains(response, "7 page views")
         self.assertContains(response, "avg stay")
         self.assertContains(response, "Avg stay")
         self.assertContains(response, "Direct")
         self.assertContains(response, "Internal")
+        self.assertContains(response, "1 day")
+        self.assertContains(response, "All time")
+        self.assertContains(response, "Graph")
+        self.assertContains(response, "?period=7&view=table")
+
+        week_response = self.client.get("/kpi/?period=7")
+        self.assertContains(week_response, "5 page views")
+        self.assertContains(week_response, "Pages")
+        self.assertNotContains(week_response, "data-traffic-graph")
+
+        graph = self.client.get("/kpi/?period=30&view=graph")
+        self.assertContains(graph, "data-traffic-graph")
+        self.assertContains(graph, "id=\"traffic-series\"")
+        self.assertContains(graph, "kpi-traffic.js")
+        self.assertNotContains(graph, "Sources")
 
     def test_avg_stay_from_page_views(self):
         ua = "Mozilla/5.0 RambleStay"

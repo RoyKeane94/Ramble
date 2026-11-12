@@ -30,6 +30,15 @@ from .models import TrafficHit
 RETENTION_DAYS = 90
 TOP_LIMIT = 8
 
+PERIOD_CHOICES = (
+    ("1", 1, "1 day"),
+    ("7", 7, "7 days"),
+    ("30", 30, "30 days"),
+    ("all", None, "All time"),
+)
+PERIOD_KEYS = frozenset(key for key, _days, _label in PERIOD_CHOICES)
+DEFAULT_PERIOD = "30"
+
 SOURCE_DIRECT = ""
 SOURCE_INTERNAL = "internal"
 
@@ -113,12 +122,45 @@ def prune_traffic(today: date | None = None) -> None:
     TrafficHit.objects.filter(day__lt=cutoff).delete()
 
 
-def traffic_report(today: date | None = None) -> dict:
+def normalize_period(raw: str | None) -> str:
+    key = (raw or DEFAULT_PERIOD).strip().lower()
+    return key if key in PERIOD_KEYS else DEFAULT_PERIOD
+
+
+def period_days(period: str) -> int | None:
+    for key, days, _label in PERIOD_CHOICES:
+        if key == period:
+            return days
+    return period_days(DEFAULT_PERIOD)
+
+
+def traffic_report(
+    today: date | None = None,
+    *,
+    period: str | None = None,
+) -> dict:
     today = today or timezone.localdate()
+    selected = normalize_period(period)
+    days = period_days(selected)
+    label = next(
+        label for key, _days, label in PERIOD_CHOICES if key == selected
+    )
     return {
+        "period": selected,
+        "period_label": label,
+        "periods": [
+            {
+                "key": key,
+                "label": choice_label,
+                "selected": key == selected,
+            }
+            for key, _days, choice_label in PERIOD_CHOICES
+        ],
+        "summary": _window(today, days, label=label),
         "windows": [_window(today, 7), _window(today, 30)],
-        "pages": _top_pages(today, 30),
-        "sources": _top_sources(today, 30),
+        "pages": _top_pages(today, days),
+        "sources": _top_sources(today, days),
+        "series": _daily_series(today, days),
     }
 
 
@@ -309,14 +351,22 @@ def format_stay(seconds: float | None) -> str:
     return f"{hours}h"
 
 
-def _window(today: date, days: int) -> dict:
+def _window(today: date, days: int | None, *, label: str | None = None) -> dict:
     qs = _span(today, days)
     pageviews, visitors = _totals(qs)
     avg_stay = _avg_stay_seconds(qs)
+    if label is None:
+        if days is None:
+            label = "All time"
+        elif days == 1:
+            label = "1 day"
+        else:
+            label = f"{days} days"
     return {
-        "label": f"{days} days",
+        "label": label,
         "visitors": visitors,
         "visitor_label": "visitor" if visitors == 1 else "visitors",
+        "pageviews": pageviews,
         "pageviews_label": "1 page view" if pageviews == 1 else f"{pageviews} page views",
         "avg_stay_seconds": avg_stay,
         "avg_stay_label": format_stay(avg_stay),
@@ -364,9 +414,12 @@ def _mean_stay(spans: list[dict]) -> float | None:
     return sum(row["seconds"] for row in spans) / len(spans)
 
 
-def _span(today: date, days: int):
+def _span(today: date, days: int | None):
+    qs = TrafficHit.objects.filter(day__lte=today)
+    if days is None:
+        return qs
     start = today - timedelta(days=days - 1)
-    return TrafficHit.objects.filter(day__gte=start, day__lte=today)
+    return qs.filter(day__gte=start)
 
 
 def _totals(qs) -> tuple[int, int]:
@@ -375,7 +428,44 @@ def _totals(qs) -> tuple[int, int]:
     return pageviews, visitors
 
 
-def _top_pages(today: date, days: int) -> list[dict]:
+def _day_label(day: date) -> str:
+    return f"{day.day} {day.strftime('%b')}"
+
+
+def _daily_series(today: date, days: int | None) -> list[dict]:
+    qs = _span(today, days)
+    if days is None:
+        earliest = qs.order_by("day").values_list("day", flat=True).first()
+        if earliest is None:
+            return []
+        start = earliest
+    else:
+        start = today - timedelta(days=days - 1)
+
+    by_day = {
+        row["day"]: row
+        for row in qs.values("day").annotate(
+            views=Sum("views"),
+            visitors=Count("visitor_hash", distinct=True),
+        )
+    }
+    series: list[dict] = []
+    cursor = start
+    while cursor <= today:
+        row = by_day.get(cursor)
+        series.append(
+            {
+                "day": cursor.isoformat(),
+                "label": _day_label(cursor),
+                "views": int(row["views"]) if row else 0,
+                "visitors": int(row["visitors"]) if row else 0,
+            }
+        )
+        cursor += timedelta(days=1)
+    return series
+
+
+def _top_pages(today: date, days: int | None) -> list[dict]:
     qs = _span(today, days)
     stays = _avg_stay_by(qs, "path")
     rows = (
@@ -394,7 +484,7 @@ def _top_pages(today: date, days: int) -> list[dict]:
     ]
 
 
-def _top_sources(today: date, days: int) -> list[dict]:
+def _top_sources(today: date, days: int | None) -> list[dict]:
     qs = _span(today, days)
     stays = _avg_stay_by(qs, "referrer")
     rows = (

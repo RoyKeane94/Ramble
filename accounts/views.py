@@ -12,7 +12,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from core.traffic import traffic_report
+from core.traffic import normalize_period, traffic_report
 from notes.models import Note
 from notes.usage import usage_for_user
 
@@ -321,6 +321,12 @@ def change_password(request):
 def kpi_dashboard(request):
     if not request.user.is_superuser:
         raise PermissionDenied
+    period = normalize_period(request.GET.get("period"))
+    view = request.GET.get("view", "table").strip().lower()
+    if view not in {"table", "graph"}:
+        view = "table"
+    traffic = traffic_report(period=period)
+    traffic["view"] = view
     rows = [
         {
             "email": row.email,
@@ -340,7 +346,7 @@ def kpi_dashboard(request):
         "accounts/kpi.html",
         {
             "kpi_rows": rows,
-            "traffic": traffic_report(),
+            "traffic": traffic,
             "nav_section": "kpi",
         },
     )
