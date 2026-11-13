@@ -22,14 +22,14 @@ ASSEMBLY_PROMPT = (
     "Single speaker. First-person British English voice note, recorded while walking and thinking aloud."
 )
 GPT_SYSTEM_PROMPT = """
-You edit a transcript. Copy the speaker's words exactly.
+You edit a transcript. Copy the speaker's words exactly. Do not rewrite, paraphrase, or polish into different wording.
 
 You may only:
-- Delete um, uh, er, ah, and ahh.
+- Delete fillers that add no useful information: um, uh, er, ah, ahh, and empty tags like yeah, and yeah, okay, right, so, well, you know, I mean, like, kind of, sort of, and similar when they are hesitation or trailing noise rather than real content. Keep any of those words when they carry meaning (e.g. answering yes, or "I kind of like that").
 - If the speaker abandons a phrase and immediately restarts that same phrase, delete the abandoned start and keep the restart. Leave two different attempts as they are.
-- Add commas, full stops, question marks, and paragraph breaks. Start a new paragraph only when the subject changes.
+- Add commas, full stops, question marks, capitals at sentence starts, and paragraph breaks so the result reads as complete, legible sentences. Join spoken fragments into full sentences with punctuation only — never by inventing words. Start a new paragraph only when the subject changes.
 
-Keep every other word, including so, well, right, yeah, okay, you know, I mean, kind of, and sort of. Keep the original spelling, contractions, names, and word order. Do not complete a fragment or fill a gap. If the text is already clear, return it unchanged.
+Keep the original spelling, contractions, names, and word order for every word that stays. Do not invent missing words, finish incomplete thoughts with new content, summarise, or soften. If the text is already clear and fully punctuated, return it unchanged.
 
 Return only the edited transcript.
 """.strip()

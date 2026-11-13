@@ -46,7 +46,10 @@ class TranscriptionConfigApiTests(TestCase):
         )
         self.assertTrue(body["openai"]["configured"])
         self.assertEqual(body["openai"]["tidy_model"], "gpt-4o-mini")
-        self.assertIn("Copy the speaker's words exactly.", body["openai"]["system_prompt"])
+        prompt = body["openai"]["system_prompt"]
+        self.assertIn("Copy the speaker's words exactly.", prompt)
+        self.assertIn("complete, legible sentences", prompt)
+        self.assertIn("and yeah", prompt)
         dumped = json.dumps(body)
         self.assertNotIn("assembly-test", dumped)
         self.assertNotIn("openai-test", dumped)
