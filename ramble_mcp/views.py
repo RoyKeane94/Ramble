@@ -6,6 +6,8 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from .models import OAuthAccessToken
+from .oauth import resource_metadata_url
 from .protocol import LATEST_PROTOCOL, handle_payload
 
 logger = logging.getLogger(__name__)
@@ -58,10 +60,12 @@ def mcp_endpoint(request):
 def _authenticate(request):
     raw = _bearer_token(request)
     if not raw:
-        return None, _unauthorized("missing_token")
+        return None, _unauthorized(request, "missing_token")
     user = User.get_by_mcp_token(raw)
     if user is None:
-        return None, _unauthorized("invalid_token")
+        user = OAuthAccessToken.get_valid_user(raw)
+    if user is None:
+        return None, _unauthorized(request, "invalid_token")
     return user, None
 
 
@@ -74,9 +78,13 @@ def _bearer_token(request):
     return ""
 
 
-def _unauthorized(error):
+def _unauthorized(request, error):
+    metadata = resource_metadata_url(request)
     response = JsonResponse({"error": "unauthorized"}, status=401)
-    response["WWW-Authenticate"] = f'Bearer realm="Ramble MCP", error="{error}"'
+    response["WWW-Authenticate"] = (
+        f'Bearer realm="Ramble MCP", error="{error}", '
+        f'resource_metadata="{metadata}"'
+    )
     return response
 
 

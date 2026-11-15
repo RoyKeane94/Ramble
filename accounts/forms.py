@@ -1,15 +1,31 @@
+import re
 from urllib.parse import urlparse
 
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
+from django.utils.text import slugify
+
+from .models import CrmContact
 
 User = get_user_model()
 
 FIELD_ATTRS = {
     "class": "field auth-input",
 }
+
+CRM_FIELD_ATTRS = {
+    "class": "field crm-input",
+}
+
+
+def _slug_seed(*parts):
+    for part in parts:
+        slug = slugify((part or "").strip())[:64]
+        if slug:
+            return slug
+    return ""
 
 
 class EmailAuthenticationForm(AuthenticationForm):
@@ -159,3 +175,80 @@ class TakeReadyWebhookForm(forms.Form):
         if not key:
             raise forms.ValidationError("Bearer key is required.")
         return key
+
+
+class CrmContactForm(forms.ModelForm):
+    class Meta:
+        model = CrmContact
+        fields = (
+            "first_name",
+            "business_name",
+            "contact_type",
+            "region",
+            "country",
+            "website",
+            "email",
+            "email_source",
+            "personalisation_detail",
+            "tracking_slug",
+        )
+        labels = {
+            "contact_type": "Type",
+            "personalisation_detail": "Personalisation detail",
+            "tracking_slug": "Tracking slug",
+        }
+        widgets = {
+            "first_name": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "First name"}),
+            "business_name": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Business name"}),
+            "contact_type": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Type"}),
+            "region": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Region"}),
+            "country": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Country"}),
+            "website": forms.URLInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "https://"}),
+            "email": forms.EmailInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Email"}),
+            "email_source": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Email source"}),
+            "personalisation_detail": forms.Textarea(
+                attrs={
+                    **CRM_FIELD_ATTRS,
+                    "placeholder": "Personalisation detail",
+                    "rows": 2,
+                }
+            ),
+            "tracking_slug": forms.TextInput(
+                attrs={
+                    **CRM_FIELD_ATTRS,
+                    "placeholder": "Tracking slug (auto if blank)",
+                    "spellcheck": "false",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tracking_slug"].required = False
+        self.fields["website"].required = False
+
+    def clean_website(self):
+        website = (self.cleaned_data.get("website") or "").strip()
+        if not website:
+            return ""
+        if "://" not in website:
+            website = f"https://{website}"
+        return website
+
+    def clean_tracking_slug(self):
+        slug = (self.cleaned_data.get("tracking_slug") or "").strip().lower()
+        if not slug:
+            slug = _slug_seed(
+                self.data.get("business_name", ""),
+                self.data.get("first_name", ""),
+                self.data.get("email", ""),
+            )
+        slug = re.sub(r"[^a-z0-9_-]+", "-", slug).strip("-")[:64]
+        if not slug:
+            raise forms.ValidationError("Add a tracking slug, or a name/email to derive one.")
+        qs = CrmContact.objects.filter(tracking_slug=slug)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("That tracking slug is already in use.")
+        return slug

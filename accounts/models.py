@@ -170,3 +170,36 @@ class ProcessedStripeEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type}:{self.event_id}"
+
+
+class CrmContact(models.Model):
+    """Outreach lead for the superuser-only mini CRM."""
+
+    first_name = models.CharField(max_length=120, blank=True, default="")
+    business_name = models.CharField(max_length=255, blank=True, default="")
+    contact_type = models.CharField("type", max_length=120, blank=True, default="")
+    region = models.CharField(max_length=120, blank=True, default="")
+    country = models.CharField(max_length=120, blank=True, default="")
+    website = models.CharField(max_length=500, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
+    email_source = models.CharField(max_length=255, blank=True, default="")
+    personalisation_detail = models.TextField(blank=True, default="")
+    tracking_slug = models.SlugField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("business_name", "first_name", "id")
+
+    def __str__(self):
+        label = self.business_name or self.first_name or self.email or self.tracking_slug
+        return label
+
+    @property
+    def tracking_url(self):
+        from django.conf import settings
+
+        base = getattr(settings, "PUBLIC_BASE_URL", "").rstrip("/")
+        if not base or not self.tracking_slug:
+            return ""
+        return f"{base}/?ref={self.tracking_slug}"

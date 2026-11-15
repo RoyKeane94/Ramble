@@ -3096,6 +3096,14 @@ a.album-chip:focus-visible {
   color: #3D6B4F;
 }
 
+.settings-code-inline {
+  display: inline;
+  margin: 0;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+
 .settings-code {
   display: block;
   margin: 8px 0 0;
@@ -4885,6 +4893,125 @@ a.album-chip:focus-visible {
   color: var(--navy-deep);
 }
 
+/* Superuser mini CRM */
+.crm-block {
+  margin-bottom: 8px;
+}
+
+.crm-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin: 0 0 12px;
+}
+
+.crm-heading-row .kpi-section-title {
+  margin: 0;
+}
+
+.crm-form {
+  padding: 18px;
+  margin-bottom: 8px;
+}
+
+.crm-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px 14px;
+}
+
+.crm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.crm-field-wide {
+  grid-column: 1 / -1;
+}
+
+.crm-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crm-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.crm-field-error,
+.crm-form-errors {
+  color: #9b2c2c;
+  font-size: 12px;
+}
+
+.crm-form-actions {
+  margin-top: 16px;
+}
+
+.crm-table td.crm-personalisation {
+  white-space: normal;
+  max-width: 220px;
+  line-height: 1.35;
+}
+
+.crm-slug {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--navy-deep);
+}
+
+.crm-link {
+  color: var(--navy-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.crm-actions {
+  white-space: nowrap;
+}
+
+.crm-actions,
+.crm-delete-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crm-action {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy-deep);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.crm-action:hover,
+.crm-action:focus-visible {
+  text-decoration: underline;
+}
+
+.crm-action-danger {
+  color: #9b2c2c;
+}
+
+.crm-row-editing td {
+  background: color-mix(in srgb, var(--navy-soft) 55%, transparent);
+}
+
 @media (max-width: 720px) {
   .traffic-stats,
   .traffic-columns {
@@ -4897,5 +5024,9 @@ a.album-chip:focus-visible {
 
   .traffic-toolbar {
     width: 100%;
+  }
+
+  .crm-form-grid {
+    grid-template-columns: 1fr;
   }
 }

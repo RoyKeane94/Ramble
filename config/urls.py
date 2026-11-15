@@ -15,6 +15,14 @@ from core.views import (
     sitemap_xml,
 )
 from accounts.views import stripe_webhook
+from ramble_mcp.oauth_views import (
+    oauth_authorization_server,
+    oauth_authorize,
+    oauth_protected_resource,
+    oauth_register,
+    oauth_revoke,
+    oauth_token,
+)
 from ramble_mcp.views import mcp_endpoint
 
 handler400 = bad_request
@@ -34,6 +42,13 @@ urlpatterns = [
     path("sitemap.xml", sitemap_xml),
     path("llms.txt", llms_txt),
     path(".well-known/security.txt", security_txt),
+    path(".well-known/oauth-protected-resource", oauth_protected_resource),
+    path(".well-known/oauth-protected-resource/<path:resource_path>", oauth_protected_resource),
+    path(".well-known/oauth-authorization-server", oauth_authorization_server),
+    path("oauth/authorize", oauth_authorize, name="oauth_authorize"),
+    path("oauth/token", oauth_token, name="oauth_token"),
+    path("oauth/register", oauth_register, name="oauth_register"),
+    path("oauth/revoke", oauth_revoke, name="oauth_revoke"),
     path("mcp", mcp_endpoint),
     path("mcp/", mcp_endpoint),
     path(f"{settings.ADMIN_URL}/", admin.site.urls),

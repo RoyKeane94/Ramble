@@ -127,6 +127,7 @@ class WellKnownEndpointTests(SimpleTestCase):
         body = response.content.decode()
         self.assertIn("Disallow: /admin/", body)
         self.assertIn("Disallow: /mcp", body)
+        self.assertIn("Disallow: /oauth/", body)
         self.assertIn("Disallow: /api/", body)
         self.assertIn("Disallow: /roll/", body)
         self.assertIn("Disallow: /notes/", body)

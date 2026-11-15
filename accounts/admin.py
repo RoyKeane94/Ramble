@@ -2,7 +2,32 @@ from django.contrib import admin
 
 from notes.usage import assembly_seconds_for_user
 
-from .models import User
+from .models import CrmContact, User
+
+
+@admin.register(CrmContact)
+class CrmContactAdmin(admin.ModelAdmin):
+    list_display = (
+        "first_name",
+        "business_name",
+        "contact_type",
+        "region",
+        "country",
+        "email",
+        "tracking_slug",
+        "updated_at",
+    )
+    search_fields = (
+        "first_name",
+        "business_name",
+        "email",
+        "tracking_slug",
+        "website",
+        "region",
+        "country",
+    )
+    list_filter = ("contact_type", "country", "region")
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(User)

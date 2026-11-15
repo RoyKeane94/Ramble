@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Connect Claude · Ramble{% endblock %}
+{% block body_class %}is-auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <section class="auth-panel auth-panel-form">
+      <div class="auth-copy">
+        <h1 class="auth-title">Connect to Ramble</h1>
+        <p class="settings-hint">
+          <strong>{{ client_name }}</strong> wants access to search and file your takes.
+        </p>
+        <p class="settings-hint settings-follow">
+          Signed in as {{ request.user.email }}. Redirects to
+          <code class="settings-code settings-code-inline">{{ redirect_host }}</code>.
+        </p>
+      </div>
+
+      <form method="post" class="auth-form settings-actions" style="flex-direction:column;align-items:stretch;gap:0.75rem;">
+        {% csrf_token %}
+        <input type="hidden" name="client_id" value="{{ client_id }}">
+        <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+        <input type="hidden" name="response_type" value="{{ response_type }}">
+        <input type="hidden" name="scope" value="{{ scope }}">
+        <input type="hidden" name="state" value="{{ state }}">
+        <input type="hidden" name="code_challenge" value="{{ code_challenge }}">
+        <input type="hidden" name="code_challenge_method" value="{{ code_challenge_method }}">
+        <input type="hidden" name="resource" value="{{ resource }}">
+
+        <button type="submit" name="decision" value="approve" class="btn btn-primary auth-submit">
+          Allow access
+        </button>
+        <button type="submit" name="decision" value="deny" class="btn btn-ghost">
+          Cancel
+        </button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

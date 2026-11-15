@@ -49,14 +49,29 @@
   </div>
 
   <div class="settings-block panel">
-    <h2 class="day-header">Ramble MCP</h2>
-    <p class="settings-hint">A connector so assistants can search and file your takes without opening the web app.</p>
+    <h2 class="day-header">Claude MCP</h2>
+    <p class="settings-hint">Connect Claude with OAuth so it can search and file your takes. No token to paste.</p>
     <p class="settings-label settings-follow">URL</p>
-    <code class="settings-code" id="mcp-url">{{ mcp_url }}</code>
+    <code class="settings-code" id="mcp-url-claude">{{ mcp_url }}</code>
     <div class="settings-actions">
-      <button type="button" class="btn btn-ghost" data-copy="#mcp-url">Copy URL</button>
+      <button type="button" class="btn btn-ghost" data-copy="#mcp-url-claude">Copy URL</button>
+    </div>
+    <p class="settings-hint settings-follow">
+      In Claude, add a custom connector and paste this URL (keep <code>/mcp</code>). Choose OAuth / “Sign in”,
+      then allow access on the Ramble page that opens.
+    </p>
+  </div>
+
+  <div class="settings-block panel">
+    <h2 class="day-header">Grok Bot MCP</h2>
+    <p class="settings-hint">Connect Grok Bot with a bearer token, and optionally ping it when a take finishes.</p>
+    <p class="settings-label settings-follow">URL</p>
+    <code class="settings-code" id="mcp-url-grok">{{ mcp_url }}</code>
+    <div class="settings-actions">
+      <button type="button" class="btn btn-ghost" data-copy="#mcp-url-grok">Copy URL</button>
     </div>
 
+    <p class="settings-label settings-follow">Token</p>
     {% if mcp_token_plain %}
       <p class="settings-ok settings-follow">Copy this token now. It will not be shown again.</p>
       <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
@@ -76,7 +91,7 @@
         <button type="submit" class="btn btn-ghost">Replace token</button>
       </form>
     {% else %}
-      <p class="settings-hint settings-follow">Generate a token to connect your GrokBot account.</p>
+      <p class="settings-hint settings-follow">Generate a token, then use <code>Authorization: Bearer …</code> in Grok Bot.</p>
       <form method="post" class="settings-actions">
         {% csrf_token %}
         <input type="hidden" name="intent" value="mcp_token">

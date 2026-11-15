@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -17,13 +17,14 @@ from notes.models import Note
 from notes.usage import usage_for_user
 
 from .forms import (
+    CrmContactForm,
     EmailAuthenticationForm,
     SignupForm,
     StyledPasswordChangeForm,
     TakeReadyWebhookForm,
 )
 from .kpi import format_duration, user_kpis
-from .models import PendingSignup
+from .models import CrmContact, PendingSignup
 from .stripe_billing import (
     SUBSCRIPTION_AMOUNT_GBP,
     StripeNotConfigured,
@@ -350,3 +351,62 @@ def kpi_dashboard(request):
             "nav_section": "kpi",
         },
     )
+
+
+def _require_superuser(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+
+@login_required
+def crm_list(request):
+    _require_superuser(request)
+    form = CrmContactForm()
+    if request.method == "POST":
+        form = CrmContactForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("crm")
+    contacts = CrmContact.objects.all()
+    return render(
+        request,
+        "accounts/crm.html",
+        {
+            "contacts": contacts,
+            "form": form,
+            "nav_section": "crm",
+            "editing": None,
+        },
+    )
+
+
+@login_required
+def crm_edit(request, pk):
+    _require_superuser(request)
+    contact = get_object_or_404(CrmContact, pk=pk)
+    form = CrmContactForm(instance=contact)
+    if request.method == "POST":
+        form = CrmContactForm(request.POST, instance=contact)
+        if form.is_valid():
+            form.save()
+            return redirect("crm")
+    contacts = CrmContact.objects.all()
+    return render(
+        request,
+        "accounts/crm.html",
+        {
+            "contacts": contacts,
+            "form": form,
+            "nav_section": "crm",
+            "editing": contact,
+        },
+    )
+
+
+@login_required
+@require_POST
+def crm_delete(request, pk):
+    _require_superuser(request)
+    contact = get_object_or_404(CrmContact, pk=pk)
+    contact.delete()
+    return redirect("crm")

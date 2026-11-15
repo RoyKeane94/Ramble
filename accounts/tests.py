@@ -11,7 +11,7 @@ from notes.models import Note
 
 from .emails import greeting_name, send_welcome_email
 from .kpi import format_duration, user_kpis
-from .models import PendingSignup, ProcessedStripeEvent
+from .models import CrmContact, PendingSignup, ProcessedStripeEvent
 from .stripe_billing import (
     TRIAL_PERIOD_DAYS,
     create_checkout_session,
@@ -642,3 +642,98 @@ class KpiDashboardTests(TestCase):
         )
         self.assertEqual(format_duration(timedelta(days=2, hours=3)), "2d 3h")
         self.assertEqual(format_duration(None), "-")
+
+
+class CrmDashboardTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser("boss@example.com", "password12")
+        self.user = User.objects.create_user("member@example.com", "password12")
+        self.contact = CrmContact.objects.create(
+            first_name="Ada",
+            business_name="Analytical Engines",
+            contact_type="Founder",
+            region="London",
+            country="UK",
+            website="https://example.com",
+            email="ada@example.com",
+            email_source="LinkedIn",
+            personalisation_detail="Loves notebooks",
+            tracking_slug="analytical-engines",
+        )
+
+    def test_anonymous_redirects_to_login(self):
+        response = self.client.get(reverse("crm"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_regular_user_forbidden(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("crm"))
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    def test_superuser_sees_table_and_nav(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("crm"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Analytical Engines")
+        self.assertContains(response, "ada@example.com")
+        self.assertContains(response, "analytical-engines")
+        self.assertContains(response, "https://yourramble.com/?ref=analytical-engines")
+        self.assertContains(response, reverse("crm"))
+        roll = self.client.get(reverse("notes:list"))
+        self.assertContains(roll, reverse("crm"))
+
+    def test_regular_user_nav_hides_crm(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("notes:list"))
+        self.assertNotContains(response, reverse("crm"))
+
+    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    def test_superuser_can_add_contact(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(
+            reverse("crm"),
+            {
+                "first_name": "Grace",
+                "business_name": "Navy Code",
+                "contact_type": "CTO",
+                "region": "NY",
+                "country": "US",
+                "website": "navycode.example.com",
+                "email": "grace@example.com",
+                "email_source": "Conference",
+                "personalisation_detail": "Built compilers",
+                "tracking_slug": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        contact = CrmContact.objects.get(email="grace@example.com")
+        self.assertEqual(contact.tracking_slug, "navy-code")
+        self.assertEqual(contact.website, "https://navycode.example.com")
+        self.assertEqual(contact.tracking_url, "https://yourramble.com/?ref=navy-code")
+
+    def test_superuser_can_edit_and_delete_contact(self):
+        self.client.force_login(self.superuser)
+        edit = self.client.post(
+            reverse("crm_edit", args=[self.contact.pk]),
+            {
+                "first_name": "Ada",
+                "business_name": "Analytical Engines Ltd",
+                "contact_type": "Founder",
+                "region": "London",
+                "country": "UK",
+                "website": "https://example.com",
+                "email": "ada@example.com",
+                "email_source": "LinkedIn",
+                "personalisation_detail": "Loves notebooks",
+                "tracking_slug": "analytical-engines",
+            },
+        )
+        self.assertEqual(edit.status_code, 302)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.business_name, "Analytical Engines Ltd")
+
+        delete = self.client.post(reverse("crm_delete", args=[self.contact.pk]))
+        self.assertEqual(delete.status_code, 302)
+        self.assertFalse(CrmContact.objects.filter(pk=self.contact.pk).exists())

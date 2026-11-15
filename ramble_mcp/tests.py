@@ -203,8 +203,11 @@ class McpTests(TestCase):
     def test_settings_shows_mcp_and_issues_token(self):
         self.client.force_login(self.user)
         page = self.client.get("/settings/")
-        self.assertContains(page, "Ramble MCP")
+        self.assertContains(page, "Claude MCP")
+        self.assertContains(page, "Grok Bot MCP")
         self.assertContains(page, "/mcp")
+        self.assertContains(page, "custom connector")
+        self.assertContains(page, "Replace token")
         self.assertContains(page, "New-take alerts")
         self.assertContains(page, "Save webhook")
         created = self.client.post("/settings/", {"intent": "mcp_token"})
@@ -333,3 +336,191 @@ class McpTests(TestCase):
         member = next(row for row in result["users"] if row["email"] == "tom@example.com")
         self.assertEqual(member["take_count"], 2)
         self.assertIn("signup_to_first", member)
+
+    def test_unauthorized_points_at_resource_metadata(self):
+        response = self.client.post(
+            "/mcp",
+            data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        www = response["WWW-Authenticate"]
+        self.assertIn("resource_metadata=", www)
+        self.assertIn("/.well-known/oauth-protected-resource", www)
+
+
+@override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+class McpOAuthTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("oauth@example.com", "password12")
+
+    def _challenge(self, verifier: str) -> str:
+        import base64
+        import hashlib
+
+        digest = hashlib.sha256(verifier.encode("ascii")).digest()
+        return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+    def test_discovery_metadata(self):
+        resource = self.client.get("/.well-known/oauth-protected-resource")
+        self.assertEqual(resource.status_code, 200)
+        body = resource.json()
+        self.assertEqual(body["resource"], "https://yourramble.com/mcp")
+        self.assertEqual(body["authorization_servers"], ["https://yourramble.com"])
+
+        path_meta = self.client.get("/.well-known/oauth-protected-resource/mcp")
+        self.assertEqual(path_meta.status_code, 200)
+        self.assertEqual(path_meta.json()["resource"], "https://yourramble.com/mcp")
+
+        as_meta = self.client.get("/.well-known/oauth-authorization-server")
+        self.assertEqual(as_meta.status_code, 200)
+        data = as_meta.json()
+        self.assertEqual(data["issuer"], "https://yourramble.com")
+        self.assertEqual(data["authorization_endpoint"], "https://yourramble.com/oauth/authorize")
+        self.assertEqual(data["token_endpoint"], "https://yourramble.com/oauth/token")
+        self.assertEqual(data["registration_endpoint"], "https://yourramble.com/oauth/register")
+        self.assertIn("S256", data["code_challenge_methods_supported"])
+
+    def test_register_authorize_token_and_mcp_call(self):
+        registered = self.client.post(
+            "/oauth/register",
+            data=json.dumps(
+                {
+                    "client_name": "Claude",
+                    "redirect_uris": ["https://claude.ai/api/mcp/auth_callback"],
+                    "token_endpoint_auth_method": "none",
+                    "grant_types": ["authorization_code", "refresh_token"],
+                    "response_types": ["code"],
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(registered.status_code, 201)
+        client_id = registered.json()["client_id"]
+
+        verifier = "test-verifier-abcdefghijklmnopqrstuvwxyz0123456789"
+        challenge = self._challenge(verifier)
+        self.client.force_login(self.user)
+
+        consent = self.client.get(
+            "/oauth/authorize",
+            {
+                "response_type": "code",
+                "client_id": client_id,
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "scope": "mcp offline_access",
+                "state": "xyz",
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+                "resource": "https://yourramble.com/mcp",
+            },
+        )
+        self.assertEqual(consent.status_code, 200)
+        self.assertContains(consent, "Connect to Ramble")
+        self.assertContains(consent, "Claude")
+
+        approved = self.client.post(
+            "/oauth/authorize",
+            {
+                "decision": "approve",
+                "response_type": "code",
+                "client_id": client_id,
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "scope": "mcp offline_access",
+                "state": "xyz",
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+                "resource": "https://yourramble.com/mcp",
+            },
+        )
+        self.assertEqual(approved.status_code, 302)
+        location = approved["Location"]
+        self.assertIn("https://claude.ai/api/mcp/auth_callback?", location)
+        self.assertIn("state=xyz", location)
+        self.assertIn("code=", location)
+        from urllib.parse import parse_qs, urlsplit
+
+        code = parse_qs(urlsplit(location).query)["code"][0]
+
+        token = self.client.post(
+            "/oauth/token",
+            {
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": "https://claude.ai/api/mcp/auth_callback",
+                "client_id": client_id,
+                "code_verifier": verifier,
+                "resource": "https://yourramble.com/mcp",
+            },
+        )
+        self.assertEqual(token.status_code, 200)
+        payload = token.json()
+        self.assertEqual(payload["token_type"], "Bearer")
+        self.assertIn("access_token", payload)
+        self.assertIn("refresh_token", payload)
+
+        mcp = self.client.post(
+            "/mcp",
+            data=json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2025-06-18",
+                        "capabilities": {},
+                        "clientInfo": {"name": "claude", "version": "1"},
+                    },
+                }
+            ),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {payload['access_token']}",
+        )
+        self.assertEqual(mcp.status_code, 200)
+        self.assertEqual(mcp.json()["result"]["serverInfo"]["name"], "ramble")
+
+        refreshed = self.client.post(
+            "/oauth/token",
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": payload["refresh_token"],
+                "client_id": client_id,
+            },
+        )
+        self.assertEqual(refreshed.status_code, 200)
+        new_access = refreshed.json()["access_token"]
+        self.assertNotEqual(new_access, payload["access_token"])
+
+        # Old refresh token is rotated away.
+        stale = self.client.post(
+            "/oauth/token",
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": payload["refresh_token"],
+                "client_id": client_id,
+            },
+        )
+        self.assertEqual(stale.status_code, 400)
+        self.assertEqual(stale.json()["error"], "invalid_grant")
+
+    def test_loopback_redirect_accepted(self):
+        from ramble_mcp.oauth import redirect_uri_allowed
+
+        self.assertTrue(
+            redirect_uri_allowed(
+                ["http://localhost/callback", "http://127.0.0.1/callback"],
+                "http://localhost:3118/callback",
+            )
+        )
+        self.assertTrue(
+            redirect_uri_allowed(
+                ["http://127.0.0.1/callback"],
+                "http://127.0.0.1/callback",
+            )
+        )
+        self.assertFalse(
+            redirect_uri_allowed(
+                ["https://claude.ai/api/mcp/auth_callback"],
+                "https://evil.example/callback",
+            )
+        )

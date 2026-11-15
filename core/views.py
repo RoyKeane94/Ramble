@@ -85,6 +85,7 @@ def robots_txt(request):
         "Disallow: /admin/",
         "Disallow: /mcp",
         "Disallow: /mcp/",
+        "Disallow: /oauth/",
         "Disallow: /api/",
         "Disallow: /healthz",
         "Disallow: /roll/",
