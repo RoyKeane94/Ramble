@@ -20,7 +20,6 @@
     {% if note_count %}
       <p class="settings-hint">
         {% if note_count == 1 %}1 take{% else %}{{ note_count }} takes{% endif %}
-        saved in Postgres
         {% if last_synced %} · last saved {{ last_synced|date:"g:i a" }}{% endif %}
       </p>
     {% else %}
@@ -52,9 +51,17 @@
     <h2 class="day-header">Claude MCP</h2>
     <p class="settings-hint">Connect Claude with OAuth so it can search and file your takes. No token to paste.</p>
     <p class="settings-label settings-follow">URL</p>
-    <code class="settings-code" id="mcp-url-claude">{{ mcp_url }}</code>
-    <div class="settings-actions">
-      <button type="button" class="btn btn-ghost" data-copy="#mcp-url-claude">Copy URL</button>
+    <div class="settings-code-row">
+      <code class="settings-code" id="mcp-url-claude">{{ mcp_url }}</code>
+      <button type="button" class="settings-copy" data-copy="#mcp-url-claude" aria-label="Copy URL">
+        <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+      </button>
     </div>
     <p class="settings-hint settings-follow">
       In Claude, add a custom connector and paste this URL (keep <code>/mcp</code>). Choose OAuth / “Sign in”,
@@ -66,17 +73,33 @@
     <h2 class="day-header">Grok Bot MCP</h2>
     <p class="settings-hint">Connect Grok Bot with a bearer token, and optionally ping it when a take finishes.</p>
     <p class="settings-label settings-follow">URL</p>
-    <code class="settings-code" id="mcp-url-grok">{{ mcp_url }}</code>
-    <div class="settings-actions">
-      <button type="button" class="btn btn-ghost" data-copy="#mcp-url-grok">Copy URL</button>
+    <div class="settings-code-row">
+      <code class="settings-code" id="mcp-url-grok">{{ mcp_url }}</code>
+      <button type="button" class="settings-copy" data-copy="#mcp-url-grok" aria-label="Copy URL">
+        <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+      </button>
     </div>
 
     <p class="settings-label settings-follow">Token</p>
     {% if mcp_token_plain %}
       <p class="settings-ok settings-follow">Copy this token now. It will not be shown again.</p>
-      <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
-      <div class="settings-actions">
-        <button type="button" class="btn btn-primary" data-copy="#mcp-token">Copy token</button>
+      <div class="settings-code-row">
+        <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
+        <button type="button" class="settings-copy" data-copy="#mcp-token" aria-label="Copy token">
+          <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 13l4 4L19 7"/>
+          </svg>
+        </button>
       </div>
     {% elif request.user.has_mcp_token %}
       <p class="settings-hint settings-follow">
@@ -184,10 +207,14 @@
     button.addEventListener("click", function () {
       var node = document.querySelector(button.getAttribute("data-copy"));
       if (!node) return;
+      var label = button.getAttribute("aria-label") || "Copy";
       navigator.clipboard.writeText(node.textContent.trim()).then(function () {
-        var label = button.textContent;
-        button.textContent = "Copied";
-        setTimeout(function () { button.textContent = label; }, 1200);
+        button.classList.add("is-copied");
+        button.setAttribute("aria-label", "Copied");
+        setTimeout(function () {
+          button.classList.remove("is-copied");
+          button.setAttribute("aria-label", label);
+        }, 1200);
       });
     });
   });

@@ -299,7 +299,11 @@ CONTENT_SECURITY_POLICY = (
     "media-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
-    "form-action 'self' https://checkout.stripe.com https://billing.stripe.com https://hooks.stripe.com https://*.stripe.com; "
+    # https: covers Stripe checkout and OAuth consent redirects (e.g. Claude).
+    # Loopback http covers local MCP clients (Claude Code). form-action also
+    # applies to redirect targets after a form POST, so OAuth approve breaks
+    # without these.
+    "form-action 'self' https: http://127.0.0.1:* http://localhost:* http://[::1]:*; "
     "frame-ancestors 'none'"
 )
 PERMISSIONS_POLICY = (

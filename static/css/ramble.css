@@ -3101,7 +3101,23 @@ a.album-chip:focus-visible {
   margin: 0;
   padding: 0.1em 0.35em;
   border-radius: 4px;
+  background: color-mix(in srgb, var(--navy-deep) 6%, transparent);
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.92em;
+}
+
+.settings-code-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.settings-code-row .settings-code {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
 }
 
 .settings-code {
@@ -3113,6 +3129,40 @@ a.album-chip:focus-visible {
   font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--navy-deep);
   word-break: break-all;
+}
+
+.settings-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.settings-copy:hover {
+  background: color-mix(in srgb, var(--navy-deep) 6%, transparent);
+  color: var(--navy-deep);
+}
+
+.settings-copy-check {
+  display: none;
+}
+
+.settings-copy.is-copied {
+  color: var(--navy);
+}
+
+.settings-copy.is-copied .settings-copy-icon {
+  display: none;
+}
+
+.settings-copy.is-copied .settings-copy-check {
+  display: block;
 }
 
 .settings-actions {
@@ -3552,6 +3602,14 @@ a.album-chip:focus-visible {
   font-size: 15px;
   line-height: 1.55;
   color: var(--muted);
+}
+
+.auth-lede + .auth-lede {
+  margin-top: 10px;
+}
+
+.auth-form .btn-ghost.auth-submit {
+  margin-top: 0;
 }
 
 .auth-field {

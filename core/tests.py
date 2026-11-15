@@ -42,6 +42,8 @@ class SecurityHeaderTests(SimpleTestCase):
         self.assertIn("https://fonts.googleapis.com", csp)
         self.assertIn("script-src 'self' https://js.stripe.com", csp)
         self.assertNotIn("script-src 'self' 'unsafe-inline'", csp)
+        self.assertIn("form-action 'self' https:", csp)
+        self.assertIn("http://127.0.0.1:*", csp)
         self.assertIn("microphone=(self)", response["Permissions-Policy"])
         self.assertIn("camera=()", response["Permissions-Policy"])
         self.assertEqual(response["Cross-Origin-Resource-Policy"], "same-origin")
