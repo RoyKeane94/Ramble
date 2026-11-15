@@ -94,9 +94,6 @@ class McpTests(TestCase):
                 "list_albums",
                 "update_take",
                 "create_album",
-                "save_take_ready_webhook",
-                "clear_take_ready_webhook",
-                "get_take_ready_webhook_status",
             ],
         )
 
@@ -286,37 +283,15 @@ class McpTests(TestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.has_take_ready_webhook)
 
-    def test_save_and_clear_take_ready_webhook(self):
-        status = self.call("get_take_ready_webhook_status")["structuredContent"]
-        self.assertFalse(status["configured"])
+    def test_webhook_tools_not_exposed(self):
+        names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
+        self.assertNotIn("save_take_ready_webhook", names)
+        self.assertNotIn("clear_take_ready_webhook", names)
+        self.assertNotIn("get_take_ready_webhook_status", names)
+        denied = self.call("save_take_ready_webhook", {"url": "https://example.com", "key": "x"})
+        self.assertTrue(denied.get("isError"))
 
-        saved = self.call(
-            "save_take_ready_webhook",
-            {
-                "url": "https://api2.cursor.sh/automations/webhook/example",
-                "key": "whsec_test_key",
-            },
-        )["structuredContent"]
-        self.assertTrue(saved["configured"])
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.has_take_ready_webhook)
-        self.assertEqual(
-            self.user.take_ready_webhook_url,
-            "https://api2.cursor.sh/automations/webhook/example",
-        )
-
-        bad = self.call(
-            "save_take_ready_webhook",
-            {"url": "http://insecure.example/hook", "key": "x"},
-        )
-        self.assertTrue(bad.get("isError"))
-
-        cleared = self.call("clear_take_ready_webhook")["structuredContent"]
-        self.assertFalse(cleared["configured"])
-        self.user.refresh_from_db()
-        self.assertFalse(self.user.has_take_ready_webhook)
-
-    def test_get_kpis_requires_superuser(self):
+    def test_get_kpis_not_exposed(self):
         denied = self.call("get_kpis")
         self.assertTrue(denied.get("isError"))
         names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
@@ -325,17 +300,7 @@ class McpTests(TestCase):
         admin = User.objects.create_superuser("admin@example.com", "password12")
         token = admin.issue_mcp_token()
         names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
-        self.assertIn("get_kpis", names)
-
-        result = self.call("get_kpis", token=token)["structuredContent"]
-        self.assertIn("traffic", result)
-        self.assertIn("windows", result["traffic"])
-        emails = {row["email"] for row in result["users"]}
-        self.assertIn("tom@example.com", emails)
-        self.assertIn("admin@example.com", emails)
-        member = next(row for row in result["users"] if row["email"] == "tom@example.com")
-        self.assertEqual(member["take_count"], 2)
-        self.assertIn("signup_to_first", member)
+        self.assertNotIn("get_kpis", names)
 
     def test_unauthorized_points_at_resource_metadata(self):
         response = self.client.post(

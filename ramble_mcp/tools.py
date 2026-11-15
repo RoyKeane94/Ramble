@@ -1,14 +1,11 @@
 import inspect
 import json
 from datetime import datetime, time, timedelta
-from urllib.parse import urlparse
 from uuid import UUID
 
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
-from accounts.kpi import format_duration, user_kpis
-from core.traffic import traffic_report
 from notes.models import Album, Note
 from notes.search import text_search_q
 
@@ -133,72 +130,6 @@ def create_album(user, name):
     }
 
 
-def save_take_ready_webhook(user, url, key):
-    """Store this account's Grok Bot webhook so Ramble can ping on new takes."""
-    cleaned_url = (url or "").strip()
-    cleaned_key = (key or "").strip()
-    if not cleaned_url or not cleaned_key:
-        raise ToolError("Both url and key are required.")
-    parsed = urlparse(cleaned_url)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise ToolError("url must be an https webhook URL.")
-    if len(cleaned_url) > 500:
-        raise ToolError("url is too long.")
-    if len(cleaned_key) > 200:
-        raise ToolError("key is too long.")
-    user.save_take_ready_webhook(cleaned_url, cleaned_key)
-    return {
-        "configured": True,
-        "saved_at": _iso(user.take_ready_webhook_saved_at),
-        "hint": (
-            "Ramble will POST {event: take.ready, take_id} once when a take first becomes ready. "
-            "On that ping, call get_take with take_id (or list_recent_takes) over MCP."
-        ),
-    }
-
-
-def clear_take_ready_webhook(user):
-    """Remove the stored take-ready webhook for this account."""
-    user.clear_take_ready_webhook()
-    return {"configured": False}
-
-
-def get_take_ready_webhook_status(user):
-    """Whether a take-ready webhook is configured (does not return the key)."""
-    return {
-        "configured": user.has_take_ready_webhook,
-        "saved_at": _iso(user.take_ready_webhook_saved_at) if user.take_ready_webhook_saved_at else None,
-        "url_host": urlparse(user.take_ready_webhook_url).netloc if user.has_take_ready_webhook else None,
-    }
-
-
-def get_kpis(user):
-    """Pull traffic and per-user habit KPIs. Superuser only."""
-    if not user.is_superuser:
-        raise ToolError("get_kpis is only available to superusers.")
-    users = [
-        {
-            "email": row.email,
-            "date_joined": _iso(row.date_joined),
-            "take_count": row.take_count,
-            "first_take_at": _iso(row.first_take_at),
-            "second_take_at": _iso(row.second_take_at),
-            "last_take_at": _iso(row.last_take_at),
-            "signup_to_first": format_duration(row.signup_to_first),
-            "first_to_second": format_duration(row.first_to_second),
-            "active_days": row.active_days,
-            "current_streak": row.current_streak,
-            "days_since_last": row.days_since_last,
-        }
-        for row in user_kpis()
-    ]
-    return {
-        "traffic": traffic_report(),
-        "users": users,
-        "user_count": len(users),
-    }
-
-
 def call_tool(user, name, arguments):
     args = arguments or {}
     if not isinstance(args, dict):
@@ -210,10 +141,6 @@ def call_tool(user, name, arguments):
         "list_albums": list_albums,
         "update_take": update_take,
         "create_album": create_album,
-        "save_take_ready_webhook": save_take_ready_webhook,
-        "clear_take_ready_webhook": clear_take_ready_webhook,
-        "get_take_ready_webhook_status": get_take_ready_webhook_status,
-        "get_kpis": get_kpis,
     }
     handler = handlers.get(name)
     if handler is None:
@@ -368,67 +295,7 @@ def tool_definitions(user=None):
                 "destructiveHint": False,
             },
         },
-        {
-            "name": "save_take_ready_webhook",
-            "description": (
-                "Register this account's Grok Bot routine webhook so Ramble can send one wake-up "
-                "signal when a new take becomes ready. Create a webhook-triggered routine first, "
-                "then pass its POST url and Bearer key. Ramble never sends transcript text — only "
-                "{event: take.ready, take_id}; pull the take with get_take over MCP."
-            ),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "HTTPS POST URL from the routine's Webhook section.",
-                    },
-                    "key": {
-                        "type": "string",
-                        "description": "Bearer key from the routine's Webhook section (not the full header).",
-                    },
-                },
-                "required": ["url", "key"],
-            },
-            "annotations": {
-                "readOnlyHint": False,
-                "idempotentHint": True,
-                "destructiveHint": False,
-            },
-        },
-        {
-            "name": "clear_take_ready_webhook",
-            "description": "Remove the stored take-ready webhook so Ramble stops pinging on new takes.",
-            "inputSchema": {"type": "object", "properties": {}},
-            "annotations": {
-                "readOnlyHint": False,
-                "idempotentHint": True,
-                "destructiveHint": True,
-            },
-        },
-        {
-            "name": "get_take_ready_webhook_status",
-            "description": (
-                "Check whether a take-ready webhook is configured for this account. "
-                "Does not return the secret key."
-            ),
-            "inputSchema": {"type": "object", "properties": {}},
-            "annotations": {"readOnlyHint": True, "idempotentHint": True},
-        },
     ]
-    if user is not None and user.is_superuser:
-        tools.append(
-            {
-                "name": "get_kpis",
-                "description": (
-                    "Pull Ramble product KPIs: public traffic (visitors, avg stay, top pages, sources) "
-                    "and per-user habit metrics (takes, signup→1st, 1st→2nd, streak, days since last). "
-                    "Same data as the /kpi/ dashboard. Superuser only."
-                ),
-                "inputSchema": {"type": "object", "properties": {}},
-                "annotations": {"readOnlyHint": True, "idempotentHint": True},
-            }
-        )
     return tools
 
 

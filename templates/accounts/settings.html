@@ -202,21 +202,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  document.querySelectorAll("[data-copy]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var node = document.querySelector(button.getAttribute("data-copy"));
-      if (!node) return;
-      var label = button.getAttribute("aria-label") || "Copy";
-      navigator.clipboard.writeText(node.textContent.trim()).then(function () {
-        button.classList.add("is-copied");
-        button.setAttribute("aria-label", "Copied");
-        setTimeout(function () {
-          button.classList.remove("is-copied");
-          button.setAttribute("aria-label", label);
-        }, 1200);
-      });
-    });
-  });
-</script>
+{% load static %}
+<script src="{% static 'js/settings-copy.js' %}?v=1"></script>
 {% endblock %}
