@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
+from accounts.models import CrmContact
 from ramble_mcp.views import mcp_endpoint
 
 from notes.models import Album, Note
@@ -301,6 +302,68 @@ class McpTests(TestCase):
         token = admin.issue_mcp_token()
         names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
         self.assertNotIn("get_kpis", names)
+
+    def test_crm_tools_require_superuser_mcp_token(self):
+        names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
+        self.assertNotIn("list_crm_contacts", names)
+        denied = self.call("list_crm_contacts")
+        self.assertTrue(denied.get("isError"))
+
+        admin = User.objects.create_superuser("crm-admin@example.com", "password12")
+        token = admin.issue_mcp_token()
+        names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
+        self.assertIn("list_crm_contacts", names)
+        self.assertIn("create_crm_contact", names)
+        self.assertIn("update_crm_contact", names)
+        self.assertIn("delete_crm_contact", names)
+
+        created = self.call(
+            "create_crm_contact",
+            {
+                "first_name": "Ada",
+                "business_name": "Analytical Engines",
+                "email": "ada@example.com",
+                "website": "analytical.example.com",
+            },
+            token=token,
+        )["structuredContent"]
+        self.assertEqual(created["tracking_slug"], "analytical-engines")
+        self.assertEqual(created["website"], "https://analytical.example.com")
+        contact_id = created["id"]
+
+        listed = self.call("list_crm_contacts", {"query": "Ada"}, token=token)["structuredContent"]
+        self.assertEqual(listed["count"], 1)
+        self.assertEqual(listed["contacts"][0]["id"], contact_id)
+
+        updated = self.call(
+            "update_crm_contact",
+            {
+                "contact_id": contact_id,
+                "region": "London",
+                "personalisation_detail": "Loves notebooks",
+                "response": "declined",
+                "response_reason": "Timing",
+            },
+            token=token,
+        )["structuredContent"]
+        self.assertEqual(updated["region"], "London")
+        self.assertEqual(updated["personalisation_detail"], "Loves notebooks")
+        self.assertEqual(updated["response"], "declined")
+        self.assertEqual(updated["response_label"], "Declined")
+        self.assertEqual(updated["response_reason"], "Timing")
+
+        fetched = self.call(
+            "get_crm_contact",
+            {"tracking_slug": "analytical-engines"},
+            token=token,
+        )["structuredContent"]
+        self.assertEqual(fetched["email"], "ada@example.com")
+
+        deleted = self.call("delete_crm_contact", {"contact_id": contact_id}, token=token)[
+            "structuredContent"
+        ]
+        self.assertTrue(deleted["deleted"])
+        self.assertFalse(CrmContact.objects.filter(pk=contact_id).exists())
 
     def test_unauthorized_points_at_resource_metadata(self):
         response = self.client.post(

@@ -175,6 +175,11 @@ class ProcessedStripeEvent(models.Model):
 class CrmContact(models.Model):
     """Outreach lead for the superuser-only mini CRM."""
 
+    class Response(models.TextChoices):
+        SIGNED_UP = "signed_up", "Signed up"
+        DECLINED = "declined", "Declined"
+        REVISIT = "revisit", "Revisit"
+
     first_name = models.CharField(max_length=120, blank=True, default="")
     business_name = models.CharField(max_length=255, blank=True, default="")
     contact_type = models.CharField("type", max_length=120, blank=True, default="")
@@ -184,6 +189,13 @@ class CrmContact(models.Model):
     email = models.EmailField(blank=True, default="")
     email_source = models.CharField(max_length=255, blank=True, default="")
     personalisation_detail = models.TextField(blank=True, default="")
+    response = models.CharField(
+        max_length=20,
+        choices=Response.choices,
+        blank=True,
+        default="",
+    )
+    response_reason = models.TextField("reason", blank=True, default="")
     tracking_slug = models.SlugField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

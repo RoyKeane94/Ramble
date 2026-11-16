@@ -681,6 +681,10 @@ class CrmDashboardTests(TestCase):
         self.assertContains(response, "analytical-engines")
         self.assertContains(response, "https://yourramble.com/?ref=analytical-engines")
         self.assertContains(response, reverse("crm"))
+        self.assertContains(response, "crm-contact-modal")
+        self.assertContains(response, 'data-crm-modal-open')
+        edit_page = self.client.get(reverse("crm_edit", args=[self.contact.pk]))
+        self.assertContains(edit_page, 'data-crm-open="1"')
         roll = self.client.get(reverse("notes:list"))
         self.assertContains(roll, reverse("crm"))
 
@@ -704,6 +708,8 @@ class CrmDashboardTests(TestCase):
                 "email": "grace@example.com",
                 "email_source": "Conference",
                 "personalisation_detail": "Built compilers",
+                "response": "revisit",
+                "response_reason": "Ask again next quarter",
                 "tracking_slug": "",
             },
         )
@@ -712,6 +718,8 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(contact.tracking_slug, "navy-code")
         self.assertEqual(contact.website, "https://navycode.example.com")
         self.assertEqual(contact.tracking_url, "https://yourramble.com/?ref=navy-code")
+        self.assertEqual(contact.response, "revisit")
+        self.assertEqual(contact.response_reason, "Ask again next quarter")
 
     def test_superuser_can_edit_and_delete_contact(self):
         self.client.force_login(self.superuser)
@@ -727,12 +735,19 @@ class CrmDashboardTests(TestCase):
                 "email": "ada@example.com",
                 "email_source": "LinkedIn",
                 "personalisation_detail": "Loves notebooks",
+                "response": "signed_up",
+                "response_reason": "Started trial",
                 "tracking_slug": "analytical-engines",
             },
         )
         self.assertEqual(edit.status_code, 302)
         self.contact.refresh_from_db()
         self.assertEqual(self.contact.business_name, "Analytical Engines Ltd")
+        self.assertEqual(self.contact.response, "signed_up")
+        self.assertEqual(self.contact.response_reason, "Started trial")
+        listed = self.client.get(reverse("crm"))
+        self.assertContains(listed, "Signed up")
+        self.assertContains(listed, "Started trial")
 
         delete = self.client.post(reverse("crm_delete", args=[self.contact.pk]))
         self.assertEqual(delete.status_code, 302)

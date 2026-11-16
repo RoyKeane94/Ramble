@@ -11,47 +11,11 @@
 {% block content %}
 <section class="shell shell-full">
   <header class="page-head desktop-chrome">
-    <h1 class="page-title">CRM</h1>
-  </header>
-
-  <section class="crm-block" aria-labelledby="crm-form-heading">
     <div class="crm-heading-row">
-      <h2 id="crm-form-heading" class="kpi-section-title">
-        {% if editing %}Edit contact{% else %}Add contact{% endif %}
-      </h2>
-      {% if editing %}
-      <a class="traffic-chip" href="{% url 'crm' %}">Cancel</a>
-      {% endif %}
+      <h1 class="page-title">CRM</h1>
+      <button type="button" class="btn btn-primary" data-crm-modal-open>Add contact</button>
     </div>
-
-    <form
-      method="post"
-      action="{% if editing %}{% url 'crm_edit' editing.pk %}{% else %}{% url 'crm' %}{% endif %}"
-      class="crm-form panel"
-      novalidate
-    >
-      {% csrf_token %}
-      {% if form.non_field_errors %}
-      <div class="crm-form-errors" role="alert">{{ form.non_field_errors }}</div>
-      {% endif %}
-      <div class="crm-form-grid">
-        {% for field in form %}
-        <label class="crm-field{% if field.name == 'personalisation_detail' %} crm-field-wide{% endif %}">
-          <span class="crm-label">{{ field.label }}</span>
-          {{ field }}
-          {% if field.errors %}
-          <span class="crm-field-error">{{ field.errors|striptags }}</span>
-          {% endif %}
-        </label>
-        {% endfor %}
-      </div>
-      <div class="crm-form-actions">
-        <button type="submit" class="btn btn-primary">
-          {% if editing %}Save contact{% else %}Add contact{% endif %}
-        </button>
-      </div>
-    </form>
-  </section>
+  </header>
 
   <section class="crm-block" aria-labelledby="crm-list-heading">
     <h2 id="crm-list-heading" class="kpi-section-title">Contacts</h2>
@@ -69,6 +33,8 @@
               <th>Email</th>
               <th>Email source</th>
               <th>Personalisation detail</th>
+              <th>Response</th>
+              <th>Reason</th>
               <th>Tracking slug</th>
               <th>Tracking URL</th>
               <th></th>
@@ -94,6 +60,8 @@
               </td>
               <td>{{ contact.email_source|default:"—" }}</td>
               <td class="crm-personalisation">{{ contact.personalisation_detail|default:"—" }}</td>
+              <td>{{ contact.get_response_display|default:"—" }}</td>
+              <td class="crm-personalisation">{{ contact.response_reason|default:"—" }}</td>
               <td><code class="crm-slug">{{ contact.tracking_slug }}</code></td>
               <td>
                 {% if contact.tracking_url %}
@@ -110,7 +78,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="12" class="kpi-empty">No contacts yet. Add one above.</td>
+              <td colspan="14" class="kpi-empty">No contacts yet. Add one to get started.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -119,4 +87,70 @@
     </div>
   </section>
 </section>
+
+<dialog
+  class="crm-modal"
+  id="crm-contact-modal"
+  aria-labelledby="crm-form-heading"
+  {% if crm_modal_open %}data-crm-open="1"{% endif %}
+  {% if editing %}data-crm-cancel-url="{% url 'crm' %}"{% endif %}
+>
+  <form
+    method="post"
+    action="{% if editing %}{% url 'crm_edit' editing.pk %}{% else %}{% url 'crm' %}{% endif %}"
+    class="crm-modal-form"
+    novalidate
+  >
+    {% csrf_token %}
+    <div class="crm-modal-head">
+      <h2 id="crm-form-heading" class="crm-modal-title">
+        {% if editing %}Edit contact{% else %}Add contact{% endif %}
+      </h2>
+      {% if editing %}
+      <a class="crm-modal-close" href="{% url 'crm' %}" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6 6 18"/>
+        </svg>
+      </a>
+      {% else %}
+      <button type="button" class="crm-modal-close" aria-label="Close" data-crm-modal-close>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6 6 18"/>
+        </svg>
+      </button>
+      {% endif %}
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="crm-form-errors" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="crm-form-grid">
+      {% for field in form %}
+      <label class="crm-field{% if field.name == 'personalisation_detail' or field.name == 'response_reason' %} crm-field-wide{% endif %}">
+        <span class="crm-label">{{ field.label }}</span>
+        {{ field }}
+        {% if field.errors %}
+        <span class="crm-field-error">{{ field.errors|striptags }}</span>
+        {% endif %}
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="crm-modal-actions">
+      {% if editing %}
+      <a class="btn btn-ghost" href="{% url 'crm' %}">Cancel</a>
+      {% else %}
+      <button type="button" class="btn btn-ghost" data-crm-modal-close>Cancel</button>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">
+        {% if editing %}Save contact{% else %}Add contact{% endif %}
+      </button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/crm-modal.js' %}?v=1"></script>
 {% endblock %}

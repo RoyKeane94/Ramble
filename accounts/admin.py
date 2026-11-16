@@ -14,6 +14,7 @@ class CrmContactAdmin(admin.ModelAdmin):
         "region",
         "country",
         "email",
+        "response",
         "tracking_slug",
         "updated_at",
     )
@@ -25,8 +26,9 @@ class CrmContactAdmin(admin.ModelAdmin):
         "website",
         "region",
         "country",
+        "response_reason",
     )
-    list_filter = ("contact_type", "country", "region")
+    list_filter = ("response", "contact_type", "country", "region")
     readonly_fields = ("created_at", "updated_at")
 
 

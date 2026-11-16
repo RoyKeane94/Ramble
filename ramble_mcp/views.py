@@ -22,7 +22,7 @@ def mcp_endpoint(request):
     if request.method == "OPTIONS":
         return _cors(request, HttpResponse(status=204))
 
-    user, error = _authenticate(request)
+    user, auth_method, error = _authenticate(request)
     if error is not None:
         return _cors(request, error)
 
@@ -51,7 +51,7 @@ def mcp_endpoint(request):
             ),
         )
 
-    result = handle_payload(user, payload)
+    result = handle_payload(user, payload, auth_method=auth_method)
     if result is None or result == []:
         return _cors(request, HttpResponse(status=202))
     return _cors(request, JsonResponse(result, safe=False))
@@ -60,13 +60,14 @@ def mcp_endpoint(request):
 def _authenticate(request):
     raw = _bearer_token(request)
     if not raw:
-        return None, _unauthorized(request, "missing_token")
+        return None, None, _unauthorized(request, "missing_token")
     user = User.get_by_mcp_token(raw)
-    if user is None:
-        user = OAuthAccessToken.get_valid_user(raw)
-    if user is None:
-        return None, _unauthorized(request, "invalid_token")
-    return user, None
+    if user is not None:
+        return user, "mcp_token", None
+    user = OAuthAccessToken.get_valid_user(raw)
+    if user is not None:
+        return user, "oauth", None
+    return None, None, _unauthorized(request, "invalid_token")
 
 
 def _bearer_token(request):

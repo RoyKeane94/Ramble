@@ -190,11 +190,15 @@ class CrmContactForm(forms.ModelForm):
             "email",
             "email_source",
             "personalisation_detail",
+            "response",
+            "response_reason",
             "tracking_slug",
         )
         labels = {
             "contact_type": "Type",
             "personalisation_detail": "Personalisation detail",
+            "response": "Response",
+            "response_reason": "Reason",
             "tracking_slug": "Tracking slug",
         }
         widgets = {
@@ -213,6 +217,14 @@ class CrmContactForm(forms.ModelForm):
                     "rows": 2,
                 }
             ),
+            "response": forms.Select(attrs={**CRM_FIELD_ATTRS}),
+            "response_reason": forms.Textarea(
+                attrs={
+                    **CRM_FIELD_ATTRS,
+                    "placeholder": "Reason",
+                    "rows": 2,
+                }
+            ),
             "tracking_slug": forms.TextInput(
                 attrs={
                     **CRM_FIELD_ATTRS,
@@ -226,6 +238,12 @@ class CrmContactForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["tracking_slug"].required = False
         self.fields["website"].required = False
+        self.fields["response"].required = False
+        self.fields["response"].choices = [
+            ("", "—"),
+            *CrmContact.Response.choices,
+        ]
+        self.fields["response_reason"].required = False
 
     def clean_website(self):
         website = (self.cleaned_data.get("website") or "").strip()

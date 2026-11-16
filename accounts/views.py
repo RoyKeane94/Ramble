@@ -376,6 +376,7 @@ def crm_list(request):
             "form": form,
             "nav_section": "crm",
             "editing": None,
+            "crm_modal_open": bool(form.errors),
         },
     )
 
@@ -399,6 +400,7 @@ def crm_edit(request, pk):
             "form": form,
             "nav_section": "crm",
             "editing": contact,
+            "crm_modal_open": True,
         },
     )
 

@@ -1,6 +1,6 @@
 import logging
 
-from .tools import ToolError, as_tool_result, call_tool, tool_definitions
+from .tools import ToolError, as_tool_result, call_tool, crm_allowed, tool_definitions
 
 logger = logging.getLogger(__name__)
 
@@ -17,19 +17,30 @@ INSTRUCTIONS = (
     "Use create_album when you need a new album. "
     "Pass updated_since when you only want what changed."
 )
+CRM_INSTRUCTIONS = (
+    " You also have Ramble CRM tools for outreach contacts: "
+    "list_crm_contacts, get_crm_contact, create_crm_contact, update_crm_contact, delete_crm_contact. "
+    "These manage the same contacts as the /crm/ dashboard."
+)
 
 
 class MethodNotFound(Exception):
     pass
 
 
-def handle_payload(user, payload):
+def handle_payload(user, payload, auth_method="oauth"):
     if isinstance(payload, list):
-        return [item for item in (handle_message(user, entry) for entry in payload) if item is not None]
-    return handle_message(user, payload)
+        return [
+            item
+            for item in (
+                handle_message(user, entry, auth_method=auth_method) for entry in payload
+            )
+            if item is not None
+        ]
+    return handle_message(user, payload, auth_method=auth_method)
 
 
-def handle_message(user, message):
+def handle_message(user, message, auth_method="oauth"):
     if not isinstance(message, dict):
         return _error(None, -32600, "Invalid request.")
     if message.get("jsonrpc") != "2.0":
@@ -44,7 +55,12 @@ def handle_message(user, message):
         return None if is_notification else _error(msg_id, -32600, "Missing method.")
 
     try:
-        result = _dispatch(user, method, params if isinstance(params, dict) else {})
+        result = _dispatch(
+            user,
+            method,
+            params if isinstance(params, dict) else {},
+            auth_method=auth_method,
+        )
     except MethodNotFound:
         if is_notification:
             return None
@@ -72,28 +88,36 @@ def handle_message(user, message):
     return _ok(msg_id, result)
 
 
-def _dispatch(user, method, params):
+def _dispatch(user, method, params, auth_method="oauth"):
     if method == "initialize":
         requested = params.get("protocolVersion") or LATEST_PROTOCOL
         version = requested if requested in SUPPORTED_PROTOCOLS else LATEST_PROTOCOL
+        instructions = INSTRUCTIONS
+        if crm_allowed(user, auth_method):
+            instructions += CRM_INSTRUCTIONS
         return {
             "protocolVersion": version,
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
-            "instructions": INSTRUCTIONS,
+            "instructions": instructions,
         }
     if method in {"notifications/initialized", "notifications/cancelled"}:
         return {}
     if method == "ping":
         return {}
     if method == "tools/list":
-        return {"tools": tool_definitions(user)}
+        return {"tools": tool_definitions(user, auth_method=auth_method)}
     if method == "tools/call":
         name = params.get("name")
         if not name:
             raise ToolError("Tool name is required.")
-        logger.info("mcp tool=%s user=%s", name, user.email)
-        data = call_tool(user, name, params.get("arguments") or {})
+        logger.info("mcp tool=%s user=%s auth=%s", name, user.email, auth_method)
+        data = call_tool(
+            user,
+            name,
+            params.get("arguments") or {},
+            auth_method=auth_method,
+        )
         return as_tool_result(data)
     raise MethodNotFound(method)
 
