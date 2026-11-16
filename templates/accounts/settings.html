@@ -1,6 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="preload" as="font" href="{% static 'fonts/SuperSans-VF-Upright.woff2' %}" type="font/woff2" crossorigin>
+<link rel="preload" as="font" href="{% static 'fonts/SuperSansMono-VF.woff2' %}" type="font/woff2" crossorigin>
+{% endblock %}
 
 {% block title %}Settings · Ramble{% endblock %}
+{% block body_class %}is-settings-page{% endblock %}
 {% block body_attrs %} data-app-page="settings" data-app-shutter="off"{% endblock %}
 {% block app_title %}Settings{% endblock %}
 {% block app_trailing %}
@@ -8,200 +15,223 @@
 {% endblock %}
 
 {% block content %}
-<section class="shell">
-  <header class="page-head desktop-chrome">
-    <p class="page-kicker">Account</p>
-    <h1 class="page-title">Settings</h1>
-  </header>
-
-  <div class="settings-block panel">
-    <p class="settings-label">Signed in as</p>
-    <p class="settings-email">{{ request.user.email }}</p>
-    {% if note_count %}
-      <p class="settings-hint">
-        {% if note_count == 1 %}1 take{% else %}{{ note_count }} takes{% endif %}
-        {% if last_synced %} · last saved {{ last_synced|date:"g:i a" }}{% endif %}
+<div class="auth-shell auth-shell--settings">
+  <div class="auth-card auth-card--settings">
+    <aside class="auth-pitch-strip" aria-label="Account">
+      <p class="auth-pitch-strip-title">{{ request.user.email }}</p>
+      <p class="auth-pitch-strip-price">
+        {% if account_active %}Active{% else %}Inactive{% endif %}
+        {% if note_count %}
+          · {% if note_count == 1 %}1 take{% else %}{{ note_count }} takes{% endif %}
+        {% endif %}
       </p>
-    {% else %}
-      <p class="settings-hint">Takes recorded in the app appear on your roll.</p>
-    {% endif %}
-  </div>
+    </aside>
 
-  {% include "accounts/minutes.html" %}
-
-  <div class="settings-block panel">
-    <h2 class="day-header">Billing</h2>
-    {% if can_manage_billing %}
-      <p class="settings-hint">{% if account_active %}Active subscription{% else %}Inactive subscription{% endif %}</p>
-      {% if account_active %}
-        <p class="settings-hint settings-follow">If you cancel, recording pauses immediately. Your rambles stay on your account.</p>
-      {% else %}
-        <p class="settings-hint settings-follow">Upgrade to record again. Your existing rambles stay saved.</p>
-      {% endif %}
-      <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary">{% if account_active %}Manage subscription{% else %}Upgrade account{% endif %}</button>
-      </form>
-    {% else %}
-      <p class="settings-hint">No Stripe customer on this account yet.</p>
-    {% endif %}
-  </div>
-
-  <div class="settings-block panel">
-    <h2 class="day-header">Claude MCP</h2>
-    <p class="settings-hint">Connect Claude with OAuth so it can search and file your takes. No token to paste.</p>
-    <p class="settings-label settings-follow">URL</p>
-    <div class="settings-code-row">
-      <code class="settings-code" id="mcp-url-claude">{{ mcp_url }}</code>
-      <button type="button" class="settings-copy" data-copy="#mcp-url-claude" aria-label="Copy URL">
-        <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-        <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 13l4 4L19 7"/>
-        </svg>
-      </button>
-    </div>
-    <p class="settings-hint settings-follow">
-      In Claude, add a custom connector and paste this URL (keep <code>/mcp</code>). Choose OAuth / “Sign in”,
-      then allow access on the Ramble page that opens.
-    </p>
-  </div>
-
-  <div class="settings-block panel">
-    <h2 class="day-header">Grok Bot MCP</h2>
-    <p class="settings-hint">Connect Grok Bot with a bearer token against <code>/mcp/grok</code>. Webhooks and (for superusers) CRM live here — not on the Claude URL.</p>
-    <p class="settings-label settings-follow">URL</p>
-    <div class="settings-code-row">
-      <code class="settings-code" id="mcp-url-grok">{{ grok_mcp_url }}</code>
-      <button type="button" class="settings-copy" data-copy="#mcp-url-grok" aria-label="Copy URL">
-        <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-        <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 13l4 4L19 7"/>
-        </svg>
-      </button>
-    </div>
-
-    <p class="settings-label settings-follow">Token</p>
-    {% if mcp_token_plain %}
-      <p class="settings-ok settings-follow">Copy this token now. It will not be shown again.</p>
-      <div class="settings-code-row">
-        <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
-        <button type="button" class="settings-copy" data-copy="#mcp-token" aria-label="Copy token">
-          <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 13l4 4L19 7"/>
-          </svg>
-        </button>
+    <section class="auth-panel auth-panel-form">
+      <div class="auth-copy desktop-chrome">
+        <h1 class="auth-title">Settings</h1>
+        <p class="auth-lede">Account, billing, and assistant connections.</p>
       </div>
-    {% elif request.user.has_mcp_token %}
-      <p class="settings-hint settings-follow">
-        Token active · {{ request.user.mcp_token_prefix }}…
-        {% if request.user.mcp_token_created_at %}
-          · created {{ request.user.mcp_token_created_at|date:"j M Y" }}
-        {% endif %}
-      </p>
-      <form method="post" class="settings-actions" onsubmit="return confirm('This disconnects any assistant using the old token.');">
-        {% csrf_token %}
-        <input type="hidden" name="intent" value="mcp_token">
-        <button type="submit" class="btn btn-ghost">Replace token</button>
-      </form>
-    {% else %}
-      <p class="settings-hint settings-follow">Generate a token, then use <code>Authorization: Bearer …</code> in Grok Bot.</p>
-      <form method="post" class="settings-actions">
-        {% csrf_token %}
-        <input type="hidden" name="intent" value="mcp_token">
-        <button type="submit" class="btn btn-primary">Generate token</button>
-      </form>
-    {% endif %}
 
-    {% if request.user.has_mcp_token %}
-      <p class="settings-label settings-follow">New-take alerts</p>
-      {% if webhook_saved %}
-        <p class="settings-ok">Webhook saved. Grok Bot will be pinged when a take finishes.</p>
-      {% elif webhook_cleared %}
-        <p class="settings-hint">Webhook cleared.</p>
-      {% elif request.user.has_take_ready_webhook %}
-        <p class="settings-ok">
-          Webhook connected
-          {% if request.user.take_ready_webhook_saved_at %}
-            · {{ request.user.take_ready_webhook_saved_at|date:"j M Y" }}
+      <div class="settings-stack">
+        <div class="settings-section">
+          <h2 class="settings-section-title">Billing</h2>
+          {% if can_manage_billing %}
+            <p class="settings-hint">{% if account_active %}Active subscription{% else %}Inactive subscription{% endif %}</p>
+            {% if account_active %}
+              <p class="settings-hint settings-follow">If you cancel, recording pauses immediately. Your rambles stay on your account.</p>
+            {% else %}
+              <p class="settings-hint settings-follow">Upgrade to record again. Your existing rambles stay saved.</p>
+            {% endif %}
+            <form method="post" action="{% url 'billing_portal' %}" class="settings-actions">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">{% if account_active %}Manage subscription{% else %}Upgrade account{% endif %}</button>
+            </form>
+          {% else %}
+            <p class="settings-hint">No Stripe customer on this account yet.</p>
           {% endif %}
-        </p>
-        <p class="settings-hint">Grok Bot will be pinged when a take finishes.</p>
-      {% else %}
-        <p class="settings-hint">Paste the HTTPS URL and Bearer key from your Grok Bot webhook routine.</p>
-      {% endif %}
-
-      {% if request.user.has_take_ready_webhook and not show_webhook_form %}
-        <div class="settings-actions">
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="intent" value="edit_take_ready_webhook">
-            <button type="submit" class="btn btn-ghost">Replace webhook</button>
-          </form>
-          <form method="post" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
-            {% csrf_token %}
-            <input type="hidden" name="intent" value="clear_take_ready_webhook">
-            <button type="submit" class="btn btn-ghost">Clear</button>
-          </form>
         </div>
-      {% else %}
-        <form method="post" class="settings-webhook-form" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="intent" value="take_ready_webhook">
-          {% for field in webhook_form %}
-            <label class="settings-label settings-follow" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% for error in field.errors %}
-              <p class="auth-error">{{ error }}</p>
-            {% endfor %}
-          {% endfor %}
-          <div class="settings-actions">
-            <button type="submit" class="btn btn-primary">{% if request.user.has_take_ready_webhook %}Replace webhook{% else %}Save webhook{% endif %}</button>
+
+        <div class="settings-section">
+          <h2 class="settings-section-title">Claude MCP</h2>
+          <p class="settings-hint">Connect Claude with OAuth so it can search and file your takes. No token to paste.</p>
+          <p class="settings-label settings-follow">URL</p>
+          <div class="settings-code-row">
+            <code class="settings-code" id="mcp-url-claude">{{ mcp_url }}</code>
+            <button type="button" class="settings-copy" data-copy="#mcp-url-claude" aria-label="Copy URL">
+              <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+            </button>
           </div>
-        </form>
-        {% if request.user.has_take_ready_webhook %}
-          <form method="post" class="settings-actions" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
-            {% csrf_token %}
-            <input type="hidden" name="intent" value="clear_take_ready_webhook">
-            <button type="submit" class="btn btn-ghost">Clear</button>
-          </form>
+          <p class="settings-hint settings-follow">
+            In Claude, add a custom connector and paste this URL (keep <code>/mcp</code>). Choose OAuth / “Sign in”,
+            then allow access on the Ramble page that opens.
+          </p>
+        </div>
+
+        <div class="settings-section">
+          <h2 class="settings-section-title">Grok Bot MCP</h2>
+          <p class="settings-hint">Connect Grok Bot with a bearer token against <code>/mcp/grok</code>. Webhooks and (for superusers) CRM live here — not on the Claude URL.</p>
+          <p class="settings-label settings-follow">URL</p>
+          <div class="settings-code-row">
+            <code class="settings-code" id="mcp-url-grok">{{ grok_mcp_url }}</code>
+            <button type="button" class="settings-copy" data-copy="#mcp-url-grok" aria-label="Copy URL">
+              <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+            </button>
+          </div>
+
+          <p class="settings-label settings-follow">Token</p>
+          {% if mcp_token_plain %}
+            <p class="settings-ok settings-follow">Copy this token now. It will not be shown again.</p>
+            <div class="settings-code-row">
+              <code class="settings-code" id="mcp-token">{{ mcp_token_plain }}</code>
+              <button type="button" class="settings-copy" data-copy="#mcp-token" aria-label="Copy token">
+                <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <svg class="settings-copy-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 13l4 4L19 7"/>
+                </svg>
+              </button>
+            </div>
+          {% elif request.user.has_mcp_token %}
+            <p class="settings-hint settings-follow">
+              Token active · {{ request.user.mcp_token_prefix }}…
+              {% if request.user.mcp_token_created_at %}
+                · created {{ request.user.mcp_token_created_at|date:"j M Y" }}
+              {% endif %}
+            </p>
+            <form method="post" class="settings-actions" onsubmit="return confirm('This disconnects any assistant using the old token.');">
+              {% csrf_token %}
+              <input type="hidden" name="intent" value="mcp_token">
+              <button type="submit" class="btn btn-ghost">Replace token</button>
+            </form>
+          {% else %}
+            <p class="settings-hint settings-follow">Generate a token, then use <code>Authorization: Bearer …</code> in Grok Bot.</p>
+            <form method="post" class="settings-actions">
+              {% csrf_token %}
+              <input type="hidden" name="intent" value="mcp_token">
+              <button type="submit" class="btn btn-primary">Generate token</button>
+            </form>
+          {% endif %}
+
+          {% if request.user.has_mcp_token %}
+            <p class="settings-label settings-follow">New-take alerts</p>
+            {% if webhook_saved %}
+              <p class="settings-ok">Webhook saved. Grok Bot will be pinged when a take finishes.</p>
+            {% elif webhook_cleared %}
+              <p class="settings-hint">Webhook cleared.</p>
+            {% elif request.user.has_take_ready_webhook %}
+              <p class="settings-ok">
+                Webhook connected
+                {% if request.user.take_ready_webhook_saved_at %}
+                  · {{ request.user.take_ready_webhook_saved_at|date:"j M Y" }}
+                {% endif %}
+              </p>
+              <p class="settings-hint">Grok Bot will be pinged when a take finishes.</p>
+            {% else %}
+              <p class="settings-hint">Paste the HTTPS URL and Bearer key from your Grok Bot webhook routine.</p>
+            {% endif %}
+
+            {% if request.user.has_take_ready_webhook and not show_webhook_form %}
+              <div class="settings-actions">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="intent" value="edit_take_ready_webhook">
+                  <button type="submit" class="btn btn-ghost">Replace webhook</button>
+                </form>
+                <form method="post" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="intent" value="clear_take_ready_webhook">
+                  <button type="submit" class="btn btn-ghost">Clear</button>
+                </form>
+              </div>
+            {% else %}
+              <form method="post" class="settings-webhook-form" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="intent" value="take_ready_webhook">
+                {% for field in webhook_form %}
+                  <label class="settings-label settings-follow" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% for error in field.errors %}
+                    <p class="auth-error">{{ error }}</p>
+                  {% endfor %}
+                {% endfor %}
+                <div class="settings-actions">
+                  <button type="submit" class="btn btn-primary">{% if request.user.has_take_ready_webhook %}Replace webhook{% else %}Save webhook{% endif %}</button>
+                </div>
+              </form>
+              {% if request.user.has_take_ready_webhook %}
+                <form method="post" class="settings-actions" onsubmit="return confirm('Stop pinging Grok Bot when takes finish?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="intent" value="clear_take_ready_webhook">
+                  <button type="submit" class="btn btn-ghost">Clear</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="settings-section">
+          <h2 class="settings-section-title">Password</h2>
+          <a class="settings-row-link" href="{% url 'change_password' %}">
+            <span class="settings-row-link-label">Change password</span>
+            <svg class="settings-row-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18 15 12 9 6"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="settings-section">
+          <h2 class="settings-section-title">Help</h2>
+          <p class="settings-hint"><a href="{% url 'notes:support' %}">Contact support</a></p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="auth-panel auth-panel-pitch" aria-label="Account">
+      <div class="settings-account">
+        <h2 class="auth-pitch-title">Your account</h2>
+        <p class="settings-label settings-follow">Signed in as</p>
+        <p class="settings-email">{{ request.user.email }}</p>
+        {% if note_count %}
+          <p class="settings-hint">
+            {% if note_count == 1 %}1 take{% else %}{{ note_count }} takes{% endif %}
+            {% if last_synced %} · last saved {{ last_synced|date:"g:i a" }}{% endif %}
+          </p>
+        {% else %}
+          <p class="settings-hint">Takes recorded in the app appear on your roll.</p>
         {% endif %}
-      {% endif %}
-    {% endif %}
-  </div>
+      </div>
 
-  <div class="settings-block panel">
-    <h2 class="day-header">Password</h2>
-    <a class="settings-row-link" href="{% url 'change_password' %}">
-      <span class="settings-row-link-label">Change password</span>
-      <svg class="settings-row-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 18 15 12 9 6"/>
-      </svg>
-    </a>
-  </div>
+      {% include "accounts/minutes.html" %}
 
-  <div class="settings-block panel">
-    <h2 class="day-header">Help</h2>
-    <p class="settings-hint"><a href="{% url 'notes:support' %}">Contact support</a></p>
+      <div class="settings-account-foot">
+        <p class="settings-hint">
+          {% if account_active %}Subscription active{% else %}Subscription inactive{% endif %}
+        </p>
+        <form method="post" action="{% url 'logout' %}" class="signout-form">
+          {% csrf_token %}
+          <button type="submit" class="text-link">Sign out</button>
+        </form>
+      </div>
+    </aside>
   </div>
-
-  <form method="post" action="{% url 'logout' %}" class="signout-form">
-    {% csrf_token %}
-    <button type="submit" class="text-link">Sign out</button>
-  </form>
-</section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-{% load static %}
 <script src="{% static 'js/settings-copy.js' %}?v=1"></script>
 {% endblock %}

@@ -3054,6 +3054,32 @@ a.album-chip:focus-visible {
   padding: 0 0 8px;
 }
 
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.settings-section {
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+}
+
+.settings-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.settings-section-title {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy-deep);
+}
+
 .settings-label {
   margin: 0 0 4px;
   font-size: 11px;
@@ -3067,12 +3093,37 @@ a.album-chip:focus-visible {
   margin: 0 0 6px;
   font-size: 16px;
   color: var(--navy-deep);
+  word-break: break-word;
 }
 
 .settings-hint {
   margin: 0;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--muted);
+}
+
+.settings-hint a {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-minutes {
+  margin-top: 4px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(7, 20, 79, 0.08);
+}
+
+.settings-account-foot {
+  margin-top: auto;
+  padding-top: 22px;
+  border-top: 1px solid rgba(7, 20, 79, 0.08);
+}
+
+.settings-account .settings-label {
+  margin-top: 18px;
 }
 
 .settings-meter {
@@ -3210,7 +3261,31 @@ a.album-chip:focus-visible {
   color: color-mix(in srgb, var(--navy) 45%, transparent);
 }
 
-.signout-form { margin-top: 20px; }
+.signout-form { margin-top: 12px; }
+
+/* Settings page type — layout rules live after .auth-shell / .auth-card */
+.is-settings-page {
+  --sans: "Super Sans VF", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--sans);
+  font-weight: 460;
+}
+
+.is-settings-page .auth-title,
+.is-settings-page .auth-pitch-title,
+.is-settings-page .auth-pitch-strip-title {
+  font-weight: 460;
+  font-variation-settings: "wght" 460;
+}
+
+.is-settings-page .auth-form {
+  gap: 14px;
+  margin-top: 0;
+}
+
+.is-settings-page .auth-form .auth-input {
+  padding-left: 14px;
+  padding-right: 14px;
+}
 
 .footer {
   margin-top: auto;
@@ -3392,6 +3467,17 @@ a.album-chip:focus-visible {
   width: min(920px, 100%);
 }
 
+.auth-shell.auth-shell--settings {
+  width: var(--chrome);
+  max-width: none;
+  margin: 0 auto;
+  padding: 40px 0 88px;
+}
+
+.auth-shell.auth-shell--settings-narrow {
+  width: min(440px, calc(100% - 2 * var(--pad)));
+}
+
 .auth-card {
   border-radius: 24px;
   overflow: hidden;
@@ -3420,6 +3506,105 @@ a.album-chip:focus-visible {
 
 .auth-card--signup .auth-panel-pitch {
   grid-area: pitch;
+}
+
+.auth-card.auth-card--settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-areas: "form pitch";
+  align-items: start;
+  gap: 0 56px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.auth-card--settings .auth-pitch-strip {
+  display: none;
+}
+
+.auth-card--settings .auth-panel-form {
+  grid-area: form;
+  justify-content: flex-start;
+  padding: 0;
+  max-width: 720px;
+}
+
+.auth-card--settings .auth-panel-pitch {
+  grid-area: pitch;
+  position: sticky;
+  top: 76px;
+  justify-content: flex-start;
+  gap: 24px;
+  padding: 28px 28px 32px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+}
+
+.auth-card--settings .auth-copy {
+  margin-bottom: 28px;
+}
+
+.auth-card--settings .auth-lede {
+  margin-top: 6px;
+}
+
+.auth-card--settings .settings-actions .btn,
+.auth-card--settings .settings-code,
+.auth-card--settings .settings-copy {
+  border-radius: 12px;
+}
+
+.auth-card--settings .settings-row-link {
+  padding: 10px 0 0;
+}
+
+@media (max-width: 980px) {
+  .auth-card.auth-card--settings {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "strip"
+      "form"
+      "pitch";
+    gap: 20px;
+  }
+
+  .auth-card--settings .auth-pitch-strip {
+    display: block;
+    grid-area: strip;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+  }
+
+  .auth-card--settings .auth-panel-form {
+    max-width: none;
+  }
+
+  .auth-card--settings .auth-panel-pitch {
+    position: static;
+    border-radius: 20px;
+    padding: 24px 22px 28px;
+    gap: 18px;
+  }
+
+  .auth-card--settings .auth-panel-pitch .auth-pitch-title,
+  .auth-card--settings .settings-account {
+    display: none;
+  }
+
+  .auth-card--settings .settings-minutes {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-shell.auth-shell--settings {
+    padding: 24px 0 56px;
+  }
 }
 
 .auth-panel {
@@ -4461,8 +4646,28 @@ a.album-chip:focus-visible {
     border-radius: 20px;
   }
 
+  body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .auth-shell.auth-shell--settings {
+    width: 100%;
+    max-width: none;
+    padding: 12px 20px calc(var(--app-bottom-clearance, 24px) + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+
+  body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .auth-card.auth-card--settings {
+    margin: 0;
+    gap: 14px;
+  }
+
+  body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .auth-card--settings .auth-panel-pitch {
+    padding: 20px 18px 24px;
+  }
+
+  body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .auth-card--settings .auth-pitch-strip {
+    padding: 16px 18px;
+  }
+
   body.is-signed-in:not(.is-landing-page):not(.is-auth-page) .signout-form {
-    margin: 8px 24px 32px;
+    margin: 8px 0 0;
   }
 
   body.is-signed-in:not(.is-landing-page):not(.is-auth-page).is-share-open {
