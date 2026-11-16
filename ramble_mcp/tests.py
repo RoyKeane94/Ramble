@@ -46,22 +46,23 @@ class McpTests(TestCase):
             did_gpt_tidy=True,
         )
 
-    def rpc(self, method, params=None, token=None, msg_id=1):
+    def rpc(self, method, params=None, token=None, msg_id=1, path="/mcp"):
         body = {"jsonrpc": "2.0", "id": msg_id, "method": method}
         if params is not None:
             body["params"] = params
         return self.client.post(
-            "/mcp",
+            path,
             data=json.dumps(body),
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Bearer {token if token is not None else self.token}",
         )
 
-    def call(self, name, arguments=None, token=None):
+    def call(self, name, arguments=None, token=None, path="/mcp"):
         response = self.rpc(
             "tools/call",
             {"name": name, "arguments": arguments or {}},
             token=token,
+            path=path,
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -204,6 +205,7 @@ class McpTests(TestCase):
         self.assertContains(page, "Claude MCP")
         self.assertContains(page, "Grok Bot MCP")
         self.assertContains(page, "/mcp")
+        self.assertContains(page, "/mcp/grok")
         self.assertContains(page, "custom connector")
         self.assertContains(page, "Replace token")
         self.assertContains(page, "New-take alerts")
@@ -284,13 +286,51 @@ class McpTests(TestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.has_take_ready_webhook)
 
-    def test_webhook_tools_not_exposed(self):
-        names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
-        self.assertNotIn("save_take_ready_webhook", names)
-        self.assertNotIn("clear_take_ready_webhook", names)
-        self.assertNotIn("get_take_ready_webhook_status", names)
-        denied = self.call("save_take_ready_webhook", {"url": "https://example.com", "key": "x"})
+    def test_webhook_tools_only_on_grok_surface(self):
+        claude_names = [
+            tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]
+        ]
+        self.assertNotIn("save_take_ready_webhook", claude_names)
+        self.assertNotIn("clear_take_ready_webhook", claude_names)
+        self.assertNotIn("get_take_ready_webhook_status", claude_names)
+        denied = self.call(
+            "save_take_ready_webhook", {"url": "https://example.com/hook", "key": "x"}
+        )
         self.assertTrue(denied.get("isError"))
+
+        grok_names = [
+            tool["name"]
+            for tool in self.rpc("tools/list", path="/mcp/grok").json()["result"]["tools"]
+        ]
+        self.assertIn("save_take_ready_webhook", grok_names)
+        self.assertIn("clear_take_ready_webhook", grok_names)
+        self.assertIn("get_take_ready_webhook_status", grok_names)
+
+        saved = self.call(
+            "save_take_ready_webhook",
+            {
+                "url": "https://api2.cursor.sh/automations/webhook/example",
+                "key": "whsec_test",
+            },
+            path="/mcp/grok",
+        )["structuredContent"]
+        self.assertTrue(saved["configured"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.has_take_ready_webhook)
+
+        status = self.call("get_take_ready_webhook_status", path="/mcp/grok")[
+            "structuredContent"
+        ]
+        self.assertTrue(status["configured"])
+        self.assertEqual(status["url_host"], "api2.cursor.sh")
+        self.assertNotIn("key", status)
+
+        cleared = self.call("clear_take_ready_webhook", path="/mcp/grok")[
+            "structuredContent"
+        ]
+        self.assertFalse(cleared["configured"])
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_take_ready_webhook)
 
     def test_get_kpis_not_exposed(self):
         denied = self.call("get_kpis")
@@ -300,18 +340,43 @@ class McpTests(TestCase):
 
         admin = User.objects.create_superuser("admin@example.com", "password12")
         token = admin.issue_mcp_token()
-        names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
+        names = [
+            tool["name"]
+            for tool in self.rpc("tools/list", token=token, path="/mcp/grok").json()[
+                "result"
+            ]["tools"]
+        ]
         self.assertNotIn("get_kpis", names)
 
-    def test_crm_tools_require_superuser_mcp_token(self):
+    def test_crm_tools_require_superuser_on_grok_mcp(self):
         names = [tool["name"] for tool in self.rpc("tools/list").json()["result"]["tools"]]
         self.assertNotIn("list_crm_contacts", names)
         denied = self.call("list_crm_contacts")
         self.assertTrue(denied.get("isError"))
 
+        grok_regular = [
+            tool["name"]
+            for tool in self.rpc("tools/list", path="/mcp/grok").json()["result"]["tools"]
+        ]
+        self.assertNotIn("list_crm_contacts", grok_regular)
+        denied_grok = self.call("list_crm_contacts", path="/mcp/grok")
+        self.assertTrue(denied_grok.get("isError"))
+
         admin = User.objects.create_superuser("crm-admin@example.com", "password12")
         token = admin.issue_mcp_token()
-        names = [tool["name"] for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]]
+        # Superuser token on Claude URL still must not expose CRM.
+        claude_admin = [
+            tool["name"]
+            for tool in self.rpc("tools/list", token=token).json()["result"]["tools"]
+        ]
+        self.assertNotIn("list_crm_contacts", claude_admin)
+
+        names = [
+            tool["name"]
+            for tool in self.rpc("tools/list", token=token, path="/mcp/grok").json()[
+                "result"
+            ]["tools"]
+        ]
         self.assertIn("list_crm_contacts", names)
         self.assertIn("create_crm_contact", names)
         self.assertIn("update_crm_contact", names)
@@ -326,12 +391,18 @@ class McpTests(TestCase):
                 "website": "analytical.example.com",
             },
             token=token,
+            path="/mcp/grok",
         )["structuredContent"]
         self.assertEqual(created["tracking_slug"], "analytical-engines")
         self.assertEqual(created["website"], "https://analytical.example.com")
         contact_id = created["id"]
 
-        listed = self.call("list_crm_contacts", {"query": "Ada"}, token=token)["structuredContent"]
+        listed = self.call(
+            "list_crm_contacts",
+            {"query": "Ada"},
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
         self.assertEqual(listed["count"], 1)
         self.assertEqual(listed["contacts"][0]["id"], contact_id)
 
@@ -345,6 +416,7 @@ class McpTests(TestCase):
                 "response_reason": "Timing",
             },
             token=token,
+            path="/mcp/grok",
         )["structuredContent"]
         self.assertEqual(updated["region"], "London")
         self.assertEqual(updated["personalisation_detail"], "Loves notebooks")
@@ -356,14 +428,41 @@ class McpTests(TestCase):
             "get_crm_contact",
             {"tracking_slug": "analytical-engines"},
             token=token,
+            path="/mcp/grok",
         )["structuredContent"]
         self.assertEqual(fetched["email"], "ada@example.com")
 
-        deleted = self.call("delete_crm_contact", {"contact_id": contact_id}, token=token)[
-            "structuredContent"
-        ]
+        deleted = self.call(
+            "delete_crm_contact",
+            {"contact_id": contact_id},
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
         self.assertTrue(deleted["deleted"])
         self.assertFalse(CrmContact.objects.filter(pk=contact_id).exists())
+
+    def test_grok_mcp_rejects_oauth_token(self):
+        from ramble_mcp.models import OAuthAccessToken, OAuthClient, hash_secret
+
+        client = OAuthClient.objects.create(
+            client_id="claude-test",
+            client_name="Claude",
+            redirect_uris=["https://claude.ai/callback"],
+        )
+        plain = "rmoa_oauth_test_token_value"
+        OAuthAccessToken.objects.create(
+            token_hash=hash_secret(plain),
+            token_prefix=plain[:12],
+            client=client,
+            user=self.user,
+            scope="mcp",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        response = self.rpc("initialize", {}, token=plain, path="/mcp/grok")
+        self.assertEqual(response.status_code, 401)
+        # Same OAuth token still works on the Claude MCP URL.
+        ok = self.rpc("initialize", {}, token=plain)
+        self.assertEqual(ok.status_code, 200)
 
     def test_unauthorized_points_at_resource_metadata(self):
         response = self.client.post(

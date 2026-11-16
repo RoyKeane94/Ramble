@@ -71,10 +71,10 @@
 
   <div class="settings-block panel">
     <h2 class="day-header">Grok Bot MCP</h2>
-    <p class="settings-hint">Connect Grok Bot with a bearer token, and optionally ping it when a take finishes.</p>
+    <p class="settings-hint">Connect Grok Bot with a bearer token against <code>/mcp/grok</code>. Webhooks and (for superusers) CRM live here — not on the Claude URL.</p>
     <p class="settings-label settings-follow">URL</p>
     <div class="settings-code-row">
-      <code class="settings-code" id="mcp-url-grok">{{ mcp_url }}</code>
+      <code class="settings-code" id="mcp-url-grok">{{ grok_mcp_url }}</code>
       <button type="button" class="settings-copy" data-copy="#mcp-url-grok" aria-label="Copy URL">
         <svg class="settings-copy-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="9" width="13" height="13" rx="2"/>

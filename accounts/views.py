@@ -275,6 +275,7 @@ def settings(request):
     notes = Note.objects.filter(user=request.user)
     latest = notes.order_by("-updated_at").first()
     mcp_url = request.build_absolute_uri("/mcp").rstrip("/")
+    grok_mcp_url = request.build_absolute_uri("/mcp/grok").rstrip("/")
     return render(
         request,
         "accounts/settings.html",
@@ -283,6 +284,7 @@ def settings(request):
             "last_synced": latest.updated_at if latest else None,
             "minute_usage": usage_for_user(request.user),
             "mcp_url": mcp_url,
+            "grok_mcp_url": grok_mcp_url,
             "mcp_token_plain": mcp_token_plain,
             "can_manage_billing": bool((request.user.stripe_customer_id or "").strip()),
             "subscription_status": (request.user.subscription_status or "").strip(),

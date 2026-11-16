@@ -19,10 +19,22 @@ ALLOW_METHODS = "POST, GET, DELETE, OPTIONS"
 @csrf_exempt
 @require_http_methods(["GET", "POST", "DELETE", "OPTIONS"])
 def mcp_endpoint(request):
+    """Claude MCP at /mcp — OAuth (or bearer token) with take/album tools only."""
+    return _mcp_endpoint(request, surface="claude")
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST", "DELETE", "OPTIONS"])
+def grok_mcp_endpoint(request):
+    """Grok Bot MCP at /mcp/grok — bearer token; webhooks + CRM (superuser)."""
+    return _mcp_endpoint(request, surface="grok")
+
+
+def _mcp_endpoint(request, surface="claude"):
     if request.method == "OPTIONS":
         return _cors(request, HttpResponse(status=204))
 
-    user, auth_method, error = _authenticate(request)
+    user, auth_method, error = _authenticate(request, surface=surface)
     if error is not None:
         return _cors(request, error)
 
@@ -51,23 +63,28 @@ def mcp_endpoint(request):
             ),
         )
 
-    result = handle_payload(user, payload, auth_method=auth_method)
+    result = handle_payload(user, payload, auth_method=auth_method, surface=surface)
     if result is None or result == []:
         return _cors(request, HttpResponse(status=202))
     return _cors(request, JsonResponse(result, safe=False))
 
 
-def _authenticate(request):
+def _authenticate(request, surface="claude"):
     raw = _bearer_token(request)
     if not raw:
-        return None, None, _unauthorized(request, "missing_token")
+        return None, None, _unauthorized(request, "missing_token", surface=surface)
+    if surface == "grok":
+        user = User.get_by_mcp_token(raw)
+        if user is not None:
+            return user, "mcp_token", None
+        return None, None, _unauthorized(request, "invalid_token", surface=surface)
     user = User.get_by_mcp_token(raw)
     if user is not None:
         return user, "mcp_token", None
     user = OAuthAccessToken.get_valid_user(raw)
     if user is not None:
         return user, "oauth", None
-    return None, None, _unauthorized(request, "invalid_token")
+    return None, None, _unauthorized(request, "invalid_token", surface=surface)
 
 
 def _bearer_token(request):
@@ -79,13 +96,16 @@ def _bearer_token(request):
     return ""
 
 
-def _unauthorized(request, error):
-    metadata = resource_metadata_url(request)
+def _unauthorized(request, error, surface="claude"):
     response = JsonResponse({"error": "unauthorized"}, status=401)
-    response["WWW-Authenticate"] = (
-        f'Bearer realm="Ramble MCP", error="{error}", '
-        f'resource_metadata="{metadata}"'
-    )
+    if surface == "grok":
+        response["WWW-Authenticate"] = f'Bearer realm="Ramble Grok MCP", error="{error}"'
+    else:
+        metadata = resource_metadata_url(request)
+        response["WWW-Authenticate"] = (
+            f'Bearer realm="Ramble MCP", error="{error}", '
+            f'resource_metadata="{metadata}"'
+        )
     return response
 
 

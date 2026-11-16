@@ -59,7 +59,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     mcp_token_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
     mcp_token_prefix = models.CharField(max_length=12, blank=True, default="")
     mcp_token_created_at = models.DateTimeField(null=True, blank=True)
-    # Grok Bot routine webhook — set via MCP save_take_ready_webhook.
+    # Grok Bot routine webhook — set via /mcp/grok save_take_ready_webhook or Settings.
     take_ready_webhook_url = models.URLField(max_length=500, blank=True, default="")
     take_ready_webhook_key = models.CharField(max_length=200, blank=True, default="")
     take_ready_webhook_saved_at = models.DateTimeField(null=True, blank=True)

@@ -23,7 +23,7 @@ from ramble_mcp.oauth_views import (
     oauth_revoke,
     oauth_token,
 )
-from ramble_mcp.views import mcp_endpoint
+from ramble_mcp.views import grok_mcp_endpoint, mcp_endpoint
 
 handler400 = bad_request
 handler404 = page_not_found
@@ -51,6 +51,8 @@ urlpatterns = [
     path("oauth/revoke", oauth_revoke, name="oauth_revoke"),
     path("mcp", mcp_endpoint),
     path("mcp/", mcp_endpoint),
+    path("mcp/grok", grok_mcp_endpoint),
+    path("mcp/grok/", grok_mcp_endpoint),
     path(f"{settings.ADMIN_URL}/", admin.site.urls),
     path("api/", include("notes.api_urls")),
     path("api/", include("core.api_urls")),

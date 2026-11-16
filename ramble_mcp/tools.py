@@ -1,6 +1,7 @@
 import inspect
 import json
 from datetime import datetime, time, timedelta
+from urllib.parse import urlparse
 from uuid import UUID
 
 from django.utils import timezone
@@ -36,6 +37,13 @@ CRM_TOOL_NAMES = frozenset(
         "create_crm_contact",
         "update_crm_contact",
         "delete_crm_contact",
+    }
+)
+WEBHOOK_TOOL_NAMES = frozenset(
+    {
+        "save_take_ready_webhook",
+        "clear_take_ready_webhook",
+        "get_take_ready_webhook_status",
     }
 )
 
@@ -155,9 +163,19 @@ def create_album(user, name):
     }
 
 
-def crm_allowed(user, auth_method="oauth"):
-    """CRM is superuser-only and exposed on the Grok Bot MCP token path, not Claude OAuth."""
-    return bool(user and user.is_superuser and auth_method == "mcp_token")
+def webhook_allowed(surface="claude"):
+    """Take-ready webhook tools live on the Grok Bot MCP surface only."""
+    return surface == "grok"
+
+
+def crm_allowed(user, auth_method="oauth", surface="claude"):
+    """CRM is superuser-only on the Grok Bot MCP token path, not Claude."""
+    return bool(
+        user
+        and user.is_superuser
+        and auth_method == "mcp_token"
+        and surface == "grok"
+    )
 
 
 def list_crm_contacts(user, query="", limit=DEFAULT_LIMIT):
@@ -288,7 +306,50 @@ def delete_crm_contact(user, contact_id=None, tracking_slug=""):
     return {"deleted": True, "contact": payload}
 
 
-def call_tool(user, name, arguments, auth_method="oauth"):
+def save_take_ready_webhook(user, url, key):
+    """Store this account's Grok Bot webhook so Ramble can ping on new takes."""
+    cleaned_url = (url or "").strip()
+    cleaned_key = (key or "").strip()
+    if not cleaned_url or not cleaned_key:
+        raise ToolError("Both url and key are required.")
+    parsed = urlparse(cleaned_url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ToolError("url must be an https webhook URL.")
+    if len(cleaned_url) > 500:
+        raise ToolError("url is too long.")
+    if len(cleaned_key) > 200:
+        raise ToolError("key is too long.")
+    user.save_take_ready_webhook(cleaned_url, cleaned_key)
+    return {
+        "configured": True,
+        "saved_at": _iso(user.take_ready_webhook_saved_at),
+        "hint": (
+            "Ramble will POST {event: take.ready, take_id} once when a take first becomes ready. "
+            "On that ping, call get_take with take_id (or list_recent_takes) over MCP."
+        ),
+    }
+
+
+def clear_take_ready_webhook(user):
+    """Remove the stored take-ready webhook for this account."""
+    user.clear_take_ready_webhook()
+    return {"configured": False}
+
+
+def get_take_ready_webhook_status(user):
+    """Whether a take-ready webhook is configured (does not return the key)."""
+    return {
+        "configured": user.has_take_ready_webhook,
+        "saved_at": _iso(user.take_ready_webhook_saved_at)
+        if user.take_ready_webhook_saved_at
+        else None,
+        "url_host": urlparse(user.take_ready_webhook_url).netloc
+        if user.has_take_ready_webhook
+        else None,
+    }
+
+
+def call_tool(user, name, arguments, auth_method="oauth", surface="claude"):
     args = arguments or {}
     if not isinstance(args, dict):
         raise ToolError("Tool arguments must be an object.")
@@ -299,6 +360,9 @@ def call_tool(user, name, arguments, auth_method="oauth"):
         "list_albums": list_albums,
         "update_take": update_take,
         "create_album": create_album,
+        "save_take_ready_webhook": save_take_ready_webhook,
+        "clear_take_ready_webhook": clear_take_ready_webhook,
+        "get_take_ready_webhook_status": get_take_ready_webhook_status,
         "list_crm_contacts": list_crm_contacts,
         "get_crm_contact": get_crm_contact,
         "create_crm_contact": create_crm_contact,
@@ -308,14 +372,20 @@ def call_tool(user, name, arguments, auth_method="oauth"):
     handler = handlers.get(name)
     if handler is None:
         raise ToolError(f"Unknown tool {name!r}. Use tools/list to see the Ramble tools.")
-    if name in CRM_TOOL_NAMES and not crm_allowed(user, auth_method):
+    if name in WEBHOOK_TOOL_NAMES and not webhook_allowed(surface):
         raise ToolError(
-            "CRM tools are only available to superusers via the Grok Bot MCP token."
+            "Webhook tools are only available on the Grok Bot MCP URL (/mcp/grok)."
+        )
+    if name in CRM_TOOL_NAMES and not crm_allowed(
+        user, auth_method=auth_method, surface=surface
+    ):
+        raise ToolError(
+            "CRM tools are only available to superusers via the Grok Bot MCP token at /mcp/grok."
         )
     return handler(user, **_kwargs_for(handler, args))
 
 
-def tool_definitions(user=None, auth_method="oauth"):
+def tool_definitions(user=None, auth_method="oauth", surface="claude"):
     tools = [
         {
             "name": "search_takes",
@@ -463,9 +533,63 @@ def tool_definitions(user=None, auth_method="oauth"):
             },
         },
     ]
-    if crm_allowed(user, auth_method):
+    if webhook_allowed(surface):
+        tools.extend(_webhook_tool_definitions())
+    if crm_allowed(user, auth_method=auth_method, surface=surface):
         tools.extend(_crm_tool_definitions())
     return tools
+
+
+def _webhook_tool_definitions():
+    return [
+        {
+            "name": "save_take_ready_webhook",
+            "description": (
+                "Register this account's Grok Bot routine webhook so Ramble can send one wake-up "
+                "signal when a new take becomes ready. Create a webhook-triggered routine first, "
+                "then pass its POST url and Bearer key. Ramble never sends transcript text — only "
+                "{event: take.ready, take_id}; pull the take with get_take over MCP."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "HTTPS POST URL from the routine's Webhook section.",
+                    },
+                    "key": {
+                        "type": "string",
+                        "description": "Bearer key from the routine's Webhook section (not the full header).",
+                    },
+                },
+                "required": ["url", "key"],
+            },
+            "annotations": {
+                "readOnlyHint": False,
+                "idempotentHint": True,
+                "destructiveHint": False,
+            },
+        },
+        {
+            "name": "clear_take_ready_webhook",
+            "description": "Remove the stored take-ready webhook so Ramble stops pinging on new takes.",
+            "inputSchema": {"type": "object", "properties": {}},
+            "annotations": {
+                "readOnlyHint": False,
+                "idempotentHint": True,
+                "destructiveHint": True,
+            },
+        },
+        {
+            "name": "get_take_ready_webhook_status",
+            "description": (
+                "Check whether a take-ready webhook is configured for this account. "
+                "Does not return the secret key."
+            ),
+            "inputSchema": {"type": "object", "properties": {}},
+            "annotations": {"readOnlyHint": True, "idempotentHint": True},
+        },
+    ]
 
 
 def _crm_tool_definitions():
