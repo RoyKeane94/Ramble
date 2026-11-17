@@ -1,8 +1,9 @@
-Hi {{ first_name }},
+Hello,
 
-You've had Ramble for a few days now. How's it going?
+How have you found Ramble so far?
 
-If you haven't tried it yet, next time a thought pops up, press the button and say it. It'll be waiting on your phone or laptop whenever you look. Get the app here: {{ app_store_url }}, then sign in with {{ email }}.
+If you haven't tried it yet, next time a thought pops up, press the button and say it. It'll be waiting on your phone or laptop whenever you look. Get the app here: {{ app_store_url }}
+Then sign in with {{ email }}.
 
 Tom
 Founder, Ramble

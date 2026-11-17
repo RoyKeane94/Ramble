@@ -290,8 +290,8 @@ class WelcomeEmailTests(TestCase):
         payload = mock_send.call_args.args[0]
         self.assertEqual(payload["subject"], "Quick check-in")
         self.assertEqual(payload["scheduled_at"], "2026-11-20T20:00:00Z")
-        self.assertIn("Hi Jane Doe,", payload["html"])
-        self.assertIn("a few days now", payload["text"])
+        self.assertIn("Hello,", payload["html"])
+        self.assertIn("How have you found Ramble so far?", payload["text"])
         self.assertIn("next time a thought pops up", payload["text"])
 
     @override_settings(
