@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import segno
 from django.conf import settings as django_settings
@@ -6,9 +7,11 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.core.paginator import Paginator
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -18,6 +21,7 @@ from notes.usage import usage_for_user
 
 from .forms import (
     CrmContactForm,
+    CrmOutreachEmailForm,
     EmailAuthenticationForm,
     SignupForm,
     StyledPasswordChangeForm,
@@ -355,9 +359,76 @@ def kpi_dashboard(request):
     )
 
 
+CRM_PAGE_SIZE = 50
+CRM_OPEN_CONFIRM_SECONDS = 3
+
+
 def _require_superuser(request):
     if not request.user.is_superuser:
         raise PermissionDenied
+
+
+def _crm_open_request_ignored(request):
+    purpose = (
+        request.META.get("HTTP_SEC_PURPOSE", "")
+        or request.META.get("HTTP_PURPOSE", "")
+    ).lower()
+    if purpose == "prefetch":
+        return True
+    from core.traffic import _is_bot
+
+    return _is_bot(request.META.get("HTTP_USER_AGENT", ""))
+
+
+def _crm_type_filter(request):
+    value = (request.GET.get("type") or request.POST.get("type") or "").strip()
+    allowed = {choice for choice, _label in CrmContact.ContactType.choices}
+    if value and value not in allowed:
+        return ""
+    return value
+
+
+def _crm_list_url(page=None, contact_type=""):
+    url = reverse("crm")
+    params = []
+    if contact_type:
+        params.append(f"type={contact_type}")
+    try:
+        number = int(page)
+    except (TypeError, ValueError):
+        number = 1
+    if number > 1:
+        params.append(f"page={number}")
+    if not params:
+        return url
+    return f"{url}?{'&'.join(params)}"
+
+
+def _crm_queryset(contact_type=""):
+    contacts = CrmContact.objects.all()
+    if contact_type:
+        contacts = contacts.filter(contact_type=contact_type)
+    return contacts
+
+
+def _crm_page(request, queryset):
+    return Paginator(queryset, CRM_PAGE_SIZE).get_page(request.GET.get("page"))
+
+
+def _crm_list_context(request, *, form, editing=None, crm_modal_open=False):
+    contact_type = _crm_type_filter(request)
+    page_obj = _crm_page(request, _crm_queryset(contact_type))
+    return {
+        "contacts": page_obj.object_list,
+        "page_obj": page_obj,
+        "form": form,
+        "nav_section": "crm",
+        "editing": editing,
+        "crm_modal_open": crm_modal_open,
+        "crm_return_page": page_obj.number,
+        "crm_type_filter": contact_type,
+        "crm_type_choices": CrmContact.ContactType.choices,
+    }
 
 
 @login_required
@@ -368,18 +439,16 @@ def crm_list(request):
         form = CrmContactForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect("crm")
-    contacts = CrmContact.objects.all()
+            return redirect(_crm_list_url(contact_type=_crm_type_filter(request)))
     return render(
         request,
         "accounts/crm.html",
-        {
-            "contacts": contacts,
-            "form": form,
-            "nav_section": "crm",
-            "editing": None,
-            "crm_modal_open": bool(form.errors),
-        },
+        _crm_list_context(
+            request,
+            form=form,
+            editing=None,
+            crm_modal_open=bool(form.errors),
+        ),
     )
 
 
@@ -388,22 +457,22 @@ def crm_edit(request, pk):
     _require_superuser(request)
     contact = get_object_or_404(CrmContact, pk=pk)
     form = CrmContactForm(instance=contact)
+    page = request.GET.get("page") or request.POST.get("page")
+    contact_type = _crm_type_filter(request)
     if request.method == "POST":
         form = CrmContactForm(request.POST, instance=contact)
         if form.is_valid():
             form.save()
-            return redirect("crm")
-    contacts = CrmContact.objects.all()
+            return redirect(_crm_list_url(page=page, contact_type=contact_type))
     return render(
         request,
         "accounts/crm.html",
-        {
-            "contacts": contacts,
-            "form": form,
-            "nav_section": "crm",
-            "editing": contact,
-            "crm_modal_open": True,
-        },
+        _crm_list_context(
+            request,
+            form=form,
+            editing=contact,
+            crm_modal_open=True,
+        ),
     )
 
 
@@ -413,4 +482,128 @@ def crm_delete(request, pk):
     _require_superuser(request)
     contact = get_object_or_404(CrmContact, pk=pk)
     contact.delete()
-    return redirect("crm")
+    return redirect(
+        _crm_list_url(
+            page=request.POST.get("page") or request.GET.get("page"),
+            contact_type=_crm_type_filter(request),
+        )
+    )
+
+
+def _crm_return_from_request(request):
+    return _crm_list_url(
+        page=request.POST.get("page") or request.GET.get("page"),
+        contact_type=_crm_type_filter(request),
+    )
+
+
+def _save_outreach_email(contact, *, subject, body, status):
+    contact.outreach_email_subject = subject
+    contact.outreach_email_body = body
+    contact.outreach_email_status = status
+    contact.ensure_tracking_url_in_body()
+    contact.save(
+        update_fields=[
+            "outreach_email_subject",
+            "outreach_email_body",
+            "outreach_email_status",
+            "updated_at",
+        ]
+    )
+
+
+@login_required
+@require_POST
+def crm_email_save(request, pk):
+    _require_superuser(request)
+    contact = get_object_or_404(CrmContact, pk=pk)
+    form = CrmOutreachEmailForm(request.POST)
+    if not form.is_valid():
+        return redirect(_crm_return_from_request(request))
+    _save_outreach_email(
+        contact,
+        subject=form.cleaned_data["outreach_email_subject"],
+        body=form.cleaned_data["outreach_email_body"],
+        status=CrmContact.OutreachEmailStatus.DRAFT,
+    )
+    return redirect(_crm_return_from_request(request))
+
+
+@login_required
+@require_POST
+def crm_email_approve(request, pk):
+    _require_superuser(request)
+    contact = get_object_or_404(CrmContact, pk=pk)
+    form = CrmOutreachEmailForm(request.POST)
+    if form.is_valid():
+        subject = form.cleaned_data["outreach_email_subject"]
+        body = form.cleaned_data["outreach_email_body"]
+    else:
+        subject = contact.outreach_email_subject
+        body = contact.outreach_email_body
+    if not (subject or body):
+        return redirect(_crm_return_from_request(request))
+    _save_outreach_email(
+        contact,
+        subject=subject,
+        body=body,
+        status=CrmContact.OutreachEmailStatus.APPROVED,
+    )
+    return redirect(_crm_return_from_request(request))
+
+
+@csrf_exempt
+@require_POST
+def crm_tracking_open_start(request, slug):
+    """Begin a CRM email open timer for ?ref=<slug> visits."""
+    if _crm_open_request_ignored(request):
+        return HttpResponse(status=204)
+    contact = CrmContact.objects.filter(tracking_slug=slug).first()
+    if contact is None:
+        return HttpResponse(status=204)
+    if contact.outreach_email_opened_at:
+        return JsonResponse({"status": "opened"})
+    if contact.outreach_email_open_started_at is None:
+        contact.outreach_email_open_started_at = timezone.now()
+        contact.save(update_fields=["outreach_email_open_started_at", "updated_at"])
+    return JsonResponse({"status": "started"})
+
+
+@csrf_exempt
+@require_POST
+def crm_tracking_open_confirm(request, slug):
+    """Confirm a CRM email open after the visitor has stayed ~3 seconds."""
+    if _crm_open_request_ignored(request):
+        return HttpResponse(status=204)
+    contact = CrmContact.objects.filter(tracking_slug=slug).first()
+    if contact is None:
+        return HttpResponse(status=204)
+    if contact.outreach_email_opened_at:
+        return JsonResponse({"status": "opened"})
+    now = timezone.now()
+    started = contact.outreach_email_open_started_at
+    if started is None:
+        # Confirm arrived before start finished — begin the timer and ask to retry.
+        contact.outreach_email_open_started_at = now
+        contact.save(update_fields=["outreach_email_open_started_at", "updated_at"])
+        return JsonResponse(
+            {
+                "status": "too_soon",
+                "retry_after_ms": CRM_OPEN_CONFIRM_SECONDS * 1000,
+            },
+            status=409,
+        )
+    elapsed = now - started
+    needed = timedelta(seconds=CRM_OPEN_CONFIRM_SECONDS)
+    if elapsed < needed:
+        remaining_ms = int((needed - elapsed).total_seconds() * 1000)
+        return JsonResponse(
+            {
+                "status": "too_soon",
+                "retry_after_ms": max(remaining_ms, 250),
+            },
+            status=409,
+        )
+    contact.outreach_email_opened_at = now
+    contact.save(update_fields=["outreach_email_opened_at", "updated_at"])
+    return JsonResponse({"status": "opened"})

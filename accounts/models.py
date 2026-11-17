@@ -1,4 +1,5 @@
 import hashlib
+import re
 import secrets
 import uuid
 
@@ -185,15 +186,64 @@ class CrmContact(models.Model):
         DECLINED = "declined", "Declined"
         REVISIT = "revisit", "Revisit"
 
+    class Stage(models.TextChoices):
+        NOT_CONTACTED = "not_contacted", "Not contacted"
+        EMAILED = "emailed", "Emailed"
+        CALLED = "called", "Called"
+        FOLLOW_UP_SENT = "follow_up_sent", "Follow-up sent"
+        REPLIED = "replied", "Replied"
+        SIGNED_UP = "signed_up", "Signed up"
+        NOT_INTERESTED = "not_interested", "Not interested"
+
+    class ContactChannel(models.TextChoices):
+        EMAIL = "email", "Email"
+        CALL = "call", "Call"
+
+    class ContactType(models.TextChoices):
+        CELEBRANT = "celebrant", "Celebrant"
+
+    class OutreachEmailStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        APPROVED = "approved", "Approved"
+
     first_name = models.CharField(max_length=120, blank=True, default="")
     business_name = models.CharField(max_length=255, blank=True, default="")
-    contact_type = models.CharField("type", max_length=120, blank=True, default="")
+    contact_type = models.CharField(
+        "type",
+        max_length=32,
+        choices=ContactType.choices,
+        blank=True,
+        default="",
+        db_index=True,
+    )
     region = models.CharField(max_length=120, blank=True, default="")
     country = models.CharField(max_length=120, blank=True, default="")
     website = models.CharField(max_length=500, blank=True, default="")
     email = models.EmailField(blank=True, default="")
+    phone = models.CharField(max_length=40, blank=True, default="")
     email_source = models.CharField(max_length=255, blank=True, default="")
+    source = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Where we found them (e.g. The Celebrant Directory, UKSOC, Google Maps).",
+    )
     personalisation_detail = models.TextField(blank=True, default="")
+    notes = models.TextField(blank=True, default="")
+    stage = models.CharField(
+        max_length=32,
+        choices=Stage.choices,
+        default=Stage.NOT_CONTACTED,
+    )
+    last_contacted_on = models.DateField(null=True, blank=True)
+    last_contacted_channel = models.CharField(
+        max_length=16,
+        choices=ContactChannel.choices,
+        blank=True,
+        default="",
+    )
+    next_follow_up_on = models.DateField(null=True, blank=True)
+    do_not_contact = models.BooleanField(default=False)
     response = models.CharField(
         max_length=20,
         choices=Response.choices,
@@ -201,6 +251,17 @@ class CrmContact(models.Model):
         default="",
     )
     response_reason = models.TextField("reason", blank=True, default="")
+    outreach_email_subject = models.CharField(max_length=255, blank=True, default="")
+    outreach_email_body = models.TextField(blank=True, default="")
+    outreach_email_status = models.CharField(
+        max_length=16,
+        choices=OutreachEmailStatus.choices,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    outreach_email_open_started_at = models.DateTimeField(null=True, blank=True)
+    outreach_email_opened_at = models.DateTimeField(null=True, blank=True, db_index=True)
     tracking_slug = models.SlugField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -216,7 +277,34 @@ class CrmContact(models.Model):
     def tracking_url(self):
         from django.conf import settings
 
-        base = getattr(settings, "PUBLIC_BASE_URL", "").rstrip("/")
+        base = (
+            getattr(settings, "TRACKING_BASE_URL", None)
+            or getattr(settings, "PUBLIC_BASE_URL", "")
+        ).rstrip("/")
         if not base or not self.tracking_slug:
             return ""
         return f"{base}/?ref={self.tracking_slug}"
+
+    @property
+    def outreach_email_opened(self):
+        return self.outreach_email_opened_at is not None
+
+    def ensure_tracking_url_in_body(self):
+        """Append or rewrite the tracking URL in the outreach email body."""
+        url = self.tracking_url
+        if not url or not self.tracking_slug:
+            return False
+        body = self.outreach_email_body or ""
+        pattern = re.compile(
+            rf"https?://[^\s<>\"']+/\?ref={re.escape(self.tracking_slug)}"
+        )
+        if pattern.search(body):
+            rewritten = pattern.sub(url, body)
+            if rewritten == body:
+                return False
+            self.outreach_email_body = rewritten
+            return True
+        if url in body:
+            return False
+        self.outreach_email_body = f"{body.rstrip()}\n\n{url}\n".lstrip("\n")
+        return True

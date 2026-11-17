@@ -13,12 +13,34 @@
   <header class="page-head desktop-chrome">
     <div class="crm-heading-row">
       <h1 class="page-title">CRM</h1>
-      <button type="button" class="btn btn-primary" data-crm-modal-open>Add contact</button>
+      <div class="crm-heading-actions">
+        <form method="get" class="crm-filter-form" action="{% url 'crm' %}">
+          <label class="crm-filter">
+            <span class="visually-hidden">Type</span>
+            <select class="crm-filter-select" name="type" onchange="this.form.submit()" aria-label="Filter by type">
+              <option value="">All types</option>
+              {% for value, label in crm_type_choices %}
+              <option value="{{ value }}"{% if crm_type_filter == value %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </form>
+        <button type="button" class="btn btn-primary" data-crm-modal-open>Add contact</button>
+      </div>
     </div>
   </header>
 
-  <section class="crm-block" aria-labelledby="crm-list-heading">
-    <h2 id="crm-list-heading" class="kpi-section-title">Contacts</h2>
+  <section class="crm-block" aria-label="CRM contacts">
+    {% if page_obj %}
+    <div class="crm-list-head">
+      <p class="crm-list-count">
+        {{ page_obj.paginator.count }} contact{{ page_obj.paginator.count|pluralize }}
+        {% if page_obj.paginator.num_pages > 1 %}
+        · page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
     <div class="kpi-panel panel">
       <div class="kpi-scroll">
         <table class="kpi-table crm-table">
@@ -31,8 +53,17 @@
               <th>Country</th>
               <th>Website</th>
               <th>Email</th>
+              <th>Phone</th>
               <th>Email source</th>
-              <th>Personalisation detail</th>
+              <th>Source</th>
+              <th>Personalisation</th>
+              <th>Outreach email</th>
+              <th>Opened</th>
+              <th>Notes</th>
+              <th>Stage</th>
+              <th>Last contacted</th>
+              <th>Next follow-up</th>
+              <th>Do not contact</th>
               <th>Response</th>
               <th>Reason</th>
               <th>Tracking slug</th>
@@ -45,7 +76,7 @@
             <tr{% if editing and editing.pk == contact.pk %} class="crm-row-editing"{% endif %}>
               <td>{{ contact.first_name|default:"—" }}</td>
               <td class="kpi-email">{{ contact.business_name|default:"—" }}</td>
-              <td>{{ contact.contact_type|default:"—" }}</td>
+              <td>{{ contact.get_contact_type_display|default:"—" }}</td>
               <td>{{ contact.region|default:"—" }}</td>
               <td>{{ contact.country|default:"—" }}</td>
               <td>
@@ -58,10 +89,102 @@
                 <a class="crm-link" href="mailto:{{ contact.email }}">{{ contact.email }}</a>
                 {% else %}—{% endif %}
               </td>
+              <td>
+                {% if contact.phone %}
+                <a class="crm-link" href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                {% else %}—{% endif %}
+              </td>
               <td>{{ contact.email_source|default:"—" }}</td>
-              <td class="crm-personalisation">{{ contact.personalisation_detail|default:"—" }}</td>
+              <td>{{ contact.source|default:"—" }}</td>
+              <td class="crm-tip-cell">
+                {% if contact.personalisation_detail %}
+                <span class="crm-hover-tip" tabindex="0">
+                  <span class="crm-hover-tip-trigger">View</span>
+                  <span class="crm-hover-tip-panel" role="tooltip">{{ contact.personalisation_detail }}</span>
+                </span>
+                {% else %}—{% endif %}
+              </td>
+              <td class="crm-tip-cell crm-email-cell">
+                <div class="crm-hover-tip crm-email-tip" tabindex="0">
+                  <span class="crm-hover-tip-trigger{% if contact.outreach_email_status == 'approved' %} is-approved{% elif contact.outreach_email_status == 'draft' or contact.outreach_email_body or contact.outreach_email_subject %} is-draft{% endif %}">
+                    {% if contact.outreach_email_status == 'approved' %}
+                      Approved
+                    {% elif contact.outreach_email_status == 'draft' or contact.outreach_email_body or contact.outreach_email_subject %}
+                      Draft
+                    {% else %}
+                      Add
+                    {% endif %}
+                  </span>
+                  <div class="crm-hover-tip-panel crm-email-panel" role="dialog" aria-label="Outreach email">
+                    <form method="post" action="{% url 'crm_email_save' contact.pk %}" class="crm-email-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="page" value="{{ page_obj.number }}">
+                      {% if crm_type_filter %}<input type="hidden" name="type" value="{{ crm_type_filter }}">{% endif %}
+                      <label class="crm-email-field">
+                        <span class="crm-label">Subject</span>
+                        <input
+                          class="field crm-input"
+                          type="text"
+                          name="outreach_email_subject"
+                          value="{{ contact.outreach_email_subject }}"
+                          placeholder="Subject"
+                          maxlength="255"
+                        >
+                      </label>
+                      <label class="crm-email-field">
+                        <span class="crm-label">Email</span>
+                        <textarea
+                          class="field crm-input crm-email-body"
+                          name="outreach_email_body"
+                          rows="8"
+                          placeholder="Draft outreach email"
+                        >{{ contact.outreach_email_body }}</textarea>
+                      </label>
+                      {% if contact.tracking_url %}
+                      <p class="crm-email-tracking">
+                        Tracking link (auto-added on save):
+                        <a class="crm-link" href="{{ contact.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ contact.tracking_url }}</a>
+                      </p>
+                      {% endif %}
+                      <p class="crm-email-open-line">
+                        {% if contact.outreach_email_opened %}
+                          Opened {{ contact.outreach_email_opened_at|date:"Y-m-d H:i" }}
+                        {% else %}
+                          Not opened yet (counts after 3s on the tracking link)
+                        {% endif %}
+                      </p>
+                      <div class="crm-email-actions">
+                        <button type="submit" class="btn btn-ghost crm-email-btn">Save draft</button>
+                        <button
+                          type="submit"
+                          class="btn btn-primary crm-email-btn"
+                          formaction="{% url 'crm_email_approve' contact.pk %}"
+                        >Approve</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if contact.outreach_email_opened %}
+                <span class="crm-open-badge is-opened" title="{{ contact.outreach_email_opened_at|date:'Y-m-d H:i' }}">Yes</span>
+                {% elif contact.outreach_email_status or contact.outreach_email_body or contact.outreach_email_subject %}
+                <span class="crm-open-badge">No</span>
+                {% else %}
+                —
+                {% endif %}
+              </td>
+              <td class="crm-clip" {% if contact.notes %}title="{{ contact.notes }}"{% endif %}>{{ contact.notes|default:"—" }}</td>
+              <td>{{ contact.get_stage_display }}</td>
+              <td>
+                {% if contact.last_contacted_on %}
+                  {{ contact.last_contacted_on|date:"Y-m-d" }}{% if contact.last_contacted_channel %} · {{ contact.get_last_contacted_channel_display }}{% endif %}
+                {% else %}—{% endif %}
+              </td>
+              <td>{% if contact.next_follow_up_on %}{{ contact.next_follow_up_on|date:"Y-m-d" }}{% else %}—{% endif %}</td>
+              <td>{% if contact.do_not_contact %}Yes{% else %}No{% endif %}</td>
               <td>{{ contact.get_response_display|default:"—" }}</td>
-              <td class="crm-personalisation">{{ contact.response_reason|default:"—" }}</td>
+              <td class="crm-clip" {% if contact.response_reason %}title="{{ contact.response_reason }}"{% endif %}>{{ contact.response_reason|default:"—" }}</td>
               <td><code class="crm-slug">{{ contact.tracking_slug }}</code></td>
               <td>
                 {% if contact.tracking_url %}
@@ -69,22 +192,39 @@
                 {% else %}—{% endif %}
               </td>
               <td class="crm-actions">
-                <a class="crm-action" href="{% url 'crm_edit' contact.pk %}">Edit</a>
+                <a class="crm-action" href="{% url 'crm_edit' contact.pk %}?{% if crm_type_filter %}type={{ crm_type_filter }}&amp;{% endif %}page={{ page_obj.number }}">Edit</a>
                 <form method="post" action="{% url 'crm_delete' contact.pk %}" class="crm-delete-form" onsubmit="return confirm('Delete this contact?');">
                   {% csrf_token %}
+                  <input type="hidden" name="page" value="{{ page_obj.number }}">
+                  {% if crm_type_filter %}<input type="hidden" name="type" value="{{ crm_type_filter }}">{% endif %}
                   <button type="submit" class="crm-action crm-action-danger">Delete</button>
                 </form>
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="14" class="kpi-empty">No contacts yet. Add one to get started.</td>
+              <td colspan="23" class="kpi-empty">No contacts yet. Add one to get started.</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <nav class="crm-pagination" aria-label="CRM pages">
+      {% if page_obj.has_previous %}
+      <a class="text-link" href="?{% if crm_type_filter %}type={{ crm_type_filter }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+      {% else %}
+      <span class="crm-pagination-spacer" aria-hidden="true"></span>
+      {% endif %}
+      <span class="crm-pagination-status">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a class="text-link" href="?{% if crm_type_filter %}type={{ crm_type_filter }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+      {% else %}
+      <span class="crm-pagination-spacer" aria-hidden="true"></span>
+      {% endif %}
+    </nav>
+    {% endif %}
   </section>
 </section>
 
@@ -93,21 +233,23 @@
   id="crm-contact-modal"
   aria-labelledby="crm-form-heading"
   {% if crm_modal_open %}data-crm-open="1"{% endif %}
-  {% if editing %}data-crm-cancel-url="{% url 'crm' %}"{% endif %}
+  {% if editing %}data-crm-cancel-url="{% url 'crm' %}{% if crm_type_filter %}?type={{ crm_type_filter }}{% if crm_return_page and crm_return_page > 1 %}&amp;page={{ crm_return_page }}{% endif %}{% elif crm_return_page and crm_return_page > 1 %}?page={{ crm_return_page }}{% endif %}"{% endif %}
 >
   <form
     method="post"
-    action="{% if editing %}{% url 'crm_edit' editing.pk %}{% else %}{% url 'crm' %}{% endif %}"
+    action="{% if editing %}{% url 'crm_edit' editing.pk %}?{% if crm_type_filter %}type={{ crm_type_filter }}&amp;{% endif %}page={{ crm_return_page }}{% else %}{% url 'crm' %}{% if crm_type_filter %}?type={{ crm_type_filter }}{% endif %}{% endif %}"
     class="crm-modal-form"
     novalidate
   >
     {% csrf_token %}
+    <input type="hidden" name="page" value="{{ crm_return_page|default:1 }}">
+    {% if crm_type_filter %}<input type="hidden" name="type" value="{{ crm_type_filter }}">{% endif %}
     <div class="crm-modal-head">
       <h2 id="crm-form-heading" class="crm-modal-title">
         {% if editing %}Edit contact{% else %}Add contact{% endif %}
       </h2>
       {% if editing %}
-      <a class="crm-modal-close" href="{% url 'crm' %}" aria-label="Close">
+      <a class="crm-modal-close" href="{% url 'crm' %}{% if crm_type_filter %}?type={{ crm_type_filter }}{% if crm_return_page and crm_return_page > 1 %}&amp;page={{ crm_return_page }}{% endif %}{% elif crm_return_page and crm_return_page > 1 %}?page={{ crm_return_page }}{% endif %}" aria-label="Close">
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M6 6l12 12M18 6 6 18"/>
         </svg>
@@ -127,9 +269,16 @@
 
     <div class="crm-form-grid">
       {% for field in form %}
-      <label class="crm-field{% if field.name == 'personalisation_detail' or field.name == 'response_reason' %} crm-field-wide{% endif %}">
+      <label class="crm-field{% if field.name == 'personalisation_detail' or field.name == 'response_reason' or field.name == 'notes' %} crm-field-wide{% elif field.name == 'do_not_contact' %} crm-field-check{% endif %}">
+        {% if field.name == 'do_not_contact' %}
+        <span class="crm-check-row">
+          {{ field }}
+          <span class="crm-label">{{ field.label }}</span>
+        </span>
+        {% else %}
         <span class="crm-label">{{ field.label }}</span>
         {{ field }}
+        {% endif %}
         {% if field.errors %}
         <span class="crm-field-error">{{ field.errors|striptags }}</span>
         {% endif %}
@@ -139,7 +288,7 @@
 
     <div class="crm-modal-actions">
       {% if editing %}
-      <a class="btn btn-ghost" href="{% url 'crm' %}">Cancel</a>
+      <a class="btn btn-ghost" href="{% url 'crm' %}{% if crm_type_filter %}?type={{ crm_type_filter }}{% if crm_return_page and crm_return_page > 1 %}&amp;page={{ crm_return_page }}{% endif %}{% elif crm_return_page and crm_return_page > 1 %}?page={{ crm_return_page }}{% endif %}">Cancel</a>
       {% else %}
       <button type="button" class="btn btn-ghost" data-crm-modal-close>Cancel</button>
       {% endif %}

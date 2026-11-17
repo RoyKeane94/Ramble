@@ -32,7 +32,12 @@ WEBHOOK_INSTRUCTIONS = (
 CRM_INSTRUCTIONS = (
     " You also have Ramble CRM tools for outreach contacts: "
     "list_crm_contacts, get_crm_contact, create_crm_contact, update_crm_contact, delete_crm_contact. "
-    "These manage the same contacts as the /crm/ dashboard (superuser only)."
+    "These manage the same contacts as the /crm/ dashboard (superuser only). "
+    "Contacts include phone, stage, last contacted (date + channel), next follow-up, "
+    "do_not_contact, notes, source, and outreach email drafts "
+    "(outreach_email_subject/body/status: draft or approved; tracking_url is auto-embedded; "
+    "outreach_email_opened after 3s on the tracking link). "
+    "Page list_crm_contacts with offset/limit; use follow_up_due_by for the daily due list."
 )
 
 

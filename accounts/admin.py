@@ -14,6 +14,13 @@ class CrmContactAdmin(admin.ModelAdmin):
         "region",
         "country",
         "email",
+        "phone",
+        "stage",
+        "outreach_email_status",
+        "outreach_email_opened_at",
+        "next_follow_up_on",
+        "do_not_contact",
+        "source",
         "response",
         "tracking_slug",
         "updated_at",
@@ -22,13 +29,28 @@ class CrmContactAdmin(admin.ModelAdmin):
         "first_name",
         "business_name",
         "email",
+        "phone",
         "tracking_slug",
         "website",
         "region",
         "country",
+        "source",
+        "notes",
         "response_reason",
+        "outreach_email_subject",
+        "outreach_email_body",
     )
-    list_filter = ("response", "contact_type", "country", "region")
+    list_filter = (
+        "stage",
+        "outreach_email_status",
+        "do_not_contact",
+        "last_contacted_channel",
+        "response",
+        "contact_type",
+        "country",
+        "region",
+        "source",
+    )
     readonly_fields = ("created_at", "updated_at")
 
 

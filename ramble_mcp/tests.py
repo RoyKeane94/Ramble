@@ -389,12 +389,21 @@ class McpTests(TestCase):
                 "business_name": "Analytical Engines",
                 "email": "ada@example.com",
                 "website": "analytical.example.com",
+                "phone": "020 7946 0958",
+                "source": "Google Maps",
+                "notes": "Prefers mornings",
+                "stage": "not_contacted",
             },
             token=token,
             path="/mcp/grok",
         )["structuredContent"]
         self.assertEqual(created["tracking_slug"], "analytical-engines")
         self.assertEqual(created["website"], "https://analytical.example.com")
+        self.assertEqual(created["phone"], "020 7946 0958")
+        self.assertEqual(created["source"], "Google Maps")
+        self.assertEqual(created["notes"], "Prefers mornings")
+        self.assertEqual(created["stage"], "not_contacted")
+        self.assertFalse(created["do_not_contact"])
         contact_id = created["id"]
 
         listed = self.call(
@@ -405,6 +414,8 @@ class McpTests(TestCase):
         )["structuredContent"]
         self.assertEqual(listed["count"], 1)
         self.assertEqual(listed["contacts"][0]["id"], contact_id)
+        self.assertEqual(listed["offset"], 0)
+        self.assertFalse(listed["has_more"])
 
         updated = self.call(
             "update_crm_contact",
@@ -412,6 +423,13 @@ class McpTests(TestCase):
                 "contact_id": contact_id,
                 "region": "London",
                 "personalisation_detail": "Loves notebooks",
+                "stage": "emailed",
+                "last_contacted_on": "2026-11-16",
+                "last_contacted_channel": "email",
+                "next_follow_up_on": "2026-11-18",
+                "notes": "Sent intro email",
+                "outreach_email_subject": "Hello Ada",
+                "outreach_email_body": "Draft outreach note",
                 "response": "declined",
                 "response_reason": "Timing",
             },
@@ -420,9 +438,64 @@ class McpTests(TestCase):
         )["structuredContent"]
         self.assertEqual(updated["region"], "London")
         self.assertEqual(updated["personalisation_detail"], "Loves notebooks")
+        self.assertEqual(updated["stage"], "emailed")
+        self.assertEqual(updated["last_contacted_on"], "2026-11-16")
+        self.assertEqual(updated["last_contacted_channel"], "email")
+        self.assertEqual(updated["next_follow_up_on"], "2026-11-18")
+        self.assertEqual(updated["notes"], "Sent intro email")
+        self.assertEqual(updated["outreach_email_subject"], "Hello Ada")
+        self.assertIn("Draft outreach note", updated["outreach_email_body"])
+        self.assertEqual(updated["outreach_email_status"], "draft")
+        self.assertFalse(updated["outreach_email_opened"])
         self.assertEqual(updated["response"], "declined")
         self.assertEqual(updated["response_label"], "Declined")
         self.assertEqual(updated["response_reason"], "Timing")
+
+        approved = self.call(
+            "update_crm_contact",
+            {
+                "contact_id": contact_id,
+                "outreach_email_status": "approved",
+            },
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
+        self.assertEqual(approved["outreach_email_status"], "approved")
+
+
+        due = self.call(
+            "list_crm_contacts",
+            {"follow_up_due_by": "2026-11-18"},
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
+        self.assertEqual(due["count"], 1)
+        self.assertEqual(due["contacts"][0]["id"], contact_id)
+
+        for index in range(3):
+            CrmContact.objects.create(
+                first_name=f"Lead {index}",
+                tracking_slug=f"lead-{index}",
+                next_follow_up_on="2026-11-19",
+            )
+        page = self.call(
+            "list_crm_contacts",
+            {"limit": 2, "offset": 0},
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
+        self.assertEqual(page["count"], 2)
+        self.assertEqual(page["total"], 4)
+        self.assertTrue(page["has_more"])
+        page_two = self.call(
+            "list_crm_contacts",
+            {"limit": 2, "offset": 2},
+            token=token,
+            path="/mcp/grok",
+        )["structuredContent"]
+        self.assertEqual(page_two["count"], 2)
+        self.assertEqual(page_two["offset"], 2)
+        self.assertFalse(page_two["has_more"])
 
         fetched = self.call(
             "get_crm_contact",
@@ -431,6 +504,7 @@ class McpTests(TestCase):
             path="/mcp/grok",
         )["structuredContent"]
         self.assertEqual(fetched["email"], "ada@example.com")
+        self.assertEqual(fetched["phone"], "020 7946 0958")
 
         deleted = self.call(
             "delete_crm_contact",

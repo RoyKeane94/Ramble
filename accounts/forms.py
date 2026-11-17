@@ -188,8 +188,16 @@ class CrmContactForm(forms.ModelForm):
             "country",
             "website",
             "email",
+            "phone",
             "email_source",
+            "source",
             "personalisation_detail",
+            "notes",
+            "stage",
+            "last_contacted_on",
+            "last_contacted_channel",
+            "next_follow_up_on",
+            "do_not_contact",
             "response",
             "response_reason",
             "tracking_slug",
@@ -197,6 +205,13 @@ class CrmContactForm(forms.ModelForm):
         labels = {
             "contact_type": "Type",
             "personalisation_detail": "Personalisation detail",
+            "notes": "Notes",
+            "source": "Source",
+            "stage": "Stage",
+            "last_contacted_on": "Last contacted",
+            "last_contacted_channel": "Last contacted channel",
+            "next_follow_up_on": "Next follow-up",
+            "do_not_contact": "Do not contact",
             "response": "Response",
             "response_reason": "Reason",
             "tracking_slug": "Tracking slug",
@@ -204,12 +219,16 @@ class CrmContactForm(forms.ModelForm):
         widgets = {
             "first_name": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "First name"}),
             "business_name": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Business name"}),
-            "contact_type": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Type"}),
+            "contact_type": forms.Select(attrs={**CRM_FIELD_ATTRS}),
             "region": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Region"}),
             "country": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Country"}),
             "website": forms.URLInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "https://"}),
             "email": forms.EmailInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Email"}),
+            "phone": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Phone"}),
             "email_source": forms.TextInput(attrs={**CRM_FIELD_ATTRS, "placeholder": "Email source"}),
+            "source": forms.TextInput(
+                attrs={**CRM_FIELD_ATTRS, "placeholder": "e.g. The Celebrant Directory"}
+            ),
             "personalisation_detail": forms.Textarea(
                 attrs={
                     **CRM_FIELD_ATTRS,
@@ -217,6 +236,24 @@ class CrmContactForm(forms.ModelForm):
                     "rows": 2,
                 }
             ),
+            "notes": forms.Textarea(
+                attrs={
+                    **CRM_FIELD_ATTRS,
+                    "placeholder": "Call outcomes and anything they said",
+                    "rows": 3,
+                }
+            ),
+            "stage": forms.Select(attrs={**CRM_FIELD_ATTRS}),
+            "last_contacted_on": forms.DateInput(
+                attrs={**CRM_FIELD_ATTRS, "type": "date"},
+                format="%Y-%m-%d",
+            ),
+            "last_contacted_channel": forms.Select(attrs={**CRM_FIELD_ATTRS}),
+            "next_follow_up_on": forms.DateInput(
+                attrs={**CRM_FIELD_ATTRS, "type": "date"},
+                format="%Y-%m-%d",
+            ),
+            "do_not_contact": forms.CheckboxInput(attrs={"class": "crm-checkbox"}),
             "response": forms.Select(attrs={**CRM_FIELD_ATTRS}),
             "response_reason": forms.Textarea(
                 attrs={
@@ -238,6 +275,25 @@ class CrmContactForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["tracking_slug"].required = False
         self.fields["website"].required = False
+        self.fields["phone"].required = False
+        self.fields["contact_type"].required = False
+        self.fields["contact_type"].choices = [
+            ("", "—"),
+            *CrmContact.ContactType.choices,
+        ]
+        self.fields["source"].required = False
+        self.fields["notes"].required = False
+        self.fields["stage"].required = True
+        self.fields["last_contacted_on"].required = False
+        self.fields["last_contacted_on"].input_formats = ["%Y-%m-%d"]
+        self.fields["last_contacted_channel"].required = False
+        self.fields["last_contacted_channel"].choices = [
+            ("", "—"),
+            *CrmContact.ContactChannel.choices,
+        ]
+        self.fields["next_follow_up_on"].required = False
+        self.fields["next_follow_up_on"].input_formats = ["%Y-%m-%d"]
+        self.fields["do_not_contact"].required = False
         self.fields["response"].required = False
         self.fields["response"].choices = [
             ("", "—"),
@@ -270,3 +326,38 @@ class CrmContactForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError("That tracking slug is already in use.")
         return slug
+
+
+class CrmOutreachEmailForm(forms.Form):
+    outreach_email_subject = forms.CharField(
+        label="Subject",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                **CRM_FIELD_ATTRS,
+                "placeholder": "Subject",
+            }
+        ),
+    )
+    outreach_email_body = forms.CharField(
+        label="Email",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                **CRM_FIELD_ATTRS,
+                "placeholder": "Draft outreach email",
+                "rows": 8,
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        subject = (cleaned.get("outreach_email_subject") or "").strip()
+        body = (cleaned.get("outreach_email_body") or "").strip()
+        cleaned["outreach_email_subject"] = subject
+        cleaned["outreach_email_body"] = body
+        if not subject and not body:
+            raise forms.ValidationError("Add a subject or email body.")
+        return cleaned

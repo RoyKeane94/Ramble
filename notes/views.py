@@ -1,5 +1,6 @@
 from collections import Counter, OrderedDict
 from datetime import timedelta
+from urllib.parse import urlencode
 from uuid import UUID
 
 from django.conf import settings
@@ -54,6 +55,10 @@ def roll_day_groups(grouped, summary_by_header=None):
 
 def home(request):
     if request.user.is_authenticated:
+        # Keep ?ref= so CRM open-tracking still runs after the signed-in redirect.
+        ref = (request.GET.get("ref") or "").strip()
+        if ref:
+            return redirect(f"{reverse('notes:list')}?{urlencode({'ref': ref})}")
         return redirect("notes:list")
 
     joined = False

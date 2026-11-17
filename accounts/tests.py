@@ -715,7 +715,7 @@ class CrmDashboardTests(TestCase):
         self.contact = CrmContact.objects.create(
             first_name="Ada",
             business_name="Analytical Engines",
-            contact_type="Founder",
+            contact_type="celebrant",
             region="London",
             country="UK",
             website="https://example.com",
@@ -735,7 +735,10 @@ class CrmDashboardTests(TestCase):
         response = self.client.get(reverse("crm"))
         self.assertEqual(response.status_code, 403)
 
-    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    @override_settings(
+        PUBLIC_BASE_URL="https://yourramble.com",
+        TRACKING_BASE_URL="https://yourramble.com",
+    )
     def test_superuser_sees_table_and_nav(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse("crm"))
@@ -757,7 +760,10 @@ class CrmDashboardTests(TestCase):
         response = self.client.get(reverse("notes:list"))
         self.assertNotContains(response, reverse("crm"))
 
-    @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
+    @override_settings(
+        PUBLIC_BASE_URL="https://yourramble.com",
+        TRACKING_BASE_URL="https://yourramble.com",
+    )
     def test_superuser_can_add_contact(self):
         self.client.force_login(self.superuser)
         response = self.client.post(
@@ -765,13 +771,20 @@ class CrmDashboardTests(TestCase):
             {
                 "first_name": "Grace",
                 "business_name": "Navy Code",
-                "contact_type": "CTO",
+                "contact_type": "celebrant",
                 "region": "NY",
                 "country": "US",
                 "website": "navycode.example.com",
                 "email": "grace@example.com",
+                "phone": "+1 212 555 0100",
                 "email_source": "Conference",
+                "source": "UKSOC",
                 "personalisation_detail": "Built compilers",
+                "notes": "Left voicemail",
+                "stage": "emailed",
+                "last_contacted_on": "2026-11-10",
+                "last_contacted_channel": "email",
+                "next_follow_up_on": "2026-11-18",
                 "response": "revisit",
                 "response_reason": "Ask again next quarter",
                 "tracking_slug": "",
@@ -782,6 +795,15 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(contact.tracking_slug, "navy-code")
         self.assertEqual(contact.website, "https://navycode.example.com")
         self.assertEqual(contact.tracking_url, "https://yourramble.com/?ref=navy-code")
+        self.assertEqual(contact.phone, "+1 212 555 0100")
+        self.assertEqual(contact.contact_type, "celebrant")
+        self.assertEqual(contact.source, "UKSOC")
+        self.assertEqual(contact.notes, "Left voicemail")
+        self.assertEqual(contact.stage, "emailed")
+        self.assertEqual(str(contact.last_contacted_on), "2026-11-10")
+        self.assertEqual(contact.last_contacted_channel, "email")
+        self.assertEqual(str(contact.next_follow_up_on), "2026-11-18")
+        self.assertFalse(contact.do_not_contact)
         self.assertEqual(contact.response, "revisit")
         self.assertEqual(contact.response_reason, "Ask again next quarter")
 
@@ -792,13 +814,21 @@ class CrmDashboardTests(TestCase):
             {
                 "first_name": "Ada",
                 "business_name": "Analytical Engines Ltd",
-                "contact_type": "Founder",
+                "contact_type": "celebrant",
                 "region": "London",
                 "country": "UK",
                 "website": "https://example.com",
                 "email": "ada@example.com",
+                "phone": "020 7946 0958",
                 "email_source": "LinkedIn",
+                "source": "The Celebrant Directory",
                 "personalisation_detail": "Loves notebooks",
+                "notes": "Asked for a callback",
+                "stage": "called",
+                "last_contacted_on": "2026-11-16",
+                "last_contacted_channel": "call",
+                "next_follow_up_on": "2026-11-20",
+                "do_not_contact": "on",
                 "response": "signed_up",
                 "response_reason": "Started trial",
                 "tracking_slug": "analytical-engines",
@@ -807,12 +837,181 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(edit.status_code, 302)
         self.contact.refresh_from_db()
         self.assertEqual(self.contact.business_name, "Analytical Engines Ltd")
+        self.assertEqual(self.contact.phone, "020 7946 0958")
+        self.assertEqual(self.contact.source, "The Celebrant Directory")
+        self.assertEqual(self.contact.notes, "Asked for a callback")
+        self.assertEqual(self.contact.stage, "called")
+        self.assertEqual(str(self.contact.last_contacted_on), "2026-11-16")
+        self.assertEqual(self.contact.last_contacted_channel, "call")
+        self.assertEqual(str(self.contact.next_follow_up_on), "2026-11-20")
+        self.assertTrue(self.contact.do_not_contact)
         self.assertEqual(self.contact.response, "signed_up")
         self.assertEqual(self.contact.response_reason, "Started trial")
         listed = self.client.get(reverse("crm"))
         self.assertContains(listed, "Signed up")
         self.assertContains(listed, "Started trial")
+        self.assertContains(listed, "Asked for a callback")
+        self.assertContains(listed, "The Celebrant Directory")
 
         delete = self.client.post(reverse("crm_delete", args=[self.contact.pk]))
         self.assertEqual(delete.status_code, 302)
         self.assertFalse(CrmContact.objects.filter(pk=self.contact.pk).exists())
+
+    def test_crm_paginates_contacts(self):
+        from accounts.views import CRM_PAGE_SIZE
+
+        self.client.force_login(self.superuser)
+        for index in range(CRM_PAGE_SIZE):
+            CrmContact.objects.create(
+                first_name=f"Lead {index}",
+                business_name=f"Biz {index:03d}",
+                contact_type="celebrant",
+                tracking_slug=f"biz-{index:03d}",
+            )
+        page_one = self.client.get(reverse("crm"))
+        self.assertEqual(page_one.status_code, 200)
+        self.assertEqual(len(page_one.context["contacts"]), CRM_PAGE_SIZE)
+        self.assertContains(page_one, "1 of 2")
+        self.assertContains(page_one, "?page=2")
+        self.assertContains(page_one, f"{CRM_PAGE_SIZE + 1} contacts")
+        self.assertNotContains(page_one, ">Contacts</h2>")
+
+        page_two = self.client.get(reverse("crm"), {"page": 2})
+        self.assertEqual(page_two.status_code, 200)
+        self.assertEqual(len(page_two.context["contacts"]), 1)
+        self.assertContains(page_two, "Biz 049")
+        self.assertContains(page_two, "2 of 2")
+        self.assertContains(page_one, "Analytical Engines")
+
+    def test_crm_filters_by_type(self):
+        self.client.force_login(self.superuser)
+        CrmContact.objects.create(
+            first_name="Sam",
+            business_name="No Type Co",
+            tracking_slug="no-type-co",
+        )
+        filtered = self.client.get(reverse("crm"), {"type": "celebrant"})
+        self.assertEqual(filtered.status_code, 200)
+        self.assertContains(filtered, "Analytical Engines")
+        self.assertNotContains(filtered, "No Type Co")
+        self.assertEqual(filtered.context["crm_type_filter"], "celebrant")
+        self.assertContains(filtered, 'name="type"')
+        self.assertContains(filtered, "crm-filter-select")
+        self.assertContains(filtered, "crm-heading-actions")
+
+    @override_settings(
+        PUBLIC_BASE_URL="https://yourramble.com",
+        TRACKING_BASE_URL="https://yourramble.com",
+    )
+    def test_crm_outreach_email_draft_and_approve(self):
+        self.client.force_login(self.superuser)
+        listed = self.client.get(reverse("crm"))
+        self.assertContains(listed, "Outreach email")
+        self.assertContains(listed, "Add")
+        self.assertContains(listed, reverse("crm_email_save", args=[self.contact.pk]))
+        self.assertContains(listed, reverse("crm_email_approve", args=[self.contact.pk]))
+
+        save = self.client.post(
+            reverse("crm_email_save", args=[self.contact.pk]),
+            {
+                "outreach_email_subject": "Quick note",
+                "outreach_email_body": "Hi Ada,\n\nThought of you.",
+                "page": "1",
+            },
+        )
+        self.assertEqual(save.status_code, 302)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.outreach_email_status, "draft")
+        self.assertEqual(self.contact.outreach_email_subject, "Quick note")
+        self.assertIn("Thought of you", self.contact.outreach_email_body)
+        self.assertIn(
+            "https://yourramble.com/?ref=analytical-engines",
+            self.contact.outreach_email_body,
+        )
+
+        drafted = self.client.get(reverse("crm"))
+        self.assertContains(drafted, "Draft")
+        self.assertContains(drafted, "Thought of you")
+        self.assertContains(drafted, ">Opened</th>")
+        self.assertContains(drafted, "crm-open-badge")
+        self.assertContains(drafted, ">No</span>")
+
+        approve = self.client.post(
+            reverse("crm_email_approve", args=[self.contact.pk]),
+            {
+                "outreach_email_subject": "Quick note",
+                "outreach_email_body": self.contact.outreach_email_body,
+                "page": "1",
+            },
+        )
+        self.assertEqual(approve.status_code, 302)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.outreach_email_status, "approved")
+        approved = self.client.get(reverse("crm"))
+        self.assertContains(approved, "Approved")
+
+    def test_crm_tracking_open_requires_three_seconds(self):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # Confirm before start should begin the timer, not mark opened.
+        too_soon = self.client.post(
+            reverse("crm_tracking_open_confirm", args=[self.contact.tracking_slug])
+        )
+        self.assertEqual(too_soon.status_code, 409)
+        self.assertEqual(too_soon.json()["status"], "too_soon")
+        self.contact.refresh_from_db()
+        self.assertIsNotNone(self.contact.outreach_email_open_started_at)
+        self.assertIsNone(self.contact.outreach_email_opened_at)
+
+        start = self.client.post(
+            reverse("crm_tracking_open_start", args=[self.contact.tracking_slug])
+        )
+        self.assertEqual(start.status_code, 200)
+        self.assertEqual(start.json()["status"], "started")
+
+        early = self.client.post(
+            reverse("crm_tracking_open_confirm", args=[self.contact.tracking_slug])
+        )
+        self.assertEqual(early.status_code, 409)
+        self.assertIn("retry_after_ms", early.json())
+        self.contact.refresh_from_db()
+        self.assertIsNone(self.contact.outreach_email_opened_at)
+
+        self.contact.outreach_email_open_started_at = timezone.now() - timedelta(seconds=3)
+        self.contact.save(update_fields=["outreach_email_open_started_at"])
+        confirm = self.client.post(
+            reverse("crm_tracking_open_confirm", args=[self.contact.tracking_slug])
+        )
+        self.assertEqual(confirm.status_code, 200)
+        self.assertEqual(confirm.json()["status"], "opened")
+        self.contact.refresh_from_db()
+        self.assertIsNotNone(self.contact.outreach_email_opened_at)
+
+        self.client.force_login(self.superuser)
+        self.contact.outreach_email_status = "draft"
+        self.contact.outreach_email_body = "Hello"
+        self.contact.save(
+            update_fields=["outreach_email_status", "outreach_email_body", "updated_at"]
+        )
+        listed = self.client.get(reverse("crm"))
+        self.assertContains(listed, 'crm-open-badge is-opened')
+        self.assertContains(listed, ">Yes</span>")
+
+    def test_crm_tracking_open_ignores_prefetch(self):
+        ignored = self.client.post(
+            reverse("crm_tracking_open_start", args=[self.contact.tracking_slug]),
+            HTTP_SEC_PURPOSE="prefetch",
+        )
+        self.assertEqual(ignored.status_code, 204)
+        self.contact.refresh_from_db()
+        self.assertIsNone(self.contact.outreach_email_open_started_at)
+
+    def test_signed_in_home_keeps_ref_for_open_tracking(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get("/?ref=analytical-engines")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("ref=analytical-engines", response["Location"])
+        landed = self.client.get(response["Location"])
+        self.assertEqual(landed.status_code, 200)
+        self.assertContains(landed, "crm-open-track.js")

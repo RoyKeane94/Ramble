@@ -14,6 +14,8 @@ from notes.search import text_search_q
 
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 50
+CRM_DEFAULT_LIMIT = 50
+CRM_MAX_LIMIT = 100
 PREVIEW_CHARS = 240
 STARRED_ALBUM_NAMES = {"starred", "favourites", "favorites"}
 CRM_FIELDS = (
@@ -24,12 +26,26 @@ CRM_FIELDS = (
     "country",
     "website",
     "email",
+    "phone",
     "email_source",
+    "source",
     "personalisation_detail",
+    "notes",
+    "stage",
+    "last_contacted_on",
+    "last_contacted_channel",
+    "next_follow_up_on",
+    "do_not_contact",
     "response",
     "response_reason",
     "tracking_slug",
 )
+CRM_STAGE_VALUES = {value for value, _label in CrmContact.Stage.choices}
+CRM_CHANNEL_VALUES = {value for value, _label in CrmContact.ContactChannel.choices}
+CRM_TYPE_VALUES = {value for value, _label in CrmContact.ContactType.choices}
+CRM_EMAIL_STATUS_VALUES = {
+    value for value, _label in CrmContact.OutreachEmailStatus.choices
+}
 CRM_TOOL_NAMES = frozenset(
     {
         "list_crm_contacts",
@@ -178,8 +194,18 @@ def crm_allowed(user, auth_method="oauth", surface="claude"):
     )
 
 
-def list_crm_contacts(user, query="", limit=DEFAULT_LIMIT):
-    """List outreach CRM contacts, optionally filtered by a search string."""
+def list_crm_contacts(
+    user,
+    query="",
+    limit=CRM_DEFAULT_LIMIT,
+    offset=0,
+    contact_type="",
+    stage="",
+    follow_up_due_by="",
+    do_not_contact=None,
+    outreach_email_status="",
+):
+    """List outreach CRM contacts, optionally filtered and paged."""
     del user  # access checked by call_tool
     from django.db.models import Q
 
@@ -194,18 +220,64 @@ def list_crm_contacts(user, query="", limit=DEFAULT_LIMIT):
             | Q(country__icontains=q)
             | Q(website__icontains=q)
             | Q(email__icontains=q)
+            | Q(phone__icontains=q)
             | Q(email_source__icontains=q)
+            | Q(source__icontains=q)
             | Q(personalisation_detail__icontains=q)
+            | Q(notes__icontains=q)
+            | Q(stage__icontains=q)
             | Q(response__icontains=q)
             | Q(response_reason__icontains=q)
+            | Q(outreach_email_subject__icontains=q)
+            | Q(outreach_email_body__icontains=q)
             | Q(tracking_slug__icontains=q)
         )
-    capped = _clamp_limit(limit)
-    rows = list(contacts[:capped])
+    type_value = (contact_type or "").strip()
+    if type_value:
+        if type_value not in CRM_TYPE_VALUES:
+            raise ToolError(
+                "contact_type must be one of: "
+                + ", ".join(sorted(CRM_TYPE_VALUES))
+                + "."
+            )
+        contacts = contacts.filter(contact_type=type_value)
+    stage_value = (stage or "").strip()
+    if stage_value:
+        if stage_value not in CRM_STAGE_VALUES:
+            raise ToolError(
+                "stage must be one of: "
+                + ", ".join(sorted(CRM_STAGE_VALUES))
+                + "."
+            )
+        contacts = contacts.filter(stage=stage_value)
+    due_by = _parse_date_only(follow_up_due_by, "follow_up_due_by")
+    if due_by is not None:
+        contacts = contacts.filter(
+            next_follow_up_on__isnull=False,
+            next_follow_up_on__lte=due_by,
+        )
+    if do_not_contact is not None and do_not_contact != "":
+        contacts = contacts.filter(do_not_contact=_as_bool(do_not_contact, "do_not_contact"))
+    email_status = (outreach_email_status or "").strip()
+    if email_status:
+        if email_status not in CRM_EMAIL_STATUS_VALUES:
+            raise ToolError(
+                "outreach_email_status must be one of: "
+                + ", ".join(sorted(CRM_EMAIL_STATUS_VALUES))
+                + "."
+            )
+        contacts = contacts.filter(outreach_email_status=email_status)
+    capped = _clamp_crm_limit(limit)
+    start = _clamp_offset(offset)
+    total = contacts.count()
+    rows = list(contacts[start : start + capped])
     return {
         "contacts": [_serialize_crm_contact(row) for row in rows],
         "count": len(rows),
-        "total": contacts.count(),
+        "total": total,
+        "limit": capped,
+        "offset": start,
+        "has_more": start + len(rows) < total,
     }
 
 
@@ -224,10 +296,21 @@ def create_crm_contact(
     country="",
     website="",
     email="",
+    phone="",
     email_source="",
+    source="",
     personalisation_detail="",
+    notes="",
+    stage="",
+    last_contacted_on="",
+    last_contacted_channel="",
+    next_follow_up_on="",
+    do_not_contact=False,
     response="",
     response_reason="",
+    outreach_email_subject="",
+    outreach_email_body="",
+    outreach_email_status="",
     tracking_slug="",
 ):
     """Create a CRM outreach contact (same fields as /crm/)."""
@@ -241,8 +324,18 @@ def create_crm_contact(
             "country": country or "",
             "website": website or "",
             "email": email or "",
+            "phone": phone or "",
             "email_source": email_source or "",
+            "source": source or "",
             "personalisation_detail": personalisation_detail or "",
+            "notes": notes or "",
+            "stage": stage or CrmContact.Stage.NOT_CONTACTED,
+            "last_contacted_on": last_contacted_on or "",
+            "last_contacted_channel": last_contacted_channel or "",
+            "next_follow_up_on": next_follow_up_on or "",
+            "do_not_contact": _as_bool(do_not_contact, "do_not_contact")
+            if do_not_contact not in (None, "")
+            else False,
             "response": response or "",
             "response_reason": response_reason or "",
             "tracking_slug": tracking_slug or "",
@@ -250,7 +343,14 @@ def create_crm_contact(
     )
     if not form.is_valid():
         raise ToolError(_crm_form_error(form))
-    return _serialize_crm_contact(form.save())
+    contact = form.save()
+    _apply_outreach_email(
+        contact,
+        subject=outreach_email_subject,
+        body=outreach_email_body,
+        status=outreach_email_status,
+    )
+    return _serialize_crm_contact(contact)
 
 
 def update_crm_contact(
@@ -264,10 +364,21 @@ def update_crm_contact(
     country=None,
     website=None,
     email=None,
+    phone=None,
     email_source=None,
+    source=None,
     personalisation_detail=None,
+    notes=None,
+    stage=None,
+    last_contacted_on=None,
+    last_contacted_channel=None,
+    next_follow_up_on=None,
+    do_not_contact=None,
     response=None,
     response_reason=None,
+    outreach_email_subject=None,
+    outreach_email_body=None,
+    outreach_email_status=None,
     new_tracking_slug=None,
 ):
     """Update fields on an existing CRM contact. Omit a field to leave it unchanged."""
@@ -282,8 +393,16 @@ def update_crm_contact(
         "country": country,
         "website": website,
         "email": email,
+        "phone": phone,
         "email_source": email_source,
+        "source": source,
         "personalisation_detail": personalisation_detail,
+        "notes": notes,
+        "stage": stage,
+        "last_contacted_on": last_contacted_on,
+        "last_contacted_channel": last_contacted_channel,
+        "next_follow_up_on": next_follow_up_on,
+        "do_not_contact": do_not_contact,
         "response": response,
         "response_reason": response_reason,
         "tracking_slug": new_tracking_slug,
@@ -291,10 +410,32 @@ def update_crm_contact(
     for key, value in updates.items():
         if value is not None:
             data[key] = value
+    # Form date fields expect YYYY-MM-DD strings; None clears via empty string.
+    for date_field in ("last_contacted_on", "next_follow_up_on"):
+        value = data.get(date_field)
+        if value is None:
+            data[date_field] = ""
+        elif hasattr(value, "isoformat"):
+            data[date_field] = value.isoformat()
+    if data.get("do_not_contact") is None:
+        data["do_not_contact"] = False
+    else:
+        data["do_not_contact"] = _as_bool(data["do_not_contact"], "do_not_contact")
     form = CrmContactForm(data, instance=contact)
     if not form.is_valid():
         raise ToolError(_crm_form_error(form))
-    return _serialize_crm_contact(form.save())
+    contact = form.save()
+    if any(
+        value is not None
+        for value in (outreach_email_subject, outreach_email_body, outreach_email_status)
+    ):
+        _apply_outreach_email(
+            contact,
+            subject=outreach_email_subject,
+            body=outreach_email_body,
+            status=outreach_email_status,
+        )
+    return _serialize_crm_contact(contact)
 
 
 def delete_crm_contact(user, contact_id=None, tracking_slug=""):
@@ -593,24 +734,78 @@ def _webhook_tool_definitions():
 
 
 def _crm_tool_definitions():
+    stage_enum = sorted(CRM_STAGE_VALUES)
+    type_enum = ["", *sorted(CRM_TYPE_VALUES)]
+    channel_enum = ["", *sorted(CRM_CHANNEL_VALUES)]
     contact_props = {
         "first_name": {"type": "string"},
         "business_name": {"type": "string"},
-        "contact_type": {"type": "string", "description": "Type / role label."},
+        "contact_type": {
+            "type": "string",
+            "description": "Contact type (e.g. celebrant).",
+            "enum": type_enum,
+        },
         "region": {"type": "string"},
         "country": {"type": "string"},
         "website": {"type": "string"},
         "email": {"type": "string"},
+        "phone": {"type": "string", "description": "Phone number for outreach calls."},
         "email_source": {"type": "string"},
+        "source": {
+            "type": "string",
+            "description": "Where we found them (e.g. The Celebrant Directory, UKSOC, Google Maps).",
+        },
         "personalisation_detail": {"type": "string"},
+        "notes": {
+            "type": "string",
+            "description": "Free-text log for call outcomes and anything they said.",
+        },
+        "stage": {
+            "type": "string",
+            "description": "Outreach pipeline stage.",
+            "enum": stage_enum,
+        },
+        "last_contacted_on": {
+            "type": "string",
+            "description": "Date last contacted, YYYY-MM-DD.",
+        },
+        "last_contacted_channel": {
+            "type": "string",
+            "description": "Channel of last contact: email or call.",
+            "enum": channel_enum,
+        },
+        "next_follow_up_on": {
+            "type": "string",
+            "description": "Next follow-up date, YYYY-MM-DD.",
+        },
+        "do_not_contact": {
+            "type": "boolean",
+            "description": "True if they asked to be left alone.",
+        },
         "response": {
             "type": "string",
-            "description": "Outreach response: signed_up, declined, revisit, or empty.",
+            "description": "End result: signed_up, declined, revisit, or empty.",
             "enum": ["", "signed_up", "declined", "revisit"],
         },
         "response_reason": {
             "type": "string",
             "description": "Optional reason for the response.",
+        },
+        "outreach_email_subject": {
+            "type": "string",
+            "description": "Subject line for the outreach email draft.",
+        },
+        "outreach_email_body": {
+            "type": "string",
+            "description": (
+                "Body of the outreach email draft. "
+                "The contact tracking_url (?ref=<slug>) is auto-appended if missing."
+            ),
+        },
+        "outreach_email_status": {
+            "type": "string",
+            "description": "Outreach email status: draft, approved, or empty. Writing subject/body defaults to draft.",
+            "enum": ["", *sorted(CRM_EMAIL_STATUS_VALUES)],
         },
         "tracking_slug": {
             "type": "string",
@@ -621,18 +816,61 @@ def _crm_tool_definitions():
         "contact_id": {"type": "integer", "description": "CRM contact id."},
         "tracking_slug": {"type": "string", "description": "Unique tracking slug."},
     }
+    update_props = {
+        **id_props,
+        **{key: value for key, value in contact_props.items() if key != "tracking_slug"},
+        "new_tracking_slug": {
+            "type": "string",
+            "description": "New unique tracking slug (optional).",
+        },
+    }
     return [
         {
             "name": "list_crm_contacts",
             "description": (
                 "List Ramble CRM outreach contacts (same as /crm/). "
-                "Optional query matches name, business, email, region, slug, and notes."
+                "Optional query matches name, business, email, phone, source, notes, stage, and slug. "
+                "Filter with contact_type (e.g. celebrant). "
+                "Use offset/limit to page through large lists. "
+                "Pass follow_up_due_by (YYYY-MM-DD) for contacts due a follow-up on or before that date."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "Optional search text."},
-                    "limit": {"type": "integer", "description": f"Max rows (default {DEFAULT_LIMIT}, max {MAX_LIMIT})."},
+                    "contact_type": {
+                        "type": "string",
+                        "description": "Filter to one contact type.",
+                        "enum": sorted(CRM_TYPE_VALUES),
+                    },
+                    "stage": {
+                        "type": "string",
+                        "description": "Filter to one pipeline stage.",
+                        "enum": stage_enum,
+                    },
+                    "follow_up_due_by": {
+                        "type": "string",
+                        "description": "Only contacts with next_follow_up_on on or before this YYYY-MM-DD.",
+                    },
+                    "do_not_contact": {
+                        "type": "boolean",
+                        "description": "Filter by do-not-contact flag.",
+                    },
+                    "outreach_email_status": {
+                        "type": "string",
+                        "description": "Filter by outreach email status.",
+                        "enum": sorted(CRM_EMAIL_STATUS_VALUES),
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": (
+                            f"Max rows per page (default {CRM_DEFAULT_LIMIT}, max {CRM_MAX_LIMIT})."
+                        ),
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Rows to skip for paging (default 0).",
+                    },
                 },
             },
             "annotations": {"readOnlyHint": True, "idempotentHint": True},
@@ -663,35 +901,12 @@ def _crm_tool_definitions():
             "name": "update_crm_contact",
             "description": (
                 "Update a CRM contact. Identify with contact_id or tracking_slug. "
-                "Pass only fields to change. Use new_tracking_slug to rename the slug."
+                "Pass only fields to change. Use new_tracking_slug to rename the slug. "
+                "Pass empty strings for optional text/date fields to clear them."
             ),
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    **id_props,
-                    "first_name": {"type": "string"},
-                    "business_name": {"type": "string"},
-                    "contact_type": {"type": "string"},
-                    "region": {"type": "string"},
-                    "country": {"type": "string"},
-                    "website": {"type": "string"},
-                    "email": {"type": "string"},
-                    "email_source": {"type": "string"},
-                    "personalisation_detail": {"type": "string"},
-                    "response": {
-                        "type": "string",
-                        "description": "Outreach response: signed_up, declined, revisit, or empty.",
-                        "enum": ["", "signed_up", "declined", "revisit"],
-                    },
-                    "response_reason": {
-                        "type": "string",
-                        "description": "Optional reason for the response.",
-                    },
-                    "new_tracking_slug": {
-                        "type": "string",
-                        "description": "New unique tracking slug (optional).",
-                    },
-                },
+                "properties": update_props,
             },
             "annotations": {
                 "readOnlyHint": False,
@@ -873,6 +1088,40 @@ def _clamp_limit(value):
     return max(1, min(number, MAX_LIMIT))
 
 
+def _clamp_crm_limit(value):
+    if value is None or value == "":
+        return CRM_DEFAULT_LIMIT
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ToolError("limit must be a number.") from exc
+    return max(1, min(number, CRM_MAX_LIMIT))
+
+
+def _clamp_offset(value):
+    if value is None or value == "":
+        return 0
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ToolError("offset must be a number.") from exc
+    if number < 0:
+        raise ToolError("offset must be 0 or greater.")
+    return number
+
+
+def _parse_date_only(value, field):
+    text = (value or "").strip() if isinstance(value, str) else value
+    if text in (None, ""):
+        return None
+    if hasattr(text, "isoformat") and not isinstance(text, str):
+        return text
+    day = parse_date(str(text).strip())
+    if day is None:
+        raise ToolError(f"{field} must be YYYY-MM-DD, not {text!r}.")
+    return day
+
+
 def _summarize(note):
     if note.is_processing:
         status = "developing"
@@ -930,15 +1179,46 @@ def _serialize_crm_contact(contact):
         "first_name": contact.first_name,
         "business_name": contact.business_name,
         "contact_type": contact.contact_type,
+        "contact_type_label": (
+            contact.get_contact_type_display() if contact.contact_type else ""
+        ),
         "region": contact.region,
         "country": contact.country,
         "website": contact.website,
         "email": contact.email,
+        "phone": contact.phone,
         "email_source": contact.email_source,
+        "source": contact.source,
         "personalisation_detail": contact.personalisation_detail,
+        "notes": contact.notes,
+        "stage": contact.stage,
+        "stage_label": contact.get_stage_display() if contact.stage else "",
+        "last_contacted_on": contact.last_contacted_on.isoformat()
+        if contact.last_contacted_on
+        else None,
+        "last_contacted_channel": contact.last_contacted_channel,
+        "last_contacted_channel_label": (
+            contact.get_last_contacted_channel_display()
+            if contact.last_contacted_channel
+            else ""
+        ),
+        "next_follow_up_on": contact.next_follow_up_on.isoformat()
+        if contact.next_follow_up_on
+        else None,
+        "do_not_contact": contact.do_not_contact,
         "response": contact.response,
         "response_label": contact.get_response_display() if contact.response else "",
         "response_reason": contact.response_reason,
+        "outreach_email_subject": contact.outreach_email_subject,
+        "outreach_email_body": contact.outreach_email_body,
+        "outreach_email_status": contact.outreach_email_status,
+        "outreach_email_status_label": (
+            contact.get_outreach_email_status_display()
+            if contact.outreach_email_status
+            else ""
+        ),
+        "outreach_email_opened": contact.outreach_email_opened,
+        "outreach_email_opened_at": _iso(contact.outreach_email_opened_at),
         "tracking_slug": contact.tracking_slug,
         "tracking_url": contact.tracking_url,
         "created_at": _iso(contact.created_at),
@@ -952,6 +1232,40 @@ def _crm_form_error(form):
         label = "contact" if field == "__all__" else field
         parts.append(f"{label}: {'; '.join(errors)}")
     return "; ".join(parts) or "Invalid CRM contact."
+
+
+def _apply_outreach_email(contact, subject=None, body=None, status=None):
+    update_fields = []
+    if subject is not None:
+        contact.outreach_email_subject = (subject or "").strip()
+        update_fields.append("outreach_email_subject")
+    if body is not None:
+        contact.outreach_email_body = (body or "").strip()
+        update_fields.append("outreach_email_body")
+    if status is not None:
+        cleaned = (status or "").strip()
+        if cleaned and cleaned not in CRM_EMAIL_STATUS_VALUES:
+            raise ToolError(
+                "outreach_email_status must be one of: "
+                + ", ".join(sorted(CRM_EMAIL_STATUS_VALUES))
+                + "."
+            )
+        contact.outreach_email_status = cleaned
+        update_fields.append("outreach_email_status")
+    elif subject is not None or body is not None:
+        if contact.outreach_email_subject or contact.outreach_email_body:
+            contact.outreach_email_status = CrmContact.OutreachEmailStatus.DRAFT
+        else:
+            contact.outreach_email_status = ""
+        update_fields.append("outreach_email_status")
+    if contact.ensure_tracking_url_in_body():
+        if "outreach_email_body" not in update_fields:
+            update_fields.append("outreach_email_body")
+    if not update_fields:
+        return contact
+    update_fields.append("updated_at")
+    contact.save(update_fields=sorted(set(update_fields)))
+    return contact
 
 
 def as_tool_result(data, is_error=False):

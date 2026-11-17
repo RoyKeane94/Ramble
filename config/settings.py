@@ -35,6 +35,12 @@ CSRF_TRUSTED_ORIGINS = _csv(
 )
 
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://yourramble.com").strip().rstrip("/")
+# CRM tracking links: use local origin in DEBUG so open-tracking hits this server/DB.
+TRACKING_BASE_URL = os.environ.get("TRACKING_BASE_URL", "").strip().rstrip("/")
+if not TRACKING_BASE_URL:
+    TRACKING_BASE_URL = (
+        "http://127.0.0.1:8000" if DEBUG else PUBLIC_BASE_URL
+    )
 CANONICAL_HOST = _host(PUBLIC_BASE_URL).lower()
 _redirect_hosts = set()
 
