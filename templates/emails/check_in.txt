@@ -1,0 +1,11 @@
+Hi {{ first_name }},
+
+You've had Ramble for a few days now. How's it going?
+
+If you haven't tried it yet, next time a thought pops up, press the button and say it. It'll be waiting on your phone or laptop whenever you look. Get the app here: {{ app_store_url }}, then sign in with {{ email }}.
+
+Tom
+Founder, Ramble
+
+Manage billing: {{ billing_url }}
+Privacy: {{ privacy_url }}

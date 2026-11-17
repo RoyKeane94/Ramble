@@ -9,7 +9,12 @@ from django.utils import timezone
 
 from notes.models import Note
 
-from .emails import greeting_name, send_welcome_email
+from .emails import (
+    greeting_name,
+    schedule_check_in_email_for_user,
+    send_check_in_email,
+    send_welcome_email,
+)
 from .kpi import format_duration, user_kpis
 from .models import CrmContact, PendingSignup, ProcessedStripeEvent
 from .stripe_billing import (
@@ -208,8 +213,9 @@ class FulfillmentTests(TestCase):
         self.assertEqual(TRIAL_PERIOD_DAYS, 7)
         self.assertEqual(kwargs["payment_method_collection"], "always")
 
+    @patch("accounts.stripe_billing.schedule_check_in_email_for_user")
     @patch("accounts.stripe_billing.send_welcome_email")
-    def test_fulfill_sends_welcome_email_once(self, mock_welcome):
+    def test_fulfill_sends_welcome_email_once(self, mock_welcome, mock_check_in):
         pending = PendingSignup.create_for_credentials("welcome@example.com", "password12")
         session = {
             "id": "cs_test_welcome",
@@ -222,10 +228,13 @@ class FulfillmentTests(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             fulfill_checkout_session(session)
         mock_welcome.assert_called_once_with(email="welcome@example.com")
+        mock_check_in.assert_called_once()
+        self.assertEqual(mock_check_in.call_args.args[0].email, "welcome@example.com")
 
         with self.captureOnCommitCallbacks(execute=True):
             fulfill_checkout_session(session)
         mock_welcome.assert_called_once_with(email="welcome@example.com")
+        mock_check_in.assert_called_once()
 
 
 class WelcomeEmailTests(TestCase):
@@ -261,6 +270,61 @@ class WelcomeEmailTests(TestCase):
     def test_send_welcome_email_skipped_without_key(self, mock_send):
         self.assertFalse(send_welcome_email(email="skip@example.com"))
         mock_send.assert_not_called()
+
+    @override_settings(
+        RESEND_API_KEY="re_test",
+        DEFAULT_FROM_EMAIL="Tom <hello@mail.yourramble.com>",
+        EMAIL_REPLY_TO="tom@yourramble.com",
+        PUBLIC_BASE_URL="https://yourramble.com",
+        APP_STORE_URL="https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+    )
+    @patch("accounts.emails.resend.Emails.send")
+    def test_send_check_in_email_scheduled(self, mock_send):
+        mock_send.return_value = {"id": "email_check_in"}
+        self.assertTrue(
+            send_check_in_email(
+                email="jane.doe@example.com",
+                scheduled_at="2026-11-20T20:00:00Z",
+            )
+        )
+        payload = mock_send.call_args.args[0]
+        self.assertEqual(payload["subject"], "Quick check-in")
+        self.assertEqual(payload["scheduled_at"], "2026-11-20T20:00:00Z")
+        self.assertIn("Hi Jane Doe,", payload["html"])
+        self.assertIn("a few days now", payload["text"])
+        self.assertIn("next time a thought pops up", payload["text"])
+
+    @override_settings(
+        RESEND_API_KEY="re_test",
+        DEFAULT_FROM_EMAIL="Tom <hello@mail.yourramble.com>",
+        EMAIL_REPLY_TO="tom@yourramble.com",
+        PUBLIC_BASE_URL="https://yourramble.com",
+    )
+    @patch("accounts.emails.resend.Emails.send")
+    def test_schedule_check_in_email_for_new_user(self, mock_send):
+        mock_send.return_value = {"id": "email_check_in"}
+        user = User.objects.create_user("checkin@example.com", "password12")
+        self.assertTrue(schedule_check_in_email_for_user(user))
+        user.refresh_from_db()
+        self.assertIsNotNone(user.check_in_email_scheduled_at)
+        payload = mock_send.call_args.args[0]
+        self.assertEqual(payload["subject"], "Quick check-in")
+        self.assertIn("scheduled_at", payload)
+        self.assertFalse(schedule_check_in_email_for_user(user))
+        self.assertEqual(mock_send.call_count, 1)
+
+    @override_settings(RESEND_API_KEY="re_test")
+    @patch("accounts.emails.resend.Emails.send")
+    def test_schedule_check_in_email_sends_immediately_when_due(self, mock_send):
+        mock_send.return_value = {"id": "email_check_in"}
+        user = User.objects.create_user("due@example.com", "password12")
+        User.objects.filter(pk=user.pk).update(
+            date_joined=timezone.now() - timedelta(days=4)
+        )
+        user.refresh_from_db()
+        self.assertTrue(schedule_check_in_email_for_user(user))
+        payload = mock_send.call_args.args[0]
+        self.assertNotIn("scheduled_at", payload)
 
 
 class BillingPortalTests(TestCase):

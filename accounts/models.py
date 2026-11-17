@@ -66,6 +66,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default="", db_index=True)
     subscription_status = models.CharField(max_length=32, blank=True, default="")
+    check_in_email_scheduled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the day-3 check-in email was queued with Resend.",
+    )
 
     objects = UserManager()
 

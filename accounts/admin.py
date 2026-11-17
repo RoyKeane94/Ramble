@@ -59,6 +59,7 @@ class UserAdmin(admin.ModelAdmin):
         "mcp_token_prefix",
         "mcp_token_created_at",
         "take_ready_webhook_saved_at",
+        "check_in_email_scheduled_at",
         "stripe_customer_id",
         "stripe_subscription_id",
     )
@@ -93,5 +94,8 @@ class UserAdmin(admin.ModelAdmin):
             },
         ),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Dates", {"fields": ("last_login", "date_joined")}),
+        (
+            "Dates",
+            {"fields": ("last_login", "date_joined", "check_in_email_scheduled_at")},
+        ),
     )

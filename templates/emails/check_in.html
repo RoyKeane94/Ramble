@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick check-in</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f4f1;color:#1a1a1a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f4f1;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:32px 28px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.55;color:#1a1a1a;">
+          <tr>
+            <td>
+              <p style="margin:0 0 16px;">Hi {{ first_name }},</p>
+              <p style="margin:0 0 16px;">You've had Ramble for a few days now. How's it going?</p>
+              <p style="margin:0 0 16px;">If you haven't tried it yet, next time a thought pops up, press the button and say it. It'll be waiting on your phone or laptop whenever you look. Get the app here: <a href="{{ app_store_url }}" style="color:#1a1a1a;">{{ app_store_url }}</a>, then sign in with <strong>{{ email }}</strong>.</p>
+              <p style="margin:0 0 4px;">Tom</p>
+              <p style="margin:0 0 28px;">Founder, Ramble</p>
+              <p style="margin:0;font-size:13px;line-height:1.4;color:#666666;">
+                <a href="{{ billing_url }}" style="color:#666666;">Manage billing</a>
+                &nbsp;·&nbsp;
+                <a href="{{ privacy_url }}" style="color:#666666;">Privacy</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
