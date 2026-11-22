@@ -3995,6 +3995,28 @@ a.album-chip:focus-visible {
   word-break: break-word;
 }
 
+.auth-welcome-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.auth-welcome-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+
+.auth-welcome-note a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media (max-width: 860px) {
   .auth-card--signup {
     grid-template-columns: 1fr;

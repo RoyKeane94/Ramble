@@ -144,6 +144,9 @@ class SignupCheckoutTests(TestCase):
             "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
         )
         self.assertContains(response, "data:image/svg+xml")
+        self.assertContains(response, "Claude, Grok, and GrokBot")
+        self.assertContains(response, reverse("settings"))
+        self.assertContains(response, "tom@yourramble.com")
         self.assertContains(response, reverse("notes:list"))
         user = User.objects.get(email="paid@example.com")
         self.assertTrue(user.check_password("password12"))
