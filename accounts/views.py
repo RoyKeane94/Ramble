@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from urllib.parse import urlencode
 
 import segno
 from django.conf import settings as django_settings
@@ -66,6 +67,10 @@ class RambleLogoutView(LogoutView):
 
 def signup(request):
     if request.user.is_authenticated:
+        # Keep ?ref= so CRM open-tracking still runs after the signed-in redirect.
+        ref = (request.GET.get("ref") or "").strip()
+        if ref:
+            return redirect(f"{reverse(django_settings.LOGIN_REDIRECT_URL)}?{urlencode({'ref': ref})}")
         return redirect(django_settings.LOGIN_REDIRECT_URL)
 
     form = SignupForm()

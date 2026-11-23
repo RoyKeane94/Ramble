@@ -749,7 +749,7 @@ class CrmDashboardTests(TestCase):
         self.assertContains(response, "Analytical Engines")
         self.assertContains(response, "ada@example.com")
         self.assertContains(response, "analytical-engines")
-        self.assertContains(response, "https://yourramble.com/?ref=analytical-engines")
+        self.assertContains(response, "https://yourramble.com/signup/?ref=analytical-engines")
         self.assertContains(response, reverse("crm"))
         self.assertContains(response, "crm-contact-modal")
         self.assertContains(response, 'data-crm-modal-open')
@@ -797,7 +797,7 @@ class CrmDashboardTests(TestCase):
         contact = CrmContact.objects.get(email="grace@example.com")
         self.assertEqual(contact.tracking_slug, "navy-code")
         self.assertEqual(contact.website, "https://navycode.example.com")
-        self.assertEqual(contact.tracking_url, "https://yourramble.com/?ref=navy-code")
+        self.assertEqual(contact.tracking_url, "https://yourramble.com/signup/?ref=navy-code")
         self.assertEqual(contact.phone, "+1 212 555 0100")
         self.assertEqual(contact.contact_type, "celebrant")
         self.assertEqual(contact.source, "UKSOC")
@@ -928,7 +928,7 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(self.contact.outreach_email_subject, "Quick note")
         self.assertIn("Thought of you", self.contact.outreach_email_body)
         self.assertIn(
-            "https://yourramble.com/?ref=analytical-engines",
+            "https://yourramble.com/signup/?ref=analytical-engines",
             self.contact.outreach_email_body,
         )
 
@@ -1013,6 +1013,15 @@ class CrmDashboardTests(TestCase):
     def test_signed_in_home_keeps_ref_for_open_tracking(self):
         self.client.force_login(self.superuser)
         response = self.client.get("/?ref=analytical-engines")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("ref=analytical-engines", response["Location"])
+        landed = self.client.get(response["Location"])
+        self.assertEqual(landed.status_code, 200)
+        self.assertContains(landed, "crm-open-track.js")
+
+    def test_signed_in_signup_keeps_ref_for_open_tracking(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get("/signup/?ref=analytical-engines")
         self.assertEqual(response.status_code, 302)
         self.assertIn("ref=analytical-engines", response["Location"])
         landed = self.client.get(response["Location"])

@@ -283,7 +283,7 @@ class CrmContact(models.Model):
         ).rstrip("/")
         if not base or not self.tracking_slug:
             return ""
-        return f"{base}/?ref={self.tracking_slug}"
+        return f"{base}/signup/?ref={self.tracking_slug}"
 
     @property
     def outreach_email_opened(self):
