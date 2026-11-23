@@ -118,6 +118,20 @@ class HomePageTests(SimpleTestCase):
         self.assertContains(response, settings.APP_STORE_URL)
         self.assertContains(response, reverse("signup"))
 
+    def test_landing_seo_and_sharing(self):
+        response = self.client.get(reverse("notes:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'lang="en-GB"', html=False)
+        self.assertContains(
+            response,
+            "Ramble — You had the thought. Say it before it goes.",
+        )
+        self.assertContains(response, 'property="og:title"', html=False)
+        self.assertContains(response, 'name="twitter:card"', html=False)
+        self.assertContains(response, "summary_large_image")
+        self.assertContains(response, "og-image.png")
+        self.assertContains(response, "7-day free trial, then £9.99 a month.")
+
 
 class DevelopApiTests(TestCase):
     def setUp(self):

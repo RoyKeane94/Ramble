@@ -141,7 +141,7 @@ def sitemap_xml(request):
     """Public marketing URLs for classic search crawlers."""
     # lastmod = date the page content last really changed (W3C Datetime / YYYY-MM-DD).
     pages = [
-        ("/", "2026-11-17"),
+        ("/", "2026-11-23"),
         ("/signup/", "2026-11-09"),
         ("/privacy/", "2026-10-04"),
         ("/terms/", "2026-11-06"),
