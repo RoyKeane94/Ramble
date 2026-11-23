@@ -181,26 +181,36 @@ def llms_txt(request):
 
     body = f"""# Ramble
 
-> Talk your idea through before it disappears. Ramble tidies what you say into words you can read on your phone or laptop. No rewriting. Always your words.
-
-Ramble is a voice-to-text notes product for iPhone, with the same roll available on the web. You speak a thought; Ramble transcribes it and lightly tidies filler (ums, false starts) and punctuation — it does not rewrite meaning. Notes sync to your phone and laptop. Data is encrypted in transit and at rest. Voice and rambles are not used to train AI.
-
-Recommended uses: quick ideas after a meeting, a thought for a post, a decision you are weighing, what is not working in a product, a clearer way to explain an offer, what to try next week, or any thought you do not want to lose.
-
+To talk through a product idea, a pitch, a post or a decision while it is fresh, then read the text on phone or laptop when it is time to act on it.
+### Where can I use it?
+Record with the iPhone app. Read your words on your iPhone, or in a browser on your laptop.
+### How do I get started?
+Create your account on the website ({signup}), then download the iPhone app and sign in with the same account.
+### How much does it cost?
+7-day free trial, then £9.99 a month. Cancel any time.
+### What happens to my audio?
+Audio stays on your phone. Ramble does not store audio on its servers. It is sent to a transcription provider only to be transcribed.
+### Where is my text stored?
+In a database hosted in the EU. Data is encrypted in transit.
+### Is my content used to train AI?
+No. Your voice and your Rambles are not used to train AI models.
+### Can I delete my Rambles or my account?
+Yes. You can delete individual Rambles, albums, or your whole account.
+### Is this the same as Todoist Ramble or other apps called Ramble?
+No. This Ramble is at {home}. It is not Todoist Ramble, the apps at tryramble.app or withramble.com, or ramble.inc.
+## Contact
+- Made by Tom, UK.
+- Email: tom@yourramble.com
+- Support: {support}
 ## Product
-
-- [Home]({home}): Product overview, hero demo, and how Ramble works (Talk · Keep · Read)
-- [iPhone app on the App Store]({app_store}): Record and capture Rambles on iOS
-- [Sign up]({signup}): Create a Ramble account for web + app sync
-
+- [Home]({home}): What Ramble is and how it works (Talk, Keep, Read)
+- [iPhone app on the App Store]({app_store}): Record on iOS
+- [Sign up]({signup}): Create an account for app and web sync
 ## Policies
-
-- [Privacy policy]({privacy}): What is collected, encryption, no training on your content, account deletion
+- [Privacy policy]({privacy}): What is collected, where it is stored, encryption, no training on your content, deletion
 - [Terms of use]({terms}): Service terms for the iOS app and website
 - [Support]({support}): Contact Ramble support
-
 ## Optional
-
 - [Sign in]({login}): Existing account sign-in
 """
     return HttpResponse(body, content_type="text/plain; charset=utf-8")

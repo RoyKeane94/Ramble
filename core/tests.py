@@ -169,7 +169,13 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("text/plain", response["Content-Type"])
         body = response.content.decode()
         self.assertTrue(body.startswith("# Ramble\n"))
-        self.assertIn("> Talk your idea through before it disappears.", body)
+        self.assertIn(
+            "To talk through a product idea, a pitch, a post or a decision",
+            body,
+        )
+        self.assertIn("### How much does it cost?", body)
+        self.assertIn("£9.99 a month", body)
+        self.assertIn("tom@yourramble.com", body)
         self.assertIn("[Home](", body)
         self.assertIn("/privacy/", body)
         self.assertIn("/terms/", body)
