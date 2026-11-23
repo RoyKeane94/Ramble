@@ -139,23 +139,21 @@ def robots_txt(request):
 
 def sitemap_xml(request):
     """Public marketing URLs for classic search crawlers."""
+    # lastmod = date the page content last really changed (W3C Datetime / YYYY-MM-DD).
     pages = [
-        ("/", "1.0", "weekly"),
-        ("/signup/", "0.8", "monthly"),
-        ("/privacy/", "0.5", "monthly"),
-        ("/terms/", "0.5", "monthly"),
-        ("/support/", "0.5", "monthly"),
-        ("/login/", "0.3", "monthly"),
-        ("/llms.txt", "0.4", "monthly"),
+        ("/", "2026-11-17"),
+        ("/signup/", "2026-11-09"),
+        ("/privacy/", "2026-10-04"),
+        ("/terms/", "2026-11-06"),
+        ("/support/", "2026-10-06"),
     ]
     url_entries = []
-    for path, priority, changefreq in pages:
+    for path, lastmod in pages:
         loc = request.build_absolute_uri(path)
         url_entries.append(
             "  <url>\n"
             f"    <loc>{loc}</loc>\n"
-            f"    <changefreq>{changefreq}</changefreq>\n"
-            f"    <priority>{priority}</priority>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
             "  </url>"
         )
     body = (

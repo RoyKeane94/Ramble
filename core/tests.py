@@ -157,7 +157,11 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("<loc>http://testserver/terms/</loc>", body)
         self.assertIn("<loc>http://testserver/support/</loc>", body)
         self.assertIn("<loc>http://testserver/signup/</loc>", body)
-        self.assertIn("<loc>http://testserver/llms.txt</loc>", body)
+        self.assertIn("<lastmod>", body)
+        self.assertNotIn("<changefreq>", body)
+        self.assertNotIn("<priority>", body)
+        self.assertNotIn("/login/", body)
+        self.assertNotIn("llms.txt", body)
 
     def test_llms_txt(self):
         response = self.client.get("/llms.txt")
