@@ -167,53 +167,24 @@ def sitemap_xml(request):
 
 def llms_txt(request):
     """LLM-oriented site map following https://llmstxt.org/"""
-    home = request.build_absolute_uri("/")
-    privacy = request.build_absolute_uri("/privacy/")
-    terms = request.build_absolute_uri("/terms/")
-    support = request.build_absolute_uri("/support/")
-    signup = request.build_absolute_uri("/signup/")
-    login = request.build_absolute_uri("/login/")
-    app_store = getattr(
-        settings,
-        "APP_STORE_URL",
-        "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+    return render(
+        request,
+        "llms.txt",
+        {
+            "home": request.build_absolute_uri("/"),
+            "privacy": request.build_absolute_uri("/privacy/"),
+            "terms": request.build_absolute_uri("/terms/"),
+            "support": request.build_absolute_uri("/support/"),
+            "signup": request.build_absolute_uri("/signup/"),
+            "login": request.build_absolute_uri("/login/"),
+            "app_store": getattr(
+                settings,
+                "APP_STORE_URL",
+                "https://apps.apple.com/gb/app/ramble-talk-to-text-notes/id6810091886",
+            ),
+        },
+        content_type="text/plain; charset=utf-8",
     )
-
-    body = f"""# Ramble
-
-To talk through a product idea, a pitch, a post or a decision while it is fresh, then read the text on phone or laptop when it is time to act on it.
-### Where can I use it?
-Record with the iPhone app. Read your words on your iPhone, or in a browser on your laptop.
-### How do I get started?
-Create your account on the website ({signup}), then download the iPhone app and sign in with the same account.
-### How much does it cost?
-7-day free trial, then £9.99 a month. Cancel any time.
-### What happens to my audio?
-Audio stays on your phone. Ramble does not store audio on its servers. It is sent to a transcription provider only to be transcribed.
-### Where is my text stored?
-In a database hosted in the EU. Data is encrypted in transit.
-### Is my content used to train AI?
-No. Your voice and your Rambles are not used to train AI models.
-### Can I delete my Rambles or my account?
-Yes. You can delete individual Rambles, albums, or your whole account.
-### Is this the same as Todoist Ramble or other apps called Ramble?
-No. This Ramble is at {home}. It is not Todoist Ramble, the apps at tryramble.app or withramble.com, or ramble.inc.
-## Contact
-- Made by Tom, UK.
-- Email: tom@yourramble.com
-- Support: {support}
-## Product
-- [Home]({home}): What Ramble is and how it works (Talk, Keep, Read)
-- [iPhone app on the App Store]({app_store}): Record on iOS
-- [Sign up]({signup}): Create an account for app and web sync
-## Policies
-- [Privacy policy]({privacy}): What is collected, where it is stored, encryption, no training on your content, deletion
-- [Terms of use]({terms}): Service terms for the iOS app and website
-- [Support]({support}): Contact Ramble support
-## Optional
-- [Sign in]({login}): Existing account sign-in
-"""
-    return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
 def security_txt(request):

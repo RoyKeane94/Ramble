@@ -169,10 +169,13 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("text/plain", response["Content-Type"])
         body = response.content.decode()
         self.assertTrue(body.startswith("# Ramble\n"))
-        self.assertIn(
-            "To talk through a product idea, a pitch, a post or a decision",
-            body,
-        )
+        self.assertIn("> You had the thought. Say it before it goes.", body)
+        self.assertIn("## The idea\n\n", body)
+        self.assertIn("## Who it's for and common uses\n\n", body)
+        self.assertIn("## What this Ramble is not\n\n", body)
+        self.assertIn("## Privacy and data\n\n", body)
+        self.assertIn("## FAQ\n\n", body)
+        self.assertIn("### How do founders and makers use it?", body)
         self.assertIn("### How much does it cost?", body)
         self.assertIn("£9.99 a month", body)
         self.assertIn("tom@yourramble.com", body)
@@ -180,7 +183,7 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("/privacy/", body)
         self.assertIn("/terms/", body)
         self.assertIn("/support/", body)
-        self.assertIn("## Optional", body)
+        self.assertIn("## Optional\n\n", body)
         self.assertIn("apps.apple.com", body)
 
     def test_security_txt(self):

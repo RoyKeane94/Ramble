@@ -1,0 +1,120 @@
+{% autoescape off %}# Ramble
+
+> You had the thought. Say it before it goes. Talk your idea through before it disappears. Ramble tidies what you say into words you can read on your phone or laptop. No rewriting. Always your words.
+
+Last updated: 23 November 2026
+
+Ramble ({{ home }}) is made by Tom, UK. It is an iPhone app with a web app. You tap once and talk a thought through, wherever you are, the moment it arrives. Ramble turns what you say into lightly tidied text you can read any time, on your iPhone or on your laptop.
+
+## The idea
+
+Thoughts arrive at awkward times: on a walk, in the car, straight after a meeting or a conversation. Often there is no page to hand, and by the time there is, the thought has gone or gone flat. Voice memos become recordings nobody plays back. Typing slows the thinking down. AI note tools rewrite you into someone else.
+
+Ramble does one thing: it lets you say it now and read it any time, in your own words.
+
+- Say it now: one button, no prompts. You talk; Ramble listens.
+- Read it any time: your Rambles appear as text, newest first, on your phone and on the web. Search them, star the ones that matter, and group them into albums.
+- Always your words: Ramble adds punctuation and drops fillers, repeats and false starts. It copies every other word through. It does not rewrite, summarise, or generate new wording. A slightly crooked sentence you recognise is the point.
+
+## Who it's for and common uses
+
+Ramble is for people who think better out loud and want the result as text they can read.
+
+- Talking an idea through: thinking out loud about a decision, a problem or a plan, then reading back what you actually said.
+- Celebrants (funeral and wedding): talking a ceremony through straight after the family or couple meeting, while it is fresh; keeping the family's own phrases and stories in their words; practising a eulogy, tribute or ceremony script out loud and reading it back.
+- Founders and makers: talking through a product idea, a pitch, a post or what to try next week, then reading the text on phone or laptop when it is time to act on it.
+- Wedding speeches: talking a best man, maid of honour, father of the bride or groom's speech through out loud, then shaping it from your own words.
+- Anyone who writes by talking: drafting a talk, a letter, a post or a difficult message by saying it first.
+- Getting things down on the go: an idea on a walk, in the car or between appointments, captured before it disappears.
+
+## What this Ramble is not
+
+To avoid confusion with other products that share the name, this Ramble is not:
+- Todoist Ramble, or the apps at tryramble.app or withramble.com, or ramble.inc.
+- A notebook, a journal app or a second brain.
+- A meeting recorder, call recorder or meeting transcription tool. It is for your own voice, not other people's conversations.
+- An AI writer. It will not write a eulogy, speech or post for you, and it does not rewrite or summarise what you say.
+- A CRM or booking tool for celebrants.
+
+## Privacy and data
+
+- Audio stays on the phone. Ramble does not store your audio on its servers; audio is sent to a transcription provider only to be transcribed.
+- Text is hosted in the EU.
+- Data is encrypted in transit.
+- Your voice and your Rambles are not used to train AI models.
+- You can delete individual Rambles, albums or your whole account.
+
+## Price and getting started
+
+- 7-day free trial, then £9.99 a month. Cancel any time.
+- Sign up on the web, record on iPhone, and read on iPhone or in any browser.
+
+## FAQ
+
+### What is Ramble?
+An iPhone app with a web app. You talk a thought through before it disappears, and Ramble turns what you say into lightly tidied text you can read on your phone or laptop. No rewriting. Always your words.
+
+### Will it rewrite what I say?
+No. Ramble adds punctuation and drops fillers, repeats and false starts. It copies every other word through. It does not summarise your thoughts, polish them or turn them into something else.
+
+### Is Ramble a meeting recorder or transcription service?
+No. Ramble is for your own voice: talking your own ideas through. It does not join calls or record other people's conversations.
+
+### Is Ramble a notebook or a second brain?
+No. It does one thing: you say it now and read it any time, in your own words.
+
+### Can a celebrant use Ramble for a eulogy or ceremony?
+Yes, to talk it through. Celebrants use Ramble straight after the family or couple meeting, while it is fresh, to keep the family's own phrases and stories, and to practise a eulogy, tribute or ceremony script out loud. Ramble will not write the eulogy for you. The words stay yours.
+
+### Can I use it to write a wedding speech?
+Yes. Talk the speech through out loud, read back what you said, and shape the final speech from your own words.
+
+### How do founders and makers use it?
+To talk through a product idea, a pitch, a post or a decision while it is fresh, then read the text on phone or laptop when it is time to act on it.
+
+### Where can I use it?
+Record with the iPhone app. Read your words on your iPhone, or in a browser on your laptop.
+
+### How do I get started?
+Create your account on the website ({{ signup }}), then download the iPhone app and sign in with the same account.
+
+### How much does it cost?
+7-day free trial, then £9.99 a month. Cancel any time.
+
+### What happens to my audio?
+Audio stays on your phone. Ramble does not store audio on its servers. It is sent to a transcription provider only to be transcribed.
+
+### Where is my text stored?
+In a database hosted in the EU. Data is encrypted in transit.
+
+### Is my content used to train AI?
+No. Your voice and your Rambles are not used to train AI models.
+
+### Can I delete my Rambles or my account?
+Yes. You can delete individual Rambles, albums, or your whole account.
+
+### Is this the same as Todoist Ramble or other apps called Ramble?
+No. This Ramble is at {{ home }}. It is not Todoist Ramble, the apps at tryramble.app or withramble.com, or ramble.inc.
+
+## Contact
+
+- Made by Tom, UK.
+- Email: tom@yourramble.com
+- Support: {{ support }}
+
+## Product
+
+- [Home]({{ home }}): What Ramble is and how it works (Talk, Keep, Read)
+- [iPhone app on the App Store]({{ app_store }}): Record on iOS
+- [Sign up]({{ signup }}): Create an account for app and web sync
+
+## Policies
+
+- [Privacy policy]({{ privacy }}): What is collected, where it is stored, encryption, no training on your content, deletion
+- [Terms of use]({{ terms }}): Service terms for the iOS app and website
+- [Support]({{ support }}): Contact Ramble support
+
+## Optional
+
+- [Sign in]({{ login }}): Existing account sign-in
+{% endautoescape %}
