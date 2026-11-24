@@ -5481,6 +5481,61 @@ textarea.blog-input {
   background: rgba(7, 20, 79, 0.24);
 }
 
+.crm-more-modal {
+  width: min(480px, calc(100vw - 2 * var(--pad)));
+}
+
+.crm-more-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+}
+
+.crm-more-subtitle {
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.crm-more-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crm-more-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.crm-more-row dt {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.crm-more-row dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.crm-more-row dd.crm-more-pre {
+  white-space: pre-wrap;
+}
+
+.crm-more-cell {
+  white-space: nowrap;
+}
+
 .crm-modal-form {
   display: flex;
   flex-direction: column;

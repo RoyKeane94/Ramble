@@ -509,14 +509,7 @@ CRM_INLINE_FIELDS = frozenset(
         "business_name",
         "region",
         "country",
-        "website",
-        "email",
-        "phone",
-        "email_source",
-        "source",
-        "personalisation_detail",
         "notes",
-        "response_reason",
     }
 )
 

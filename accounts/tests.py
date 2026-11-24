@@ -851,10 +851,18 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(self.contact.response, "signed_up")
         self.assertEqual(self.contact.response_reason, "Started trial")
         listed = self.client.get(reverse("crm"))
+        self.assertContains(listed, "See more")
+        self.assertContains(listed, 'data-crm-more-open')
         self.assertContains(listed, "Signed up")
         self.assertContains(listed, "Started trial")
         self.assertContains(listed, "Asked for a callback")
         self.assertContains(listed, "The Celebrant Directory")
+        self.assertNotContains(listed, "<th>Response</th>")
+        self.assertNotContains(listed, "<th>Tracking slug</th>")
+        self.assertNotContains(listed, "<th>Website</th>")
+        self.assertNotContains(listed, "<th>Personalisation</th>")
+        self.assertContains(listed, 'data-crm-more-email="ada@example.com"')
+        self.assertContains(listed, "Loves notebooks")
 
         delete = self.client.post(reverse("crm_delete", args=[self.contact.pk]))
         self.assertEqual(delete.status_code, 302)
@@ -865,47 +873,39 @@ class CrmDashboardTests(TestCase):
         listed = self.client.get(reverse("crm"))
         self.assertContains(listed, "data-crm-inline")
         self.assertContains(listed, "crm-inline-edit.js")
-        self.assertContains(listed, 'data-crm-field="phone"')
+        self.assertContains(listed, 'data-crm-field="notes"')
         self.assertContains(listed, reverse("crm_field_update", args=[self.contact.pk]))
 
         response = self.client.post(
             reverse("crm_field_update", args=[self.contact.pk]),
-            data='{"field": "phone", "value": "07976 792845"}',
+            data='{"field": "notes", "value": "Left a voicemail"}',
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "ok": True,
-            "field": "phone",
-            "value": "07976 792845",
+            "field": "notes",
+            "value": "Left a voicemail",
         })
         self.contact.refresh_from_db()
-        self.assertEqual(self.contact.phone, "07976 792845")
+        self.assertEqual(self.contact.notes, "Left a voicemail")
 
-        email = self.client.post(
+        region = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "region", "value": "Manchester"}',
+            content_type="application/json",
+        )
+        self.assertEqual(region.status_code, 200)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.region, "Manchester")
+
+        hidden_field = self.client.post(
             reverse("crm_field_update", args=[self.contact.pk]),
             data='{"field": "email", "value": "ada@analytical.example"}',
             content_type="application/json",
         )
-        self.assertEqual(email.status_code, 200)
-        self.contact.refresh_from_db()
-        self.assertEqual(self.contact.email, "ada@analytical.example")
-
-        website = self.client.post(
-            reverse("crm_field_update", args=[self.contact.pk]),
-            data='{"field": "website", "value": "analytical.example"}',
-            content_type="application/json",
-        )
-        self.assertEqual(website.status_code, 200)
-        self.assertEqual(website.json()["value"], "https://analytical.example")
-
-        invalid = self.client.post(
-            reverse("crm_field_update", args=[self.contact.pk]),
-            data='{"field": "email", "value": "not-an-email"}',
-            content_type="application/json",
-        )
-        self.assertEqual(invalid.status_code, 400)
-        self.assertFalse(invalid.json()["ok"])
+        self.assertEqual(hidden_field.status_code, 400)
+        self.assertFalse(hidden_field.json()["ok"])
 
         forbidden_field = self.client.post(
             reverse("crm_field_update", args=[self.contact.pk]),

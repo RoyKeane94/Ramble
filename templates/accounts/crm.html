@@ -55,12 +55,6 @@
               <th>Type</th>
               <th>Region</th>
               <th>Country</th>
-              <th>Website</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Email source</th>
-              <th>Source</th>
-              <th>Personalisation</th>
               <th>Outreach email</th>
               <th>Opened</th>
               <th>Notes</th>
@@ -68,10 +62,7 @@
               <th>Last contacted</th>
               <th>Next follow-up</th>
               <th>Do not contact</th>
-              <th>Response</th>
-              <th>Reason</th>
-              <th>Tracking slug</th>
-              <th>Tracking URL</th>
+              <th>More</th>
               <th></th>
             </tr>
           </thead>
@@ -94,43 +85,6 @@
               </td>
               <td class="crm-editable" data-crm-field="country" data-crm-value="{{ contact.country }}" tabindex="0" title="Click to edit">
                 <span class="crm-editable-display">{% if contact.country %}{{ contact.country }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
-              </td>
-              <td class="crm-editable" data-crm-field="website" data-crm-value="{{ contact.website }}" data-crm-link="url" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">
-                  {% if contact.website %}
-                  <a class="crm-link" href="{{ contact.website }}" target="_blank" rel="noopener noreferrer">{{ contact.website }}</a>
-                  {% else %}<span class="crm-empty">—</span>{% endif %}
-                </span>
-              </td>
-              <td class="crm-editable" data-crm-field="email" data-crm-value="{{ contact.email }}" data-crm-input="email" data-crm-link="mailto" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">
-                  {% if contact.email %}
-                  <a class="crm-link" href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-                  {% else %}<span class="crm-empty">—</span>{% endif %}
-                </span>
-              </td>
-              <td class="crm-editable" data-crm-field="phone" data-crm-value="{{ contact.phone }}" data-crm-input="tel" data-crm-link="tel" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">
-                  {% if contact.phone %}
-                  <a class="crm-link" href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
-                  {% else %}<span class="crm-empty">—</span>{% endif %}
-                </span>
-              </td>
-              <td class="crm-editable" data-crm-field="email_source" data-crm-value="{{ contact.email_source }}" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">{% if contact.email_source %}{{ contact.email_source }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
-              </td>
-              <td class="crm-editable" data-crm-field="source" data-crm-value="{{ contact.source }}" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">{% if contact.source %}{{ contact.source }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
-              </td>
-              <td class="crm-tip-cell crm-editable" data-crm-field="personalisation_detail" data-crm-value="{{ contact.personalisation_detail }}" data-crm-input="textarea" tabindex="0" title="Click to edit">
-                <span class="crm-editable-display">
-                  {% if contact.personalisation_detail %}
-                  <span class="crm-hover-tip" tabindex="0">
-                    <span class="crm-hover-tip-trigger">View</span>
-                    <span class="crm-hover-tip-panel" role="tooltip">{{ contact.personalisation_detail }}</span>
-                  </span>
-                  {% else %}<span class="crm-empty">—</span>{% endif %}
-                </span>
               </td>
               <td class="crm-tip-cell crm-email-cell">
                 <div class="crm-hover-tip crm-email-tip" tabindex="0">
@@ -176,7 +130,7 @@
                       {% endif %}
                       <p class="crm-email-open-line">
                         {% if contact.outreach_email_opened %}
-                          Opened {{ contact.outreach_email_opened_at|date:"Y-m-d H:i" }}
+                          Opened {{ contact.outreach_email_opened_at|date:"d-m-y H:i" }}
                         {% else %}
                           Not opened yet (counts after 3s on the tracking link)
                         {% endif %}
@@ -195,7 +149,7 @@
               </td>
               <td>
                 {% if contact.outreach_email_opened %}
-                <span class="crm-open-badge is-opened" title="{{ contact.outreach_email_opened_at|date:'Y-m-d H:i' }}">Yes</span>
+                <span class="crm-open-badge is-opened" title="{{ contact.outreach_email_opened_at|date:'d-m-y H:i' }}">Yes</span>
                 {% elif contact.outreach_email_status or contact.outreach_email_body or contact.outreach_email_subject %}
                 <span class="crm-open-badge">No</span>
                 {% else %}
@@ -208,20 +162,28 @@
               <td>{{ contact.get_stage_display }}</td>
               <td>
                 {% if contact.last_contacted_on %}
-                  {{ contact.last_contacted_on|date:"Y-m-d" }}{% if contact.last_contacted_channel %} · {{ contact.get_last_contacted_channel_display }}{% endif %}
+                  {{ contact.last_contacted_on|date:"d-m-y" }}{% if contact.last_contacted_channel %} · {{ contact.get_last_contacted_channel_display }}{% endif %}
                 {% else %}—{% endif %}
               </td>
-              <td>{% if contact.next_follow_up_on %}{{ contact.next_follow_up_on|date:"Y-m-d" }}{% else %}—{% endif %}</td>
+              <td>{% if contact.next_follow_up_on %}{{ contact.next_follow_up_on|date:"d-m-y" }}{% else %}—{% endif %}</td>
               <td>{% if contact.do_not_contact %}Yes{% else %}No{% endif %}</td>
-              <td>{{ contact.get_response_display|default:"—" }}</td>
-              <td class="crm-clip crm-editable" data-crm-field="response_reason" data-crm-value="{{ contact.response_reason }}" data-crm-input="textarea" tabindex="0" title="{% if contact.response_reason %}{{ contact.response_reason }}{% else %}Click to edit{% endif %}">
-                <span class="crm-editable-display">{% if contact.response_reason %}{{ contact.response_reason }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
-              </td>
-              <td><code class="crm-slug">{{ contact.tracking_slug }}</code></td>
-              <td>
-                {% if contact.tracking_url %}
-                <a class="crm-link" href="{{ contact.tracking_url }}" target="_blank" rel="noopener noreferrer">{{ contact.tracking_url }}</a>
-                {% else %}—{% endif %}
+              <td class="crm-more-cell">
+                <button
+                  type="button"
+                  class="crm-action"
+                  data-crm-more-open
+                  data-crm-more-title="{% if contact.business_name %}{{ contact.business_name }}{% elif contact.first_name %}{{ contact.first_name }}{% else %}Contact{% endif %}"
+                  data-crm-more-website="{{ contact.website }}"
+                  data-crm-more-email="{{ contact.email }}"
+                  data-crm-more-phone="{{ contact.phone }}"
+                  data-crm-more-email-source="{{ contact.email_source }}"
+                  data-crm-more-source="{{ contact.source }}"
+                  data-crm-more-personalisation="{{ contact.personalisation_detail }}"
+                  data-crm-more-response="{{ contact.get_response_display }}"
+                  data-crm-more-reason="{{ contact.response_reason }}"
+                  data-crm-more-slug="{{ contact.tracking_slug }}"
+                  data-crm-more-url="{{ contact.tracking_url }}"
+                >See more</button>
               </td>
               <td class="crm-actions">
                 <a class="crm-action" href="{% url 'crm_edit' contact.pk %}?{% if crm_type_filter %}type={{ crm_type_filter }}&amp;{% endif %}page={{ page_obj.number }}">Edit</a>
@@ -235,7 +197,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="23" class="kpi-empty">No contacts yet. Add one to get started.</td>
+              <td colspan="14" class="kpi-empty">No contacts yet. Add one to get started.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -259,6 +221,65 @@
     {% endif %}
   </section>
 </section>
+
+<dialog class="crm-modal crm-more-modal" id="crm-more-modal" aria-labelledby="crm-more-heading">
+  <div class="crm-more-panel">
+    <div class="crm-modal-head">
+      <h2 id="crm-more-heading" class="crm-modal-title">More details</h2>
+      <button type="button" class="crm-modal-close" aria-label="Close" data-crm-more-close>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6 6 18"/>
+        </svg>
+      </button>
+    </div>
+    <p class="crm-more-subtitle" data-crm-more-title></p>
+    <dl class="crm-more-list">
+      <div class="crm-more-row">
+        <dt>Website</dt>
+        <dd data-crm-more-website>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Email</dt>
+        <dd data-crm-more-email>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Phone</dt>
+        <dd data-crm-more-phone>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Email source</dt>
+        <dd data-crm-more-email-source>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Source</dt>
+        <dd data-crm-more-source>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Personalisation</dt>
+        <dd class="crm-more-pre" data-crm-more-personalisation>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Response</dt>
+        <dd data-crm-more-response>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Reason</dt>
+        <dd class="crm-more-pre" data-crm-more-reason>—</dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Tracking slug</dt>
+        <dd><code class="crm-slug" data-crm-more-slug>—</code></dd>
+      </div>
+      <div class="crm-more-row">
+        <dt>Tracking URL</dt>
+        <dd data-crm-more-url>—</dd>
+      </div>
+    </dl>
+    <div class="crm-modal-actions">
+      <button type="button" class="btn btn-primary" data-crm-more-close>Close</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog
   class="crm-modal"
@@ -333,6 +354,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/crm-modal.js' %}?v=1"></script>
+<script src="{% static 'js/crm-modal.js' %}?v=3"></script>
 <script src="{% static 'js/crm-inline-edit.js' %}?v=1"></script>
 {% endblock %}
