@@ -186,6 +186,7 @@ _RESERVED_ADMIN_URLS = {
     "logout",
     "settings",
     "kpi",
+    "blog",
     "api",
     "mcp",
     "healthz",

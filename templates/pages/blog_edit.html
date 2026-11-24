@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{% if editing %}Edit post{% else %}New post{% endif %} · Ramble{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+{% block body_attrs %} data-app-page="blog" data-app-shutter="off"{% endblock %}
+{% block app_title %}{% if editing %}Edit post{% else %}New post{% endif %}{% endblock %}
+{% block app_trailing %}
+  <a class="app-done" href="{% if editing %}{% url 'notes:blog_detail' editing.slug %}{% else %}{% url 'notes:blog' %}{% endif %}">Cancel</a>
+{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <header class="page-head desktop-chrome">
+    <h1 class="page-title">{% if editing %}Edit post{% else %}New post{% endif %}</h1>
+  </header>
+
+  <form
+    method="post"
+    action="{% if editing %}{% url 'notes:blog_edit' editing.slug %}{% else %}{% url 'notes:blog_create' %}{% endif %}"
+    class="blog-form"
+    novalidate
+  >
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="blog-form-errors" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% for field in form %}
+    <label class="blog-field{% if field.name == 'is_published' %} blog-field-check{% endif %}">
+      {% if field.name == 'is_published' %}
+      <span class="blog-check-row">
+        {{ field }}
+        <span class="blog-label">{{ field.label }}</span>
+      </span>
+      {% else %}
+      <span class="blog-label">{{ field.label }}</span>
+      {{ field }}
+      {% endif %}
+      {% if field.help_text %}
+      <span class="blog-help">{{ field.help_text }}</span>
+      {% endif %}
+      {% if field.errors %}
+      <span class="blog-field-error">{{ field.errors|striptags }}</span>
+      {% endif %}
+    </label>
+    {% endfor %}
+
+    <div class="blog-form-actions">
+      {% if editing %}
+      <button
+        type="submit"
+        class="btn btn-ghost blog-delete-btn"
+        formaction="{% url 'notes:blog_delete' editing.slug %}"
+        formmethod="post"
+        onclick="return confirm('Delete this post?');"
+      >Delete</button>
+      <a class="btn btn-ghost" href="{% url 'notes:blog_detail' editing.slug %}">Cancel</a>
+      {% else %}
+      <a class="btn btn-ghost" href="{% url 'notes:blog' %}">Cancel</a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">
+        {% if editing %}Save post{% else %}Create post{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

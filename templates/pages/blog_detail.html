@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load blog_extras %}
+
+{% block title %}{{ post.title }} · Ramble{% endblock %}
+{% block meta_description %}{% if post.excerpt %}{{ post.excerpt }}{% else %}{{ post.title }} — Ramble blog{% endif %}{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+{% block body_attrs %} data-app-page="blog"{% endblock %}
+{% block app_title %}Blog{% endblock %}
+{% block app_trailing %}
+  {% if user.is_superuser %}
+  <a class="app-done" href="{% url 'notes:blog_edit' post.slug %}">Edit</a>
+  {% else %}
+  <a class="app-done" href="{% url 'notes:blog' %}">Done</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <article class="legal-doc blog-post">
+    <header class="page-head">
+      {% if not post.is_published %}
+      <p class="blog-draft-badge">Draft — only you can see this</p>
+      {% endif %}
+      <h1 class="page-title">{{ post.title }}</h1>
+      <p class="legal-updated">
+        {% if post.published_at %}
+        <time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:"j F Y" }}</time>
+        {% else %}
+        Not published
+        {% endif %}
+        {% if user.is_superuser %}
+        · <a class="text-link" href="{% url 'notes:blog_edit' post.slug %}">Edit</a>
+        {% endif %}
+      </p>
+    </header>
+
+    {% if post.excerpt %}
+    <p class="legal-lede">{{ post.excerpt }}</p>
+    {% endif %}
+
+    <div class="blog-body take-text-prose">
+      {{ post.body|blog_body }}
+    </div>
+
+    <p class="blog-back">
+      <a class="text-link" href="{% url 'notes:blog' %}">← All posts</a>
+    </p>
+  </article>
+</div>
+{% endblock %}

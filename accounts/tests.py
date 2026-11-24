@@ -860,6 +860,60 @@ class CrmDashboardTests(TestCase):
         self.assertEqual(delete.status_code, 302)
         self.assertFalse(CrmContact.objects.filter(pk=self.contact.pk).exists())
 
+    def test_superuser_can_inline_update_contact_field(self):
+        self.client.force_login(self.superuser)
+        listed = self.client.get(reverse("crm"))
+        self.assertContains(listed, "data-crm-inline")
+        self.assertContains(listed, "crm-inline-edit.js")
+        self.assertContains(listed, 'data-crm-field="phone"')
+        self.assertContains(listed, reverse("crm_field_update", args=[self.contact.pk]))
+
+        response = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "phone", "value": "07976 792845"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "ok": True,
+            "field": "phone",
+            "value": "07976 792845",
+        })
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.phone, "07976 792845")
+
+        email = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "email", "value": "ada@analytical.example"}',
+            content_type="application/json",
+        )
+        self.assertEqual(email.status_code, 200)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.email, "ada@analytical.example")
+
+        website = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "website", "value": "analytical.example"}',
+            content_type="application/json",
+        )
+        self.assertEqual(website.status_code, 200)
+        self.assertEqual(website.json()["value"], "https://analytical.example")
+
+        invalid = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "email", "value": "not-an-email"}',
+            content_type="application/json",
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse(invalid.json()["ok"])
+
+        forbidden_field = self.client.post(
+            reverse("crm_field_update", args=[self.contact.pk]),
+            data='{"field": "tracking_slug", "value": "hacked"}',
+            content_type="application/json",
+        )
+        self.assertEqual(forbidden_field.status_code, 400)
+
     def test_crm_paginates_contacts(self):
         from accounts.views import CRM_PAGE_SIZE
 

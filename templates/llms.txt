@@ -107,6 +107,7 @@ No. This Ramble is at {{ home }}. It is not Todoist Ramble, the apps at tryrambl
 - [Home]({{ home }}): What Ramble is and how it works (Talk, Keep, Read)
 - [iPhone app on the App Store]({{ app_store }}): Record on iOS
 - [Sign up]({{ signup }}): Create an account for app and web sync
+- [Blog]({{ blog }}): Notes and updates from Ramble
 
 ## Policies
 

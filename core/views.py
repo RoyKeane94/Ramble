@@ -2,12 +2,21 @@ from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.contrib import messages
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .error_pages import render_error_page
-from .forms import SupportRequestForm
+from .forms import BlogPostForm, SupportRequestForm
 from .logging import log_web_error
+from .models import BlogPost
+
+
+def _require_superuser(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
 
 
 def _log_and_render(request, *, template, status_code, message, exception):
@@ -78,6 +87,7 @@ def robots_txt(request):
         "Allow: /privacy/",
         "Allow: /terms/",
         "Allow: /support/",
+        "Allow: /blog/",
         "Allow: /signup/",
         "Allow: /login/",
     ]
@@ -94,6 +104,7 @@ def robots_txt(request):
         "Disallow: /notes/",
         "Disallow: /settings/",
         "Disallow: /kpi/",
+        "Disallow: /blog/new/",
         "Disallow: /logout/",
         "Disallow: /signup/success/",
         "Disallow: /signup/cancel/",
@@ -146,10 +157,20 @@ def sitemap_xml(request):
         ("/privacy/", "2026-10-04"),
         ("/terms/", "2026-11-06"),
         ("/support/", "2026-10-06"),
+        ("/blog/", "2026-11-24"),
     ]
     url_entries = []
     for path, lastmod in pages:
         loc = request.build_absolute_uri(path)
+        url_entries.append(
+            "  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
+            "  </url>"
+        )
+    for post in BlogPost.objects.filter(is_published=True).exclude(published_at=None):
+        lastmod = (post.updated_at or post.published_at).date().isoformat()
+        loc = request.build_absolute_uri(post.get_absolute_url())
         url_entries.append(
             "  <url>\n"
             f"    <loc>{loc}</loc>\n"
@@ -175,6 +196,7 @@ def llms_txt(request):
             "privacy": request.build_absolute_uri("/privacy/"),
             "terms": request.build_absolute_uri("/terms/"),
             "support": request.build_absolute_uri("/support/"),
+            "blog": request.build_absolute_uri("/blog/"),
             "signup": request.build_absolute_uri("/signup/"),
             "login": request.build_absolute_uri("/login/"),
             "app_store": getattr(
@@ -221,3 +243,89 @@ def support(request):
         form = SupportRequestForm(initial=initial)
 
     return render(request, "pages/support.html", {"form": form})
+
+
+def blog_list(request):
+    posts = BlogPost.objects.filter(is_published=True)
+    drafts = []
+    if request.user.is_authenticated and request.user.is_superuser:
+        drafts = list(BlogPost.objects.filter(is_published=False))
+    return render(
+        request,
+        "pages/blog_list.html",
+        {
+            "posts": posts,
+            "drafts": drafts,
+            "nav_section": "blog",
+        },
+    )
+
+
+def blog_detail(request, slug):
+    post = get_object_or_404(BlogPost, slug=slug)
+    if not post.is_published:
+        if not (request.user.is_authenticated and request.user.is_superuser):
+            raise Http404()
+    return render(
+        request,
+        "pages/blog_detail.html",
+        {
+            "post": post,
+            "nav_section": "blog",
+        },
+    )
+
+
+@login_required
+def blog_create(request):
+    _require_superuser(request)
+    form = BlogPostForm()
+    if request.method == "POST":
+        form = BlogPostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            messages.success(request, "Post saved.")
+            return redirect(post.get_absolute_url())
+    return render(
+        request,
+        "pages/blog_edit.html",
+        {
+            "form": form,
+            "editing": None,
+            "nav_section": "blog",
+        },
+    )
+
+
+@login_required
+def blog_edit(request, slug):
+    _require_superuser(request)
+    post = get_object_or_404(BlogPost, slug=slug)
+    form = BlogPostForm(instance=post)
+    if request.method == "POST":
+        form = BlogPostForm(request.POST, instance=post)
+        if form.is_valid():
+            post = form.save()
+            messages.success(request, "Post updated.")
+            return redirect(post.get_absolute_url())
+    return render(
+        request,
+        "pages/blog_edit.html",
+        {
+            "form": form,
+            "editing": post,
+            "nav_section": "blog",
+        },
+    )
+
+
+@login_required
+@require_POST
+def blog_delete(request, slug):
+    _require_superuser(request)
+    post = get_object_or_404(BlogPost, slug=slug)
+    post.delete()
+    messages.success(request, "Post deleted.")
+    return redirect("notes:blog")

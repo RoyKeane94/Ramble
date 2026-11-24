@@ -132,3 +132,47 @@ class SupportRequest(models.Model):
 
     def __str__(self):
         return f"{self.email} — {self.get_topic_display()}"
+
+
+class BlogPost(models.Model):
+    """Public blog post; only superusers can create or edit."""
+
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(
+        max_length=220,
+        unique=True,
+        help_text="Public URL is /your-slug/ (auto from title if blank).",
+    )
+    excerpt = models.TextField(
+        blank=True,
+        default="",
+        help_text="Short summary for the blog index and SEO.",
+    )
+    body = models.TextField(
+        help_text=(
+            "Plain text. Separate paragraphs with a blank line. "
+            "Links: [label](https://…) or paste a full URL."
+        ),
+    )
+    is_published = models.BooleanField(default=False, db_index=True)
+    published_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="blog_posts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-published_at", "-created_at")
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("notes:blog_detail", kwargs={"slug": self.slug})

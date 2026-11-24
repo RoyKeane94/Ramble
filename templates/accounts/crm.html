@@ -43,7 +43,11 @@
     {% endif %}
     <div class="kpi-panel panel">
       <div class="kpi-scroll">
-        <table class="kpi-table crm-table">
+        <table
+          class="kpi-table crm-table"
+          data-crm-inline
+          data-crm-csrf="{{ csrf_token }}"
+        >
           <thead>
             <tr>
               <th>First name</th>
@@ -73,36 +77,60 @@
           </thead>
           <tbody>
             {% for contact in contacts %}
-            <tr{% if editing and editing.pk == contact.pk %} class="crm-row-editing"{% endif %}>
-              <td>{{ contact.first_name|default:"—" }}</td>
-              <td class="kpi-email">{{ contact.business_name|default:"—" }}</td>
+            <tr
+              {% if editing and editing.pk == contact.pk %}class="crm-row-editing"{% endif %}
+              data-crm-pk="{{ contact.pk }}"
+              data-crm-field-url="{% url 'crm_field_update' contact.pk %}"
+            >
+              <td class="crm-editable" data-crm-field="first_name" data-crm-value="{{ contact.first_name }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.first_name %}{{ contact.first_name }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
+              <td class="kpi-email crm-editable" data-crm-field="business_name" data-crm-value="{{ contact.business_name }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.business_name %}{{ contact.business_name }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
               <td>{{ contact.get_contact_type_display|default:"—" }}</td>
-              <td>{{ contact.region|default:"—" }}</td>
-              <td>{{ contact.country|default:"—" }}</td>
-              <td>
-                {% if contact.website %}
-                <a class="crm-link" href="{{ contact.website }}" target="_blank" rel="noopener noreferrer">{{ contact.website }}</a>
-                {% else %}—{% endif %}
+              <td class="crm-editable" data-crm-field="region" data-crm-value="{{ contact.region }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.region %}{{ contact.region }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
               </td>
-              <td>
-                {% if contact.email %}
-                <a class="crm-link" href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-                {% else %}—{% endif %}
+              <td class="crm-editable" data-crm-field="country" data-crm-value="{{ contact.country }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.country %}{{ contact.country }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
               </td>
-              <td>
-                {% if contact.phone %}
-                <a class="crm-link" href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
-                {% else %}—{% endif %}
-              </td>
-              <td>{{ contact.email_source|default:"—" }}</td>
-              <td>{{ contact.source|default:"—" }}</td>
-              <td class="crm-tip-cell">
-                {% if contact.personalisation_detail %}
-                <span class="crm-hover-tip" tabindex="0">
-                  <span class="crm-hover-tip-trigger">View</span>
-                  <span class="crm-hover-tip-panel" role="tooltip">{{ contact.personalisation_detail }}</span>
+              <td class="crm-editable" data-crm-field="website" data-crm-value="{{ contact.website }}" data-crm-link="url" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">
+                  {% if contact.website %}
+                  <a class="crm-link" href="{{ contact.website }}" target="_blank" rel="noopener noreferrer">{{ contact.website }}</a>
+                  {% else %}<span class="crm-empty">—</span>{% endif %}
                 </span>
-                {% else %}—{% endif %}
+              </td>
+              <td class="crm-editable" data-crm-field="email" data-crm-value="{{ contact.email }}" data-crm-input="email" data-crm-link="mailto" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">
+                  {% if contact.email %}
+                  <a class="crm-link" href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                  {% else %}<span class="crm-empty">—</span>{% endif %}
+                </span>
+              </td>
+              <td class="crm-editable" data-crm-field="phone" data-crm-value="{{ contact.phone }}" data-crm-input="tel" data-crm-link="tel" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">
+                  {% if contact.phone %}
+                  <a class="crm-link" href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                  {% else %}<span class="crm-empty">—</span>{% endif %}
+                </span>
+              </td>
+              <td class="crm-editable" data-crm-field="email_source" data-crm-value="{{ contact.email_source }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.email_source %}{{ contact.email_source }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
+              <td class="crm-editable" data-crm-field="source" data-crm-value="{{ contact.source }}" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">{% if contact.source %}{{ contact.source }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
+              <td class="crm-tip-cell crm-editable" data-crm-field="personalisation_detail" data-crm-value="{{ contact.personalisation_detail }}" data-crm-input="textarea" tabindex="0" title="Click to edit">
+                <span class="crm-editable-display">
+                  {% if contact.personalisation_detail %}
+                  <span class="crm-hover-tip" tabindex="0">
+                    <span class="crm-hover-tip-trigger">View</span>
+                    <span class="crm-hover-tip-panel" role="tooltip">{{ contact.personalisation_detail }}</span>
+                  </span>
+                  {% else %}<span class="crm-empty">—</span>{% endif %}
+                </span>
               </td>
               <td class="crm-tip-cell crm-email-cell">
                 <div class="crm-hover-tip crm-email-tip" tabindex="0">
@@ -174,7 +202,9 @@
                 —
                 {% endif %}
               </td>
-              <td class="crm-clip" {% if contact.notes %}title="{{ contact.notes }}"{% endif %}>{{ contact.notes|default:"—" }}</td>
+              <td class="crm-clip crm-editable" data-crm-field="notes" data-crm-value="{{ contact.notes }}" data-crm-input="textarea" tabindex="0" title="{% if contact.notes %}{{ contact.notes }}{% else %}Click to edit{% endif %}">
+                <span class="crm-editable-display">{% if contact.notes %}{{ contact.notes }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
               <td>{{ contact.get_stage_display }}</td>
               <td>
                 {% if contact.last_contacted_on %}
@@ -184,7 +214,9 @@
               <td>{% if contact.next_follow_up_on %}{{ contact.next_follow_up_on|date:"Y-m-d" }}{% else %}—{% endif %}</td>
               <td>{% if contact.do_not_contact %}Yes{% else %}No{% endif %}</td>
               <td>{{ contact.get_response_display|default:"—" }}</td>
-              <td class="crm-clip" {% if contact.response_reason %}title="{{ contact.response_reason }}"{% endif %}>{{ contact.response_reason|default:"—" }}</td>
+              <td class="crm-clip crm-editable" data-crm-field="response_reason" data-crm-value="{{ contact.response_reason }}" data-crm-input="textarea" tabindex="0" title="{% if contact.response_reason %}{{ contact.response_reason }}{% else %}Click to edit{% endif %}">
+                <span class="crm-editable-display">{% if contact.response_reason %}{{ contact.response_reason }}{% else %}<span class="crm-empty">—</span>{% endif %}</span>
+              </td>
               <td><code class="crm-slug">{{ contact.tracking_slug }}</code></td>
               <td>
                 {% if contact.tracking_url %}
@@ -302,4 +334,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/crm-modal.js' %}?v=1"></script>
+<script src="{% static 'js/crm-inline-edit.js' %}?v=1"></script>
 {% endblock %}

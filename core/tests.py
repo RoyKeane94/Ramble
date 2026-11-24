@@ -8,12 +8,16 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse
 from django.middleware.security import SecurityMiddleware
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from config.settings import _admin_url
+from core.blog import render_blog_body
 from core.middleware import CanonicalHostRedirectMiddleware, SecurityHeadersMiddleware
-from core.models import TrafficHit
+from core.models import BlogPost, TrafficHit
 from core.traffic import format_stay, prune_traffic, traffic_report, visitor_hash
+
+User = get_user_model()
 
 
 class AdminUrlConfigTests(SimpleTestCase):
@@ -121,7 +125,7 @@ class CanonicalHostRedirectTests(SimpleTestCase):
         )
 
 
-class WellKnownEndpointTests(SimpleTestCase):
+class WellKnownEndpointTests(TestCase):
     def test_robots_txt_disallows_admin_and_mcp(self):
         response = self.client.get("/robots.txt")
         self.assertEqual(response.status_code, 200)
@@ -156,6 +160,7 @@ class WellKnownEndpointTests(SimpleTestCase):
         self.assertIn("<loc>http://testserver/privacy/</loc>", body)
         self.assertIn("<loc>http://testserver/terms/</loc>", body)
         self.assertIn("<loc>http://testserver/support/</loc>", body)
+        self.assertIn("<loc>http://testserver/blog/</loc>", body)
         self.assertIn("<loc>http://testserver/signup/</loc>", body)
         self.assertIn("<lastmod>", body)
         self.assertNotIn("<changefreq>", body)
@@ -449,3 +454,160 @@ class TrafficReportTests(TestCase):
         )
         prune_traffic(today)
         self.assertEqual(list(TrafficHit.objects.values_list("visitor_hash", flat=True)), ["d" * 32])
+
+
+class BlogPostTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser("boss@example.com", "password12")
+        self.user = User.objects.create_user("member@example.com", "password12")
+        self.published = BlogPost.objects.create(
+            title="Hello Ramble",
+            slug="hello-ramble",
+            excerpt="A first note",
+            body="First paragraph.\n\nSecond paragraph.",
+            is_published=True,
+            published_at=timezone.now(),
+            author=self.superuser,
+        )
+        self.draft = BlogPost.objects.create(
+            title="Secret draft",
+            slug="secret-draft",
+            body="Not ready yet.",
+            is_published=False,
+            author=self.superuser,
+        )
+
+    def test_public_list_shows_published_only(self):
+        response = self.client.get(reverse("notes:blog"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hello Ramble")
+        self.assertContains(response, "A first note")
+        self.assertNotContains(response, "Secret draft")
+        self.assertNotContains(response, reverse("notes:blog_create"))
+
+    def test_public_detail_and_draft_hidden(self):
+        published = self.client.get(reverse("notes:blog_detail", args=["hello-ramble"]))
+        self.assertEqual(published.status_code, 200)
+        self.assertContains(published, "First paragraph.")
+        self.assertContains(published, "Second paragraph.")
+
+        draft = self.client.get(reverse("notes:blog_detail", args=["secret-draft"]))
+        self.assertEqual(draft.status_code, 404)
+
+    def test_regular_user_cannot_write(self):
+        self.client.force_login(self.user)
+        create = self.client.get(reverse("notes:blog_create"))
+        self.assertEqual(create.status_code, 403)
+        edit = self.client.get(reverse("notes:blog_edit", args=["hello-ramble"]))
+        self.assertEqual(edit.status_code, 403)
+        delete = self.client.post(reverse("notes:blog_delete", args=["hello-ramble"]))
+        self.assertEqual(delete.status_code, 403)
+        self.assertTrue(BlogPost.objects.filter(pk=self.published.pk).exists())
+        listed = self.client.get(reverse("notes:blog"))
+        self.assertNotContains(listed, reverse("notes:blog_create"))
+        self.assertNotContains(listed, "New post")
+        self.assertNotContains(listed, "Secret draft")
+
+    def test_superuser_can_create_edit_delete(self):
+        self.client.force_login(self.superuser)
+        listed = self.client.get(reverse("notes:blog"))
+        self.assertContains(listed, "Secret draft")
+        self.assertContains(listed, reverse("notes:blog_create"))
+        nav = self.client.get(reverse("notes:list"))
+        self.assertContains(nav, reverse("notes:blog"))
+
+        draft_view = self.client.get(reverse("notes:blog_detail", args=["secret-draft"]))
+        self.assertEqual(draft_view.status_code, 200)
+        self.assertContains(draft_view, "Draft — only you can see this")
+
+        create = self.client.post(
+            reverse("notes:blog_create"),
+            {
+                "title": "Why we built Ramble",
+                "slug": "",
+                "excerpt": "The short version",
+                "body": "Because thoughts disappear.",
+                "is_published": "on",
+            },
+        )
+        self.assertEqual(create.status_code, 302)
+        post = BlogPost.objects.get(slug="why-we-built-ramble")
+        self.assertTrue(post.is_published)
+        self.assertIsNotNone(post.published_at)
+        self.assertEqual(post.author, self.superuser)
+        self.assertEqual(create["Location"], post.get_absolute_url())
+
+        edit = self.client.post(
+            reverse("notes:blog_edit", args=[post.slug]),
+            {
+                "title": "Why we built Ramble",
+                "slug": post.slug,
+                "excerpt": "Updated summary",
+                "body": "Because thoughts disappear fast.",
+                "is_published": "on",
+            },
+        )
+        self.assertEqual(edit.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.excerpt, "Updated summary")
+        self.assertEqual(post.body, "Because thoughts disappear fast.")
+
+        delete = self.client.post(reverse("notes:blog_delete", args=[post.slug]))
+        self.assertEqual(delete.status_code, 302)
+        self.assertFalse(BlogPost.objects.filter(pk=post.pk).exists())
+
+    def test_sitemap_includes_published_posts(self):
+        response = self.client.get("/sitemap.xml")
+        body = response.content.decode()
+        self.assertIn("/hello-ramble/", body)
+        self.assertNotIn("/secret-draft/", body)
+        self.assertNotIn("/blog/hello-ramble/", body)
+
+    def test_anonymous_create_redirects_to_login(self):
+        response = self.client.get(reverse("notes:blog_create"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
+
+    def test_published_post_lives_at_root_slug(self):
+        self.assertEqual(self.published.get_absolute_url(), "/hello-ramble/")
+        response = self.client.get("/hello-ramble/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hello Ramble")
+
+    def test_reserved_slug_rejected(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(
+            reverse("notes:blog_create"),
+            {
+                "title": "Privacy collision",
+                "slug": "privacy",
+                "excerpt": "",
+                "body": "Should not work.",
+                "is_published": "on",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "That URL is reserved")
+        self.assertFalse(BlogPost.objects.filter(slug="privacy").exists())
+
+    def test_body_renders_markdown_and_bare_links(self):
+        self.published.body = (
+            "Try [Ramble](https://yourramble.com/signup/) today.\n\n"
+            "Or open https://yourramble.com/privacy/.\n\n"
+            "Ignore [bad](javascript:alert(1)) and <script>x</script>."
+        )
+        self.published.save(update_fields=["body", "updated_at"])
+        response = self.client.get("/hello-ramble/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="https://yourramble.com/signup/"')
+        self.assertContains(response, ">Ramble</a>")
+        self.assertContains(response, 'href="https://yourramble.com/privacy/"')
+        self.assertContains(response, "[bad](javascript:alert(1))")
+        self.assertContains(response, "&lt;script&gt;x&lt;/script&gt;")
+        self.assertNotContains(response, 'href="javascript:')
+        self.assertNotContains(response, "<script>x</script>")
+
+    def test_render_blog_body_allows_relative_links(self):
+        html = render_blog_body("See the [privacy policy](/privacy/).")
+        self.assertIn('href="/privacy/"', html)
+        self.assertIn(">privacy policy</a>", html)

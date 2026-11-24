@@ -65,6 +65,7 @@ TRACKED_PATHS = frozenset(
         "/privacy/",
         "/terms/",
         "/support/",
+        "/blog/",
     }
 )
 

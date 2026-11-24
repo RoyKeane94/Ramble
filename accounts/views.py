@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -7,7 +8,7 @@ from django.conf import settings as django_settings
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -500,6 +501,63 @@ def _crm_return_from_request(request):
         page=request.POST.get("page") or request.GET.get("page"),
         contact_type=_crm_type_filter(request),
     )
+
+
+CRM_INLINE_FIELDS = frozenset(
+    {
+        "first_name",
+        "business_name",
+        "region",
+        "country",
+        "website",
+        "email",
+        "phone",
+        "email_source",
+        "source",
+        "personalisation_detail",
+        "notes",
+        "response_reason",
+    }
+)
+
+
+def _clean_crm_inline_value(contact, field, value):
+    form = CrmContactForm(instance=contact)
+    django_field = form.fields[field]
+    cleaned = django_field.clean(value)
+    cleaner = getattr(form, f"clean_{field}", None)
+    if cleaner is not None:
+        form.cleaned_data = {field: cleaned}
+        cleaned = cleaner()
+    return cleaned
+
+
+@login_required
+@require_POST
+def crm_field_update(request, pk):
+    """Save a single CRM table cell via click-to-edit."""
+    _require_superuser(request)
+    contact = get_object_or_404(CrmContact, pk=pk)
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Invalid JSON"}, status=400)
+    field = (payload.get("field") or "").strip()
+    if field not in CRM_INLINE_FIELDS:
+        return JsonResponse({"ok": False, "error": "Unknown field"}, status=400)
+    raw = payload.get("value", "")
+    if raw is None:
+        raw = ""
+    if not isinstance(raw, str):
+        raw = str(raw)
+    try:
+        cleaned = _clean_crm_inline_value(contact, field, raw)
+    except ValidationError as exc:
+        message = "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
+        return JsonResponse({"ok": False, "error": message or "Invalid value"}, status=400)
+    setattr(contact, field, cleaned)
+    contact.save(update_fields=[field, "updated_at"])
+    return JsonResponse({"ok": True, "field": field, "value": cleaned})
 
 
 def _save_outreach_email(contact, *, subject, body, status):
