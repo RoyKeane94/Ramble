@@ -135,18 +135,50 @@ class SupportRequest(models.Model):
 
 
 class BlogPost(models.Model):
-    """Public blog post; only superusers can create or edit."""
+    """Public article; only superusers can create or edit."""
 
-    title = models.CharField(max_length=200)
+    class Section(models.TextChoices):
+        BLOG = "", "Blog"
+        CELEBRANTS = "celebrants", "Celebrants"
+
+    title = models.CharField(
+        max_length=200,
+        help_text="Browser tab / Open Graph title (with · Ramble).",
+    )
+    heading = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="H1 on the page. Leave blank to use the title.",
+    )
     slug = models.SlugField(
         max_length=220,
         unique=True,
-        help_text="Public URL is /your-slug/ (auto from title if blank).",
+        help_text="URL slug (auto from title if blank).",
+    )
+    section = models.CharField(
+        max_length=32,
+        choices=Section.choices,
+        default=Section.BLOG,
+        blank=True,
+        db_index=True,
+        help_text="Blog posts live at /slug/. Celebrants at /celebrants/slug/.",
     )
     excerpt = models.TextField(
         blank=True,
         default="",
-        help_text="Short summary for the blog index and SEO.",
+        help_text="Short summary for the index listing.",
+    )
+    meta_description = models.CharField(
+        max_length=155,
+        blank=True,
+        default="",
+        help_text="Meta / Open Graph / Twitter description. Aim ~150 characters; max 155.",
+    )
+    seo_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Private research notes (target phrases, autocomplete checks). Not shown publicly.",
     )
     body = models.TextField(
         help_text=(
@@ -172,7 +204,34 @@ class BlogPost(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def display_heading(self):
+        return (self.heading or self.title).strip()
+
+    @property
+    def seo_description(self):
+        text = (self.meta_description or self.excerpt or "").strip()
+        if text:
+            return text
+        return f"{self.title} — Ramble"
+
     def get_absolute_url(self):
         from django.urls import reverse
 
+        if self.section == self.Section.CELEBRANTS:
+            return reverse("notes:celebrants_detail", kwargs={"slug": self.slug})
         return reverse("notes:blog_detail", kwargs={"slug": self.slug})
+
+    def get_edit_url(self):
+        from django.urls import reverse
+
+        if self.section == self.Section.CELEBRANTS:
+            return reverse("notes:celebrants_edit", kwargs={"slug": self.slug})
+        return reverse("notes:blog_edit", kwargs={"slug": self.slug})
+
+    def get_delete_url(self):
+        from django.urls import reverse
+
+        if self.section == self.Section.CELEBRANTS:
+            return reverse("notes:celebrants_delete", kwargs={"slug": self.slug})
+        return reverse("notes:blog_delete", kwargs={"slug": self.slug})

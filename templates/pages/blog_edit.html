@@ -5,18 +5,19 @@
 {% block body_attrs %} data-app-page="blog" data-app-shutter="off"{% endblock %}
 {% block app_title %}{% if editing %}Edit post{% else %}New post{% endif %}{% endblock %}
 {% block app_trailing %}
-  <a class="app-done" href="{% if editing %}{% url 'notes:blog_detail' editing.slug %}{% else %}{% url 'notes:blog' %}{% endif %}">Cancel</a>
+  <a class="app-done" href="{% if editing %}{{ editing.get_absolute_url }}{% else %}{% url 'notes:blog' %}{% endif %}">Cancel</a>
 {% endblock %}
 
 {% block content %}
 <div class="shell shell-wide">
   <header class="page-head desktop-chrome">
     <h1 class="page-title">{% if editing %}Edit post{% else %}New post{% endif %}</h1>
+    <p class="legal-lede blog-lede">Title, H1, meta description, section, and SEO notes all live here. Open Graph / Twitter reuse the title and meta description automatically.</p>
   </header>
 
   <form
     method="post"
-    action="{% if editing %}{% url 'notes:blog_edit' editing.slug %}{% else %}{% url 'notes:blog_create' %}{% endif %}"
+    action="{% if editing %}{{ editing.get_edit_url }}{% else %}{% url 'notes:blog_create' %}{% endif %}"
     class="blog-form"
     novalidate
   >
@@ -37,7 +38,9 @@
       <span class="blog-label">{{ field.label }}</span>
       {{ field }}
       {% endif %}
-      {% if field.help_text %}
+      {% if field.name == 'meta_description' %}
+      <span class="blog-help" data-meta-count>0 / 155 characters</span>
+      {% elif field.help_text %}
       <span class="blog-help">{{ field.help_text }}</span>
       {% endif %}
       {% if field.errors %}
@@ -51,11 +54,11 @@
       <button
         type="submit"
         class="btn btn-ghost blog-delete-btn"
-        formaction="{% url 'notes:blog_delete' editing.slug %}"
+        formaction="{{ editing.get_delete_url }}"
         formmethod="post"
         onclick="return confirm('Delete this post?');"
       >Delete</button>
-      <a class="btn btn-ghost" href="{% url 'notes:blog_detail' editing.slug %}">Cancel</a>
+      <a class="btn btn-ghost" href="{{ editing.get_absolute_url }}">Cancel</a>
       {% else %}
       <a class="btn btn-ghost" href="{% url 'notes:blog' %}">Cancel</a>
       {% endif %}
@@ -65,4 +68,17 @@
     </div>
   </form>
 </div>
+<script>
+(function () {
+  var field = document.getElementById("id_meta_description");
+  var count = document.querySelector("[data-meta-count]");
+  if (!field || !count) return;
+  function update() {
+    var n = (field.value || "").length;
+    count.textContent = n + " / 155 characters";
+  }
+  field.addEventListener("input", update);
+  update();
+})();
+</script>
 {% endblock %}

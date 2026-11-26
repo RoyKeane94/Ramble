@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block html_lang %}en-GB{% endblock %}
+
+{% block title %}Celebrants · Ramble{% endblock %}
+{% block meta_description %}Talk the ceremony through after the family meeting. Ramble tidies what you say into words you can read any time. Always your words.{% endblock %}
+{% block body_class %}is-landing-page{% endblock %}
+{% block body_attrs %} data-app-page="blog"{% endblock %}
+{% block app_title %}Celebrants{% endblock %}
+{% block app_trailing %}
+  {% if user.is_superuser %}
+    <a class="app-done" href="{% url 'notes:blog_create' %}?section=celebrants">New</a>
+  {% else %}
+    <a class="app-done" href="{% url 'notes:list' %}">Done</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="shell shell-wide">
+  <header class="page-head blog-head desktop-chrome">
+    <div class="blog-heading-row">
+      <div>
+        <h1 class="page-title">Celebrants</h1>
+        <p class="legal-lede blog-lede">Talk the ceremony through while it is fresh. Always your words.</p>
+      </div>
+      {% if user.is_superuser %}
+      <a class="btn btn-primary" href="{% url 'notes:blog_create' %}?section=celebrants">New article</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if drafts %}
+  <section class="blog-drafts" aria-label="Drafts">
+    <h2 class="blog-section-label">Drafts</h2>
+    <ul class="blog-index">
+      {% for post in drafts %}
+      <li class="blog-index-item">
+        <a class="blog-index-link" href="{{ post.get_absolute_url }}">
+          <span class="blog-index-title">{{ post.display_heading }}</span>
+          <span class="blog-index-meta">Draft</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="blog-index-block" aria-label="Celebrant articles">
+    {% if posts %}
+    <ul class="blog-index">
+      {% for post in posts %}
+      <li class="blog-index-item">
+        <a class="blog-index-link" href="{{ post.get_absolute_url }}">
+          <span class="blog-index-title">{{ post.display_heading }}</span>
+          {% if post.published_at %}
+          <time class="blog-index-meta" datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:"j M Y" }}</time>
+          {% endif %}
+          {% if post.excerpt %}
+          <span class="blog-index-excerpt">{{ post.excerpt }}</span>
+          {% elif post.meta_description %}
+          <span class="blog-index-excerpt">{{ post.meta_description }}</span>
+          {% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="blog-empty">
+      {% if user.is_superuser %}
+      No published celebrant articles yet. <a class="text-link" href="{% url 'notes:blog_create' %}?section=celebrants">Write the first one</a>.
+      {% else %}
+      No articles yet.
+      {% endif %}
+    </p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -23,6 +23,7 @@ BLOG_RESERVED_SLUGS = frozenset(
         "albums",
         "api",
         "blog",
+        "celebrants",
         "crm",
         "healthz",
         "kpi",
@@ -69,13 +70,34 @@ class SupportRequestForm(forms.ModelForm):
 class BlogPostForm(forms.ModelForm):
     class Meta:
         model = BlogPost
-        fields = ("title", "slug", "excerpt", "body", "is_published")
+        fields = (
+            "title",
+            "heading",
+            "slug",
+            "section",
+            "excerpt",
+            "meta_description",
+            "seo_notes",
+            "body",
+            "is_published",
+        )
         labels = {
             "is_published": "Published",
+            "meta_description": "Meta description",
+            "seo_notes": "SEO notes (private)",
+            "heading": "H1",
+            "section": "Section",
+            "excerpt": "Index excerpt",
         }
         widgets = {
             "title": forms.TextInput(
-                attrs={**BLOG_FIELD_ATTRS, "placeholder": "Title"}
+                attrs={**BLOG_FIELD_ATTRS, "placeholder": "Title for tab and social share"}
+            ),
+            "heading": forms.TextInput(
+                attrs={
+                    **BLOG_FIELD_ATTRS,
+                    "placeholder": "H1 on the page (defaults to title)",
+                }
             ),
             "slug": forms.TextInput(
                 attrs={
@@ -84,11 +106,31 @@ class BlogPostForm(forms.ModelForm):
                     "spellcheck": "false",
                 }
             ),
+            "section": forms.Select(attrs={**BLOG_FIELD_ATTRS}),
             "excerpt": forms.Textarea(
                 attrs={
                     **BLOG_FIELD_ATTRS,
-                    "placeholder": "Short summary for the index and SEO",
+                    "placeholder": "Short summary for the index listing",
+                    "rows": 2,
+                }
+            ),
+            "meta_description": forms.Textarea(
+                attrs={
+                    **BLOG_FIELD_ATTRS,
+                    "placeholder": (
+                        "Meta / OG / Twitter description — about 150 characters, max 155"
+                    ),
                     "rows": 3,
+                    "maxlength": "155",
+                }
+            ),
+            "seo_notes": forms.Textarea(
+                attrs={
+                    **BLOG_FIELD_ATTRS,
+                    "placeholder": (
+                        "Private: target phrases, autocomplete checks, research notes"
+                    ),
+                    "rows": 4,
                 }
             ),
             "body": forms.Textarea(
@@ -107,8 +149,12 @@ class BlogPostForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
+        self.fields["heading"].required = False
         self.fields["excerpt"].required = False
+        self.fields["meta_description"].required = False
+        self.fields["seo_notes"].required = False
         self.fields["is_published"].required = False
+        self.fields["section"].required = False
 
     def clean_title(self):
         title = (self.cleaned_data.get("title") or "").strip()
@@ -116,14 +162,26 @@ class BlogPostForm(forms.ModelForm):
             raise forms.ValidationError("Add a title.")
         return title
 
+    def clean_heading(self):
+        return (self.cleaned_data.get("heading") or "").strip()
+
     def clean_excerpt(self):
         return (self.cleaned_data.get("excerpt") or "").strip()
+
+    def clean_meta_description(self):
+        return (self.cleaned_data.get("meta_description") or "").strip()
+
+    def clean_seo_notes(self):
+        return (self.cleaned_data.get("seo_notes") or "").strip()
 
     def clean_body(self):
         body = (self.cleaned_data.get("body") or "").strip()
         if not body:
             raise forms.ValidationError("Add some body text.")
         return body
+
+    def clean_section(self):
+        return self.cleaned_data.get("section") or BlogPost.Section.BLOG
 
     def clean_slug(self):
         slug = (self.cleaned_data.get("slug") or "").strip().lower()

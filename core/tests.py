@@ -524,8 +524,12 @@ class BlogPostTests(TestCase):
             reverse("notes:blog_create"),
             {
                 "title": "Why we built Ramble",
+                "heading": "",
                 "slug": "",
+                "section": "",
                 "excerpt": "The short version",
+                "meta_description": "",
+                "seo_notes": "",
                 "body": "Because thoughts disappear.",
                 "is_published": "on",
             },
@@ -541,8 +545,12 @@ class BlogPostTests(TestCase):
             reverse("notes:blog_edit", args=[post.slug]),
             {
                 "title": "Why we built Ramble",
+                "heading": "",
                 "slug": post.slug,
+                "section": "",
                 "excerpt": "Updated summary",
+                "meta_description": "",
+                "seo_notes": "",
                 "body": "Because thoughts disappear fast.",
                 "is_published": "on",
             },
@@ -580,8 +588,12 @@ class BlogPostTests(TestCase):
             reverse("notes:blog_create"),
             {
                 "title": "Privacy collision",
+                "heading": "",
                 "slug": "privacy",
+                "section": "",
                 "excerpt": "",
+                "meta_description": "",
+                "seo_notes": "",
                 "body": "Should not work.",
                 "is_published": "on",
             },
@@ -611,3 +623,81 @@ class BlogPostTests(TestCase):
         html = render_blog_body("See the [privacy policy](/privacy/).")
         self.assertIn('href="/privacy/"', html)
         self.assertIn(">privacy policy</a>", html)
+
+    def test_blog_form_exposes_seo_fields(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("notes:blog_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Meta description")
+        self.assertContains(response, "H1")
+        self.assertContains(response, "SEO notes")
+        self.assertContains(response, "Section")
+        self.assertContains(response, "id_meta_description")
+
+    def test_celebrants_article_seo_via_blog_form(self):
+        meta = (
+            "After the family meeting, talk the ceremony through while it is fresh. "
+            "Ramble tidies what you say into words you can read any time. Always your words."
+        )
+        self.assertLessEqual(len(meta), 155)
+        self.client.force_login(self.superuser)
+        create = self.client.post(
+            reverse("notes:blog_create"),
+            {
+                "title": "After the family meeting, talk it through",
+                "heading": "After the family meeting, talk it through",
+                "slug": "after-the-family-meeting",
+                "section": "celebrants",
+                "excerpt": "",
+                "meta_description": meta,
+                "seo_notes": (
+                    "Nearby: funeral celebrant script, talk to text notes. "
+                    "No volume estimates."
+                ),
+                "body": "Talk it through while it is fresh.",
+                "is_published": "on",
+            },
+        )
+        self.assertEqual(create.status_code, 302)
+        post = BlogPost.objects.get(slug="after-the-family-meeting")
+        self.assertEqual(post.section, BlogPost.Section.CELEBRANTS)
+        self.assertEqual(post.get_absolute_url(), "/celebrants/after-the-family-meeting/")
+        self.assertEqual(create["Location"], post.get_absolute_url())
+
+        detail = self.client.get(post.get_absolute_url())
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, 'lang="en-GB"', html=False)
+        self.assertContains(detail, f'<meta name="description" content="{meta}"', html=False)
+        self.assertContains(detail, '<h1 class="page-title">After the family meeting, talk it through</h1>', html=False)
+        self.assertContains(detail, 'property="og:type" content="article"', html=False)
+        self.assertContains(detail, 'property="og:locale" content="en_GB"', html=False)
+        self.assertContains(detail, 'property="og:site_name" content="Ramble"', html=False)
+        self.assertContains(detail, f'property="og:description" content="{meta}"', html=False)
+        self.assertContains(detail, 'name="twitter:description"', html=False)
+        self.assertContains(detail, "og-image.png")
+        self.assertNotContains(detail, "Nearby: funeral celebrant script")
+
+        index = self.client.get(reverse("notes:celebrants"))
+        self.assertEqual(index.status_code, 200)
+        self.assertContains(index, "After the family meeting, talk it through")
+        self.assertContains(index, post.get_absolute_url())
+
+        self.client.logout()
+        public_blog = self.client.get(reverse("notes:blog"))
+        self.assertNotContains(public_blog, "After the family meeting, talk it through")
+
+        self.client.force_login(self.superuser)
+        editor_blog = self.client.get(reverse("notes:blog"))
+        self.assertContains(editor_blog, "After the family meeting, talk it through")
+        self.assertContains(editor_blog, "Celebrants")
+
+        sitemap = self.client.get("/sitemap.xml").content.decode()
+        self.assertIn("/celebrants/", sitemap)
+        self.assertIn("/celebrants/after-the-family-meeting/", sitemap)
+        self.assertNotIn("<changefreq>", sitemap)
+        self.assertNotIn("<priority>", sitemap)
+
+        llms = self.client.get("/llms.txt").content.decode()
+        self.assertIn("/celebrants/", llms)
+        self.assertIn("/celebrants/after-the-family-meeting/", llms)
+        self.assertIn("After the family meeting, talk it through", llms)

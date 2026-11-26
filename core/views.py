@@ -88,6 +88,7 @@ def robots_txt(request):
         "Allow: /terms/",
         "Allow: /support/",
         "Allow: /blog/",
+        "Allow: /celebrants/",
         "Allow: /signup/",
         "Allow: /login/",
     ]
@@ -159,6 +160,16 @@ def sitemap_xml(request):
         ("/support/", "2026-10-06"),
         ("/blog/", "2026-11-24"),
     ]
+    published = list(
+        BlogPost.objects.filter(is_published=True).exclude(published_at=None)
+    )
+    if any(post.section == BlogPost.Section.CELEBRANTS for post in published):
+        celebrants_lastmod = max(
+            (post.updated_at or post.published_at).date().isoformat()
+            for post in published
+            if post.section == BlogPost.Section.CELEBRANTS
+        )
+        pages.append(("/celebrants/", celebrants_lastmod))
     url_entries = []
     for path, lastmod in pages:
         loc = request.build_absolute_uri(path)
@@ -168,7 +179,7 @@ def sitemap_xml(request):
             f"    <lastmod>{lastmod}</lastmod>\n"
             "  </url>"
         )
-    for post in BlogPost.objects.filter(is_published=True).exclude(published_at=None):
+    for post in published:
         lastmod = (post.updated_at or post.published_at).date().isoformat()
         loc = request.build_absolute_uri(post.get_absolute_url())
         url_entries.append(
@@ -188,6 +199,17 @@ def sitemap_xml(request):
 
 def llms_txt(request):
     """LLM-oriented site map following https://llmstxt.org/"""
+    celebrants_posts = [
+        {
+            "heading": post.display_heading,
+            "url": request.build_absolute_uri(post.get_absolute_url()),
+            "description": post.seo_description,
+        }
+        for post in BlogPost.objects.filter(
+            is_published=True,
+            section=BlogPost.Section.CELEBRANTS,
+        ).exclude(published_at=None)
+    ]
     return render(
         request,
         "llms.txt",
@@ -197,6 +219,8 @@ def llms_txt(request):
             "terms": request.build_absolute_uri("/terms/"),
             "support": request.build_absolute_uri("/support/"),
             "blog": request.build_absolute_uri("/blog/"),
+            "celebrants": request.build_absolute_uri("/celebrants/"),
+            "celebrants_posts": celebrants_posts,
             "signup": request.build_absolute_uri("/signup/"),
             "login": request.build_absolute_uri("/login/"),
             "app_store": getattr(
@@ -245,11 +269,26 @@ def support(request):
     return render(request, "pages/support.html", {"form": form})
 
 
-def blog_list(request):
-    posts = BlogPost.objects.filter(is_published=True)
-    drafts = []
+def _posts_for_section(section):
+    return BlogPost.objects.filter(is_published=True, section=section)
+
+
+def _drafts_for_section(request, section):
     if request.user.is_authenticated and request.user.is_superuser:
+        return list(BlogPost.objects.filter(is_published=False, section=section))
+    return []
+
+
+def blog_list(request):
+    # Public blog index is blog-section only. Superusers see every article
+    # (including Celebrants) so SEO and copy are all managed from Blog.
+    is_editor = request.user.is_authenticated and request.user.is_superuser
+    if is_editor:
+        posts = BlogPost.objects.filter(is_published=True)
         drafts = list(BlogPost.objects.filter(is_published=False))
+    else:
+        posts = _posts_for_section(BlogPost.Section.BLOG)
+        drafts = []
     return render(
         request,
         "pages/blog_list.html",
@@ -257,12 +296,26 @@ def blog_list(request):
             "posts": posts,
             "drafts": drafts,
             "nav_section": "blog",
+            "show_section_labels": is_editor,
         },
     )
 
 
-def blog_detail(request, slug):
-    post = get_object_or_404(BlogPost, slug=slug)
+def celebrants_list(request):
+    section = BlogPost.Section.CELEBRANTS
+    return render(
+        request,
+        "pages/celebrants_list.html",
+        {
+            "posts": _posts_for_section(section),
+            "drafts": _drafts_for_section(request, section),
+            "nav_section": "blog",
+        },
+    )
+
+
+def _article_detail(request, slug, *, section):
+    post = get_object_or_404(BlogPost, slug=slug, section=section)
     if not post.is_published:
         if not (request.user.is_authenticated and request.user.is_superuser):
             raise Http404()
@@ -276,10 +329,22 @@ def blog_detail(request, slug):
     )
 
 
+def blog_detail(request, slug):
+    return _article_detail(request, slug, section=BlogPost.Section.BLOG)
+
+
+def celebrants_detail(request, slug):
+    return _article_detail(request, slug, section=BlogPost.Section.CELEBRANTS)
+
+
 @login_required
 def blog_create(request):
     _require_superuser(request)
-    form = BlogPostForm()
+    initial = {}
+    default_section = request.GET.get("section")
+    if default_section in {choice.value for choice in BlogPost.Section}:
+        initial["section"] = default_section
+    form = BlogPostForm(initial=initial)
     if request.method == "POST":
         form = BlogPostForm(request.POST)
         if form.is_valid():
@@ -299,10 +364,9 @@ def blog_create(request):
     )
 
 
-@login_required
-def blog_edit(request, slug):
+def _article_edit(request, slug, *, section):
     _require_superuser(request)
-    post = get_object_or_404(BlogPost, slug=slug)
+    post = get_object_or_404(BlogPost, slug=slug, section=section)
     form = BlogPostForm(instance=post)
     if request.method == "POST":
         form = BlogPostForm(request.POST, instance=post)
@@ -322,10 +386,37 @@ def blog_edit(request, slug):
 
 
 @login_required
-@require_POST
-def blog_delete(request, slug):
+def blog_edit(request, slug):
+    return _article_edit(request, slug, section=BlogPost.Section.BLOG)
+
+
+@login_required
+def celebrants_edit(request, slug):
+    return _article_edit(request, slug, section=BlogPost.Section.CELEBRANTS)
+
+
+def _article_delete(request, slug, *, section, list_redirect):
     _require_superuser(request)
-    post = get_object_or_404(BlogPost, slug=slug)
+    post = get_object_or_404(BlogPost, slug=slug, section=section)
     post.delete()
     messages.success(request, "Post deleted.")
-    return redirect("notes:blog")
+    return redirect(list_redirect)
+
+
+@login_required
+@require_POST
+def blog_delete(request, slug):
+    return _article_delete(
+        request, slug, section=BlogPost.Section.BLOG, list_redirect="notes:blog"
+    )
+
+
+@login_required
+@require_POST
+def celebrants_delete(request, slug):
+    return _article_delete(
+        request,
+        slug,
+        section=BlogPost.Section.CELEBRANTS,
+        list_redirect="notes:celebrants",
+    )

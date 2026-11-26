@@ -108,6 +108,10 @@ No. This Ramble is at {{ home }}. It is not Todoist Ramble, the apps at tryrambl
 - [iPhone app on the App Store]({{ app_store }}): Record on iOS
 - [Sign up]({{ signup }}): Create an account for app and web sync
 - [Blog]({{ blog }}): Notes and updates from Ramble
+{% if celebrants_posts %}
+- [Celebrants]({{ celebrants }}): Articles for funeral and wedding celebrants
+{% for post in celebrants_posts %}- [{{ post.heading }}]({{ post.url }}): {{ post.description }}
+{% endfor %}{% endif %}
 
 ## Policies
 

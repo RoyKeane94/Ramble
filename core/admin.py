@@ -7,17 +7,48 @@ from .models import BlogPost, ErrorLog, ModelUsageLog, SupportRequest, TrafficHi
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = (
         "title",
+        "section",
         "slug",
         "is_published",
         "published_at",
         "author",
         "updated_at",
     )
-    list_filter = ("is_published",)
-    search_fields = ("title", "slug", "excerpt", "body")
+    list_filter = ("is_published", "section")
+    search_fields = ("title", "slug", "excerpt", "meta_description", "seo_notes", "body")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "published_at"
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "title",
+                    "heading",
+                    "slug",
+                    "section",
+                    "excerpt",
+                    "body",
+                    "is_published",
+                    "published_at",
+                    "author",
+                )
+            },
+        ),
+        (
+            "SEO",
+            {
+                "fields": ("meta_description", "seo_notes"),
+                "description": (
+                    "Meta description feeds meta / Open Graph / Twitter. "
+                    "Canonical, og:type article, og:locale en_GB, and the default "
+                    "og-image are applied automatically. Language is en-GB."
+                ),
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
 
 
 @admin.register(ErrorLog)

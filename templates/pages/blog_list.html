@@ -33,9 +33,9 @@
     <ul class="blog-index">
       {% for post in drafts %}
       <li class="blog-index-item">
-        <a class="blog-index-link" href="{% url 'notes:blog_detail' post.slug %}">
-          <span class="blog-index-title">{{ post.title }}</span>
-          <span class="blog-index-meta">Draft</span>
+        <a class="blog-index-link" href="{{ post.get_absolute_url }}">
+          <span class="blog-index-title">{{ post.display_heading }}</span>
+          <span class="blog-index-meta">Draft{% if show_section_labels and post.section %} · {{ post.get_section_display }}{% endif %}</span>
         </a>
       </li>
       {% endfor %}
@@ -48,10 +48,12 @@
     <ul class="blog-index">
       {% for post in posts %}
       <li class="blog-index-item">
-        <a class="blog-index-link" href="{% url 'notes:blog_detail' post.slug %}">
-          <span class="blog-index-title">{{ post.title }}</span>
+        <a class="blog-index-link" href="{{ post.get_absolute_url }}">
+          <span class="blog-index-title">{{ post.display_heading }}</span>
           {% if post.published_at %}
-          <time class="blog-index-meta" datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:"j M Y" }}</time>
+          <time class="blog-index-meta" datetime="{{ post.published_at|date:'c' }}">{% if show_section_labels and post.section %}{{ post.get_section_display }} · {% endif %}{{ post.published_at|date:"j M Y" }}</time>
+          {% elif show_section_labels and post.section %}
+          <span class="blog-index-meta">{{ post.get_section_display }}</span>
           {% endif %}
           {% if post.excerpt %}
           <span class="blog-index-excerpt">{{ post.excerpt }}</span>
