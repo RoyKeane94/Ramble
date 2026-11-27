@@ -42,7 +42,21 @@
       </div>
     </div>
 
-    <div class="traffic-stats traffic-stats-single">
+    <div class="traffic-stats">
+      <article class="traffic-stat panel traffic-stat-live{% if traffic.live.count %} is-live{% endif %}" data-traffic-live>
+        <p class="traffic-stat-label"><span class="live-dot" aria-hidden="true"></span> Right now</p>
+        <p class="traffic-stat-value"><span data-live-count>{{ traffic.live.count }}</span> <span data-live-label>{{ traffic.live.label }}</span></p>
+        <p class="traffic-stat-sub">active in the last {{ traffic.live.window_minutes }} min</p>
+        <ul class="traffic-live-list" data-live-list>
+          {% for viewer in traffic.live.viewers %}
+          <li class="traffic-live-row">
+            <span class="traffic-live-path">{{ viewer.path }}</span>
+            <span class="traffic-live-meta">{{ viewer.ago_label }} · {{ viewer.source }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="traffic-live-empty" data-live-empty{% if traffic.live.viewers %} hidden{% endif %}>No one on a tracked page right now.</p>
+      </article>
       <article class="traffic-stat panel">
         <p class="traffic-stat-label">{{ traffic.summary.label }}</p>
         <p class="traffic-stat-value">{{ traffic.summary.visitors }} <span>{{ traffic.summary.visitor_label }}</span></p>
@@ -171,6 +185,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/kpi-live.js' %}?v=1"></script>
 {% if traffic.view == 'graph' %}
 <script src="{% static 'js/kpi-traffic.js' %}?v=app1"></script>
 {% endif %}

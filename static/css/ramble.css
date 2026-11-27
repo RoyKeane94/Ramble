@@ -5263,6 +5263,57 @@ textarea.blog-input {
   grid-template-columns: 1fr;
 }
 
+.traffic-stat-live .traffic-stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.traffic-stat-live .live-dot {
+  width: 8px;
+  height: 8px;
+  background: #c45c26;
+}
+
+.traffic-stat-live.is-live .live-dot {
+  background: #1f8a4c;
+}
+
+.traffic-live-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.traffic-live-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.traffic-live-path {
+  font-weight: 600;
+  color: var(--navy-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.traffic-live-meta,
+.traffic-live-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.traffic-live-empty {
+  margin-top: 12px;
+}
+
 .traffic-graph-panel {
   margin-top: 0;
 }

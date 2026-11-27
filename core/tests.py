@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -15,9 +16,37 @@ from config.settings import _admin_url
 from core.blog import render_blog_body
 from core.middleware import CanonicalHostRedirectMiddleware, SecurityHeadersMiddleware
 from core.models import BlogPost, TrafficHit
-from core.traffic import format_stay, prune_traffic, traffic_report, visitor_hash
+from core.traffic import (
+    format_ago,
+    format_stay,
+    live_snapshot,
+    prune_traffic,
+    traffic_report,
+    visitor_hash,
+)
 
 User = get_user_model()
+
+
+def _traffic_hit(
+    client,
+    *,
+    path="/",
+    search="",
+    referrer="",
+    kind="pageview",
+    user_agent="Mozilla/5.0 RambleTest",
+    **extra,
+):
+    return client.post(
+        reverse("api-traffic"),
+        data=json.dumps(
+            {"path": path, "search": search, "referrer": referrer, "kind": kind}
+        ),
+        content_type="application/json",
+        HTTP_USER_AGENT=user_agent,
+        **extra,
+    )
 
 
 class AdminUrlConfigTests(SimpleTestCase):
@@ -207,7 +236,10 @@ class TrafficRecordingTests(TestCase):
     def test_homepage_counts_once_per_visitor_per_day(self):
         ua = "Mozilla/5.0 RambleTest"
         self.assertEqual(self.client.get("/", HTTP_USER_AGENT=ua).status_code, 200)
-        self.client.get("/", HTTP_USER_AGENT=ua)
+        self.assertEqual(TrafficHit.objects.count(), 0)
+        self.assertContains(self.client.get("/", HTTP_USER_AGENT=ua), "traffic.js")
+        self.assertEqual(_traffic_hit(self.client, user_agent=ua).status_code, 204)
+        _traffic_hit(self.client, user_agent=ua)
         hit = TrafficHit.objects.get()
         self.assertEqual(hit.path, "/")
         self.assertEqual(hit.views, 2)
@@ -219,58 +251,64 @@ class TrafficRecordingTests(TestCase):
         self.assertEqual(len(hit.visitor_hash), 32)
 
     def test_query_string_path_is_not_stored(self):
-        self.client.get("/?utm_source=twitter", HTTP_USER_AGENT="Mozilla/5.0 RambleTest")
+        _traffic_hit(self.client, path="/", search="?utm_source=twitter")
         hit = TrafficHit.objects.get()
         self.assertEqual(hit.path, "/")
         self.assertEqual(hit.referrer, "twitter")
 
     def test_utm_source_beats_referrer(self):
-        self.client.get(
-            "/?utm_source=Newsletter",
-            HTTP_USER_AGENT="Mozilla/5.0 RambleTest",
-            HTTP_REFERER="https://mail.example.com/open",
+        _traffic_hit(
+            self.client,
+            search="?utm_source=Newsletter",
+            referrer="https://mail.example.com/open",
         )
         self.assertEqual(TrafficHit.objects.get().referrer, "newsletter")
 
     def test_click_id_fallback_without_referrer(self):
-        self.client.get("/?gclid=abc", HTTP_USER_AGENT="Mozilla/5.0 RambleTest")
+        _traffic_hit(self.client, search="?gclid=abc")
         self.assertEqual(TrafficHit.objects.get().referrer, "google-ads")
 
     def test_external_referrer_is_hostname_only(self):
-        self.client.get(
-            "/",
-            HTTP_USER_AGENT="Mozilla/5.0 RambleTest",
-            HTTP_REFERER="https://www.google.com/search?q=ramble",
+        _traffic_hit(
+            self.client,
+            referrer="https://www.google.com/search?q=ramble",
         )
         self.assertEqual(TrafficHit.objects.get().referrer, "google.com")
 
     def test_later_pages_keep_the_first_source(self):
         ua = "Mozilla/5.0 RambleTest"
-        self.client.get(
-            "/",
-            HTTP_USER_AGENT=ua,
-            HTTP_REFERER="https://news.ycombinator.com/item?id=1",
+        _traffic_hit(
+            self.client,
+            path="/",
+            referrer="https://news.ycombinator.com/item?id=1",
+            user_agent=ua,
         )
-        self.client.get("/signup/", HTTP_USER_AGENT=ua, HTTP_REFERER="http://testserver/")
+        _traffic_hit(
+            self.client,
+            path="/signup/",
+            referrer="http://testserver/",
+            user_agent=ua,
+        )
         signup = TrafficHit.objects.get(path="/signup/")
         self.assertEqual(signup.referrer, "news.ycombinator.com")
 
     @override_settings(PUBLIC_BASE_URL="https://yourramble.com")
     def test_same_site_referrer_counts_as_internal(self):
-        self.client.get(
-            "/signup/",
-            HTTP_USER_AGENT="Mozilla/5.0 RambleTest",
-            HTTP_REFERER="https://yourramble.com/",
+        _traffic_hit(
+            self.client,
+            path="/signup/",
+            referrer="https://yourramble.com/",
         )
         self.assertEqual(TrafficHit.objects.get().referrer, "internal")
 
     def test_direct_then_in_site_click_becomes_internal(self):
         ua = "Mozilla/5.0 RambleTest"
-        self.client.get("/", HTTP_USER_AGENT=ua)
-        self.client.get(
-            "/signup/",
-            HTTP_USER_AGENT=ua,
-            HTTP_REFERER="http://testserver/",
+        _traffic_hit(self.client, path="/", user_agent=ua)
+        _traffic_hit(
+            self.client,
+            path="/signup/",
+            referrer="http://testserver/",
+            user_agent=ua,
         )
         self.assertEqual(TrafficHit.objects.get(path="/").referrer, "")
         self.assertEqual(TrafficHit.objects.get(path="/signup/").referrer, "internal")
@@ -280,19 +318,28 @@ class TrafficRecordingTests(TestCase):
         self.client.force_login(user)
         response = self.client.get("/privacy/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "traffic.js")
+        self.assertEqual(_traffic_hit(self.client, path="/privacy/").status_code, 204)
         self.assertEqual(TrafficHit.objects.count(), 0)
 
     def test_bots_and_non_pages_are_ignored(self):
-        self.client.get("/", HTTP_USER_AGENT="Mozilla/5.0 (compatible; Googlebot/2.1)")
-        self.client.get("/robots.txt")
-        self.client.get("/", HTTP_SEC_PURPOSE="prefetch", HTTP_USER_AGENT="Mozilla/5.0 RambleTest")
-        self.client.post("/login/", {"username": "a@example.com", "password": "nope"})
+        _traffic_hit(
+            self.client,
+            user_agent="Mozilla/5.0 (compatible; Googlebot/2.1)",
+        )
+        _traffic_hit(self.client, path="/robots.txt")
+        _traffic_hit(self.client, path="/notes/")
+        _traffic_hit(
+            self.client,
+            HTTP_SEC_PURPOSE="prefetch",
+        )
+        _traffic_hit(self.client, user_agent="")
         self.assertEqual(TrafficHit.objects.count(), 0)
 
-    def test_recording_failure_still_returns_the_page(self):
-        with patch("core.middleware.record_page_view", side_effect=RuntimeError("db")):
-            response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
+    def test_recording_failure_still_returns_204(self):
+        with patch("core.traffic.record_beacon", side_effect=RuntimeError("db")):
+            response = _traffic_hit(self.client)
+        self.assertEqual(response.status_code, 204)
 
     def test_hash_changes_each_day_and_hides_the_ip(self):
         day = timezone.localdate()
@@ -305,9 +352,24 @@ class TrafficRecordingTests(TestCase):
 
     def test_forwarded_for_uses_the_first_address(self):
         ua = "Mozilla/5.0 RambleTest"
-        self.client.get("/", HTTP_USER_AGENT=ua, HTTP_X_FORWARDED_FOR="203.0.113.8, 10.0.0.1")
+        _traffic_hit(
+            self.client,
+            user_agent=ua,
+            HTTP_X_FORWARDED_FOR="203.0.113.8, 10.0.0.1",
+        )
         expected = visitor_hash("203.0.113.8", ua, timezone.localdate())
         self.assertEqual(TrafficHit.objects.get().visitor_hash, expected)
+
+    def test_heartbeat_refreshes_without_extra_pageview(self):
+        ua = "Mozilla/5.0 RambleLive"
+        _traffic_hit(self.client, user_agent=ua)
+        hit = TrafficHit.objects.get()
+        self.assertEqual(hit.views, 1)
+        earlier = hit.last_seen
+        _traffic_hit(self.client, kind="heartbeat", user_agent=ua)
+        hit.refresh_from_db()
+        self.assertEqual(hit.views, 1)
+        self.assertGreaterEqual(hit.last_seen, earlier)
 
 
 class TrafficReportTests(TestCase):
@@ -394,6 +456,8 @@ class TrafficReportTests(TestCase):
         self.client.force_login(get_user_model().objects.get(email="boss@example.com"))
         response = self.client.get("/kpi/")
         self.assertContains(response, "Traffic")
+        self.assertContains(response, "Right now")
+        self.assertContains(response, "kpi-live.js")
         self.assertContains(response, "google.com")
         self.assertContains(response, "7 page views")
         self.assertContains(response, "avg stay")
@@ -404,6 +468,14 @@ class TrafficReportTests(TestCase):
         self.assertContains(response, "All time")
         self.assertContains(response, "Graph")
         self.assertContains(response, "?period=7&view=table")
+
+        live = self.client.get(reverse("api-traffic-live"))
+        self.assertEqual(live.status_code, 200)
+        payload = live.json()
+        self.assertIn("count", payload)
+        self.assertIn("viewers", payload)
+        self.assertEqual(format_ago(0), "just now")
+        self.assertEqual(format_ago(45), "45s ago")
 
         week_response = self.client.get("/kpi/?period=7")
         self.assertContains(week_response, "5 page views")
@@ -421,9 +493,9 @@ class TrafficReportTests(TestCase):
         start = datetime(2026, 11, 7, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
         with patch("django.utils.timezone.now") as mock_now:
             mock_now.return_value = start
-            self.client.get("/", HTTP_USER_AGENT=ua)
+            _traffic_hit(self.client, path="/", user_agent=ua)
             mock_now.return_value = start + timedelta(seconds=90)
-            self.client.get("/signup/", HTTP_USER_AGENT=ua)
+            _traffic_hit(self.client, path="/signup/", user_agent=ua)
 
         home = TrafficHit.objects.get(path="/")
         self.assertEqual((home.last_seen - home.first_seen).total_seconds(), 90)
@@ -437,6 +509,32 @@ class TrafficReportTests(TestCase):
         self.assertEqual(format_stay(None), "-")
         self.assertEqual(format_stay(0), "<1s")
         self.assertEqual(format_stay(45), "45s")
+
+    def test_live_snapshot_lists_recent_viewers(self):
+        now = timezone.now()
+        TrafficHit.objects.create(
+            day=now.date(),
+            path="/",
+            referrer="google.com",
+            visitor_hash="e" * 32,
+            views=1,
+            first_seen=now - timedelta(minutes=1),
+            last_seen=now - timedelta(seconds=20),
+        )
+        TrafficHit.objects.create(
+            day=now.date(),
+            path="/signup/",
+            referrer="",
+            visitor_hash="f" * 32,
+            views=1,
+            first_seen=now - timedelta(minutes=10),
+            last_seen=now - timedelta(minutes=10),
+        )
+        snap = live_snapshot(now)
+        self.assertEqual(snap["count"], 1)
+        self.assertEqual(snap["viewers"][0]["path"], "/")
+        self.assertEqual(snap["viewers"][0]["source"], "google.com")
+        self.assertEqual(snap["viewers"][0]["ago_label"], "20s ago")
 
     def test_prune_drops_rows_older_than_ninety_days(self):
         today = timezone.localdate()

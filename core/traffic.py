@@ -1,5 +1,6 @@
-"""Cookieless counts for public pages.
+"""Cookieless counts for public pages (Plausible / Fathom style).
 
+Browsers send a tiny JS beacon; scrapers that never run JS are ignored.
 A visitor is a daily hash of IP and user agent. The hash is not reversible and
 changes the next day, so the same person on two days counts as two visitors.
 
@@ -15,6 +16,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
+import logging
 import re
 from datetime import date, timedelta
 from urllib.parse import urlparse
@@ -23,12 +26,19 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Case, Count, F, Max, Min, Sum, Value, When
+from django.core.exceptions import PermissionDenied
+from django.http import HttpRequest, HttpResponse, JsonResponse, QueryDict
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import TrafficHit
 
+logger = logging.getLogger(__name__)
+
 RETENTION_DAYS = 90
 TOP_LIMIT = 8
+LIVE_WINDOW = timedelta(minutes=5)
 
 PERIOD_CHOICES = (
     ("1", 1, "1 day"),
@@ -92,12 +102,72 @@ _BOT_MARKERS = (
     "bytespider",
     "facebookexternalhit",
     "embedly",
+    "preview",
+    "prerender",
+    "discordbot",
+    "twitterbot",
+    "linkedinbot",
+    "slackbot",
+    "whatsapp",
+    "telegrambot",
+    "applebot",
+    "bingbot",
+    "yandex",
+    "duckduck",
+    "baidu",
+    "gptbot",
+    "claudebot",
+    "anthropic",
+    "perplexity",
+    "amazonbot",
+    "phantomjs",
+    "selenium",
+    "webdriver",
+    "puppeteer",
+    "playwright",
+    "httpclient",
+    "libwww",
+    "okhttp",
+    "postman",
+    "insomnia",
+    "statuscake",
+    "newrelic",
+    "datadog",
+    "monitor",
+    "httrack",
+    "mechanize",
 )
 
 
-def record_page_view(request, response) -> None:
-    if not _should_record(request, response):
-        return
+@csrf_exempt
+@require_POST
+def traffic_beacon(request: HttpRequest) -> HttpResponse:
+    """Record one page view from the public JS beacon. Always 204."""
+    try:
+        record_beacon(request)
+    except Exception:
+        logger.exception("Failed to record traffic beacon")
+    return HttpResponse(status=204)
+
+
+@require_GET
+def traffic_live(request: HttpRequest) -> JsonResponse:
+    """Superuser JSON snapshot of people active in the last few minutes."""
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated or not user.is_superuser:
+        raise PermissionDenied
+    return JsonResponse(live_snapshot())
+
+
+def record_beacon(request: HttpRequest) -> bool:
+    """Parse a browser beacon and count it when it looks like a real visit."""
+    if not _visitor_allowed(request):
+        return False
+
+    payload = _beacon_payload(request)
+    path = _normalize_path(payload.get("path") or "")
+    if path not in TRACKED_PATHS:
+        return False
 
     today = timezone.localdate()
     visitor = visitor_hash(
@@ -105,10 +175,58 @@ def record_page_view(request, response) -> None:
         request.META.get("HTTP_USER_AGENT", ""),
         today,
     )
-    source = _session_source(request, today, visitor)
-    _increment(today, request.path, source, visitor)
+    kind = (payload.get("kind") or "pageview").strip().lower()
+    if kind == "heartbeat":
+        return _touch_heartbeat(today, path, visitor)
+
+    query = _query_from_payload(payload)
+    page_referrer = (payload.get("referrer") or "").strip()[:2000]
+    source = _session_source(
+        request,
+        today,
+        visitor,
+        query=query,
+        page_referrer=page_referrer,
+    )
+    _increment(today, path, source, visitor)
     if cache.add(f"traffic-pruned-{today.isoformat()}", 1, 60 * 60 * 24):
         prune_traffic(today)
+    return True
+
+
+def live_snapshot(now=None) -> dict:
+    """People with a pageview/heartbeat inside the live window."""
+    now = now or timezone.now()
+    cutoff = now - LIVE_WINDOW
+    recent = list(
+        TrafficHit.objects.filter(last_seen__gte=cutoff)
+        .order_by("-last_seen", "-pk")
+        .values("visitor_hash", "path", "referrer", "last_seen")
+    )
+    seen: set[str] = set()
+    viewers: list[dict] = []
+    for row in recent:
+        visitor = row["visitor_hash"]
+        if visitor in seen:
+            continue
+        seen.add(visitor)
+        last_seen = row["last_seen"]
+        age = max(0, int((now - last_seen).total_seconds())) if last_seen else 0
+        viewers.append(
+            {
+                "path": row["path"],
+                "source": source_label(row["referrer"]),
+                "seconds_ago": age,
+                "ago_label": format_ago(age),
+            }
+        )
+    count = len(viewers)
+    return {
+        "count": count,
+        "label": "person viewing" if count == 1 else "people viewing",
+        "window_minutes": int(LIVE_WINDOW.total_seconds() // 60),
+        "viewers": viewers,
+    }
 
 
 def visitor_hash(ip: str, user_agent: str, day: date) -> str:
@@ -158,6 +276,7 @@ def traffic_report(
             for key, _days, choice_label in PERIOD_CHOICES
         ],
         "summary": _window(today, days, label=label),
+        "live": live_snapshot(),
         "windows": [_window(today, 7), _window(today, 30)],
         "pages": _top_pages(today, days),
         "sources": _top_sources(today, days),
@@ -165,15 +284,9 @@ def traffic_report(
     }
 
 
-def _should_record(request, response) -> bool:
-    if request.method != "GET":
-        return False
-    if request.path not in TRACKED_PATHS:
-        return False
-    if getattr(response, "status_code", None) != 200:
-        return False
-    content_type = response.get("Content-Type", "")
-    if not content_type.startswith("text/html"):
+def _visitor_allowed(request: HttpRequest) -> bool:
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
         return False
     purpose = (
         request.META.get("HTTP_SEC_PURPOSE", "")
@@ -181,10 +294,10 @@ def _should_record(request, response) -> bool:
     ).lower()
     if purpose == "prefetch":
         return False
-    user = getattr(request, "user", None)
-    if user is not None and user.is_authenticated:
+    ua = request.META.get("HTTP_USER_AGENT", "")
+    if not ua.strip():
         return False
-    if _is_bot(request.META.get("HTTP_USER_AGENT", "")):
+    if _is_bot(ua):
         return False
     return True
 
@@ -192,6 +305,51 @@ def _should_record(request, response) -> bool:
 def _is_bot(user_agent: str) -> bool:
     ua = user_agent.lower()
     return any(marker in ua for marker in _BOT_MARKERS)
+
+
+def _beacon_payload(request: HttpRequest) -> dict:
+    content_type = (request.META.get("CONTENT_TYPE") or "").lower()
+    if "application/json" in content_type:
+        try:
+            raw = json.loads(request.body.decode("utf-8") or "{}")
+        except (TypeError, ValueError, UnicodeDecodeError):
+            return {}
+        return raw if isinstance(raw, dict) else {}
+    return {
+        "path": request.POST.get("path", ""),
+        "referrer": request.POST.get("referrer", ""),
+        "search": request.POST.get("search", ""),
+        "kind": request.POST.get("kind", "pageview"),
+    }
+
+
+def _normalize_path(path: str) -> str:
+    path = (path or "").strip()
+    if not path:
+        return ""
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc:
+        path = parsed.path or "/"
+    if not path.startswith("/"):
+        path = f"/{path}"
+    if len(path) > 1 and path.endswith("/"):
+        # keep trailing slash to match TRACKED_PATHS / Django APPEND_SLASH
+        pass
+    elif path != "/" and not path.endswith("/"):
+        # allow either; prefer Django-style trailing slash for known pages
+        slashed = f"{path}/"
+        if slashed in TRACKED_PATHS:
+            return slashed[:200]
+    return path[:200]
+
+
+def _query_from_payload(payload: dict) -> QueryDict:
+    search = (payload.get("search") or "").strip()
+    if search.startswith("?"):
+        search = search[1:]
+    if not search and payload.get("url"):
+        search = urlparse(str(payload["url"])).query
+    return QueryDict(search, mutable=False)
 
 
 def _client_ip(request) -> str:
@@ -228,23 +386,23 @@ def _clean_source_token(value: str) -> str:
     return cleaned[:64]
 
 
-def _campaign_source(request) -> str:
+def _campaign_source(query: QueryDict) -> str:
     """Attribution from share/ad links when Referer is often stripped."""
     for key in _CAMPAIGN_KEYS:
-        raw = request.GET.get(key, "")
+        raw = query.get(key, "")
         if not raw:
             continue
         token = _clean_source_token(raw)
         if token and token != SOURCE_INTERNAL:
             return token
     for param, label in _CLICK_ID_SOURCES:
-        if request.GET.get(param):
+        if query.get(param):
             return label
     return SOURCE_DIRECT
 
 
-def _referrer_source(request) -> str:
-    raw = request.META.get("HTTP_REFERER", "")
+def _referrer_source(page_referrer: str, site_hosts: set[str]) -> str:
+    raw = (page_referrer or "").strip()
     if not raw:
         return SOURCE_DIRECT
     host = (urlparse(raw).hostname or "").lower()
@@ -252,20 +410,27 @@ def _referrer_source(request) -> str:
         host = host[4:]
     if not host:
         return SOURCE_DIRECT
-    if host in _site_hosts(request):
+    if host in site_hosts:
         return SOURCE_INTERNAL
     return host[:255]
 
 
-def _resolve_source(request) -> str:
+def _resolve_source(request, query: QueryDict, page_referrer: str) -> str:
     """Campaign params beat Referer; same-site Referer is Internal, not Direct."""
-    campaign = _campaign_source(request)
+    campaign = _campaign_source(query)
     if campaign:
         return campaign
-    return _referrer_source(request)
+    return _referrer_source(page_referrer, _site_hosts(request))
 
 
-def _session_source(request, today: date, visitor: str) -> str:
+def _session_source(
+    request,
+    today: date,
+    visitor: str,
+    *,
+    query: QueryDict,
+    page_referrer: str,
+) -> str:
     """Keep the first non-Direct source for this visitor for the rest of the day.
 
     Direct landings can still upgrade to Internal (in-site clicks) or an
@@ -279,7 +444,22 @@ def _session_source(request, today: date, visitor: str) -> str:
     )
     if existing:
         return existing
-    return _resolve_source(request)
+    return _resolve_source(request, query, page_referrer)
+
+
+def _touch_heartbeat(day: date, path: str, visitor: str) -> bool:
+    """Refresh last_seen for an existing visit without adding pageviews."""
+    now = timezone.now()
+    updated = (
+        TrafficHit.objects.filter(day=day, path=path, visitor_hash=visitor)
+        .order_by("-last_seen", "-pk")
+        .values_list("pk", flat=True)[:1]
+    )
+    pk = next(iter(updated), None)
+    if pk is None:
+        return False
+    TrafficHit.objects.filter(pk=pk).update(last_seen=now)
+    return True
 
 
 def _increment(day: date, path: str, referrer: str, visitor: str) -> None:
@@ -350,6 +530,20 @@ def format_stay(seconds: float | None) -> str:
     if minutes:
         return f"{hours}h {minutes}m"
     return f"{hours}h"
+
+
+def format_ago(seconds: int | float) -> str:
+    """Short relative time for live viewers (e.g. ``just now``, ``45s ago``)."""
+    total = max(0, int(round(seconds)))
+    if total < 5:
+        return "just now"
+    if total < 60:
+        return f"{total}s ago"
+    minutes = total // 60
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = minutes // 60
+    return f"{hours}h ago"
 
 
 def _window(today: date, days: int | None, *, label: str | None = None) -> dict:
