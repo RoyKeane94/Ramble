@@ -95,6 +95,7 @@ _NON_PAGE_PATHS = frozenset(
         "/sitemap.xml",
         "/llms.txt",
         "/favicon.ico",
+        "/favicon.png",
         "/healthz",
     }
 )

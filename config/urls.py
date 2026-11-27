@@ -6,6 +6,8 @@ from django.urls import include, path
 
 from core.views import (
     bad_request,
+    favicon_ico,
+    favicon_png,
     llms_txt,
     page_not_found,
     permission_denied,
@@ -38,6 +40,8 @@ def healthz(_request):
 
 urlpatterns = [
     path("healthz", healthz),
+    path("favicon.ico", favicon_ico),
+    path("favicon.png", favicon_png),
     path("robots.txt", robots_txt),
     path("sitemap.xml", sitemap_xml),
     path("llms.txt", llms_txt),

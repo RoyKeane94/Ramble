@@ -155,6 +155,15 @@ class CanonicalHostRedirectTests(SimpleTestCase):
 
 
 class WellKnownEndpointTests(TestCase):
+    def test_favicon_routes_redirect_to_static(self):
+        ico = self.client.get("/favicon.ico")
+        self.assertEqual(ico.status_code, 301)
+        self.assertTrue(ico["Location"].endswith("/static/img/favicon.ico"))
+
+        png = self.client.get("/favicon.png")
+        self.assertEqual(png.status_code, 301)
+        self.assertTrue(png["Location"].endswith("/static/img/favicon-32.png"))
+
     def test_robots_txt_disallows_admin_and_mcp(self):
         response = self.client.get("/robots.txt")
         self.assertEqual(response.status_code, 200)

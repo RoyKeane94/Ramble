@@ -6,12 +6,23 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.views.decorators.http import require_POST
 
 from .error_pages import render_error_page
 from .forms import BlogPostForm, SupportRequestForm
 from .logging import log_web_error
 from .models import BlogPost
+
+# Browsers/bots probe these at the site root; don't spam ErrorLog when they 404.
+_NOISE_404_PATHS = frozenset(
+    {
+        "/favicon.ico",
+        "/favicon.png",
+        "/apple-touch-icon.png",
+        "/apple-touch-icon-precomposed.png",
+    }
+)
 
 
 def _require_superuser(request):
@@ -31,6 +42,8 @@ def _log_and_render(request, *, template, status_code, message, exception):
 
 
 def page_not_found(request, exception):
+    if request.path in _NOISE_404_PATHS:
+        return render_error_page(request, "errors/404.html", status_code=404)
     return _log_and_render(
         request,
         template="errors/404.html",
@@ -38,6 +51,14 @@ def page_not_found(request, exception):
         message=str(exception) or "Page not found",
         exception=exception,
     )
+
+
+def favicon_ico(_request):
+    return redirect(static("img/favicon.ico"), permanent=True)
+
+
+def favicon_png(_request):
+    return redirect(static("img/favicon-32.png"), permanent=True)
 
 
 def permission_denied(request, exception):
