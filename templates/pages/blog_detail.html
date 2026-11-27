@@ -1,10 +1,16 @@
 {% extends "base.html" %}
-{% load blog_extras static %}
+{% load blog_extras %}
 
 {% block html_lang %}en-GB{% endblock %}
 
 {% block title %}{{ post.title }} · Ramble{% endblock %}
 {% block meta_description %}{{ post.seo_description }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block og_description %}{{ post.seo_description }}{% endblock %}
+{% block og_url %}{{ PUBLIC_BASE_URL }}{{ post.get_absolute_url }}{% endblock %}
+{% block twitter_title %}{{ post.title }}{% endblock %}
+{% block twitter_description %}{{ post.seo_description }}{% endblock %}
 {% block body_class %}is-landing-page{% endblock %}
 {% block body_attrs %} data-app-page="blog"{% endblock %}
 {% block app_title %}{% if post.section == "celebrants" %}Celebrants{% else %}Blog{% endif %}{% endblock %}
@@ -14,24 +20,6 @@
   {% else %}
   <a class="app-done" href="{% if post.section == 'celebrants' %}{% url 'notes:celebrants' %}{% else %}{% url 'notes:blog' %}{% endif %}">Done</a>
   {% endif %}
-{% endblock %}
-
-{% block extra_head %}
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="Ramble">
-<meta property="og:locale" content="en_GB">
-<meta property="og:title" content="{{ post.title }}">
-<meta property="og:description" content="{{ post.seo_description }}">
-{% if PUBLIC_BASE_URL %}
-<meta property="og:url" content="{{ PUBLIC_BASE_URL }}{{ post.get_absolute_url }}">
-<meta property="og:image" content="{{ PUBLIC_BASE_URL }}{% static 'img/og-image.png' %}">
-<meta name="twitter:image" content="{{ PUBLIC_BASE_URL }}{% static 'img/og-image.png' %}">
-{% endif %}
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ post.title }}">
-<meta name="twitter:description" content="{{ post.seo_description }}">
 {% endblock %}
 
 {% block content %}

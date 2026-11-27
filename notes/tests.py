@@ -132,6 +132,25 @@ class HomePageTests(SimpleTestCase):
         self.assertContains(response, "og-image.png")
         self.assertContains(response, "7-day free trial, then £9.99 a month.")
 
+    def test_public_pages_include_social_meta(self):
+        for path in ("/privacy/", "/terms/", "/support/", "/signup/"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertContains(response, 'property="og:type"', html=False)
+            self.assertContains(response, 'property="og:title"', html=False)
+            self.assertContains(response, 'name="twitter:card"', html=False)
+            self.assertContains(response, "summary_large_image")
+
+
+class PublicBlogSocialMetaTests(TestCase):
+    def test_blog_index_includes_social_meta(self):
+        response = self.client.get("/blog/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'property="og:type"', html=False)
+        self.assertContains(response, 'property="og:title"', html=False)
+        self.assertContains(response, 'name="twitter:card"', html=False)
+        self.assertContains(response, "summary_large_image")
+
 
 class DevelopApiTests(TestCase):
     def setUp(self):

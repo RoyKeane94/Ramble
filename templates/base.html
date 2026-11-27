@@ -12,6 +12,23 @@
   <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
   <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}" sizes="32x32">
   <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  {% block social_meta %}
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name" content="Ramble">
+  <meta property="og:locale" content="{% block og_locale %}en_GB{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}Ramble{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}You talk. Ramble keeps a readable version of what you said.{% endblock %}">
+  {% if PUBLIC_BASE_URL %}
+  <meta property="og:url" content="{% block og_url %}{{ PUBLIC_BASE_URL }}{{ request.path }}{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ PUBLIC_BASE_URL }}{% static 'img/og-image.png' %}{% endblock %}">
+  <meta name="twitter:image" content="{% block twitter_image %}{{ PUBLIC_BASE_URL }}{% static 'img/og-image.png' %}{% endblock %}">
+  {% endif %}
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}Ramble{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}You talk. Ramble keeps a readable version of what you said.{% endblock %}">
+  {% endblock %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
@@ -95,8 +112,6 @@
   {% endif %}
   {% block extra_js %}{% endblock %}
   <script src="{% static 'js/crm-open-track.js' %}?v=3"></script>
-  {% if not user.is_authenticated %}
-  <script src="{% static 'js/traffic.js' %}?v=2" defer></script>
-  {% endif %}
+  <script src="{% static 'js/traffic.js' %}?v=3" defer></script>
 </body>
 </html>

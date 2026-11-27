@@ -313,13 +313,20 @@ class TrafficRecordingTests(TestCase):
         self.assertEqual(TrafficHit.objects.get(path="/").referrer, "")
         self.assertEqual(TrafficHit.objects.get(path="/signup/").referrer, "internal")
 
-    def test_signed_in_visit_is_ignored(self):
+    def test_signed_in_public_page_still_counts(self):
         user = get_user_model().objects.create_user("member@example.com", "password12")
         self.client.force_login(user)
         response = self.client.get("/privacy/")
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "traffic.js")
+        self.assertContains(response, "traffic.js")
         self.assertEqual(_traffic_hit(self.client, path="/privacy/").status_code, 204)
+        self.assertEqual(TrafficHit.objects.count(), 1)
+
+    def test_app_paths_are_ignored(self):
+        _traffic_hit(self.client, path="/notes/")
+        _traffic_hit(self.client, path="/kpi/")
+        _traffic_hit(self.client, path="/roll/")
+        _traffic_hit(self.client, path="/hello-ramble/edit/")
         self.assertEqual(TrafficHit.objects.count(), 0)
 
     def test_bots_and_non_pages_are_ignored(self):
@@ -335,6 +342,12 @@ class TrafficRecordingTests(TestCase):
         )
         _traffic_hit(self.client, user_agent="")
         self.assertEqual(TrafficHit.objects.count(), 0)
+
+    def test_blog_and_celebrants_paths_count(self):
+        _traffic_hit(self.client, path="/celebrants/")
+        _traffic_hit(self.client, path="/a-published-post/")
+        paths = set(TrafficHit.objects.values_list("path", flat=True))
+        self.assertEqual(paths, {"/celebrants/", "/a-published-post/"})
 
     def test_recording_failure_still_returns_204(self):
         with patch("core.traffic.record_beacon", side_effect=RuntimeError("db")):

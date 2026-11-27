@@ -1,8 +1,10 @@
 """Cookieless counts for public pages (Plausible / Fathom style).
 
 Browsers send a tiny JS beacon; scrapers that never run JS are ignored.
-A visitor is a daily hash of IP and user agent. The hash is not reversible and
-changes the next day, so the same person on two days counts as two visitors.
+App paths (notes, settings, KPI, API, …) are ignored; public marketing pages
+count even if the visitor is signed in. A visitor is a daily hash of IP and
+user agent. The hash is not reversible and changes the next day, so the same
+person on two days counts as two visitors.
 
 Source labels stored on ``TrafficHit.referrer``:
 
@@ -65,17 +67,35 @@ _CLICK_ID_SOURCES = (
 )
 _SOURCE_TOKEN = re.compile(r"[^a-z0-9._+-]+")
 
-TRACKED_PATHS = frozenset(
+# Private app / infra paths are ignored. Everything else public can count
+# (homepage, legal, blog posts, celebrants, signup, etc.).
+_PRIVATE_PREFIXES = (
+    "/api/",
+    "/admin/",
+    "/oauth/",
+    "/mcp",
+    "/healthz",
+    "/roll/",
+    "/library/",
+    "/albums/",
+    "/notes/",
+    "/settings/",
+    "/kpi/",
+    "/crm/",
+    "/t/",
+    "/logout/",
+    "/.well-known/",
+)
+_PRIVATE_ENDINGS = frozenset(
+    {"edit", "delete", "new", "star", "open", "start", "confirm"}
+)
+_NON_PAGE_PATHS = frozenset(
     {
-        "/",
-        "/login/",
-        "/signup/",
-        "/signup/success/",
-        "/signup/cancel/",
-        "/privacy/",
-        "/terms/",
-        "/support/",
-        "/blog/",
+        "/robots.txt",
+        "/sitemap.xml",
+        "/llms.txt",
+        "/favicon.ico",
+        "/healthz",
     }
 )
 
@@ -166,7 +186,7 @@ def record_beacon(request: HttpRequest) -> bool:
 
     payload = _beacon_payload(request)
     path = _normalize_path(payload.get("path") or "")
-    if path not in TRACKED_PATHS:
+    if not _is_tracked_path(path):
         return False
 
     today = timezone.localdate()
@@ -191,6 +211,22 @@ def record_beacon(request: HttpRequest) -> bool:
     _increment(today, path, source, visitor)
     if cache.add(f"traffic-pruned-{today.isoformat()}", 1, 60 * 60 * 24):
         prune_traffic(today)
+    return True
+
+
+def _is_tracked_path(path: str) -> bool:
+    """Public HTML pages only — skip app, API, and non-page URLs."""
+    if not path or path in _NON_PAGE_PATHS:
+        return False
+    if not path.startswith("/"):
+        return False
+    lower = path.lower()
+    for prefix in _PRIVATE_PREFIXES:
+        if lower == prefix.rstrip("/") or lower.startswith(prefix):
+            return False
+    parts = [part for part in lower.strip("/").split("/") if part]
+    if parts and parts[-1] in _PRIVATE_ENDINGS:
+        return False
     return True
 
 
@@ -285,9 +321,6 @@ def traffic_report(
 
 
 def _visitor_allowed(request: HttpRequest) -> bool:
-    user = getattr(request, "user", None)
-    if user is not None and getattr(user, "is_authenticated", False):
-        return False
     purpose = (
         request.META.get("HTTP_SEC_PURPOSE", "")
         or request.META.get("HTTP_PURPOSE", "")
@@ -332,14 +365,10 @@ def _normalize_path(path: str) -> str:
         path = parsed.path or "/"
     if not path.startswith("/"):
         path = f"/{path}"
-    if len(path) > 1 and path.endswith("/"):
-        # keep trailing slash to match TRACKED_PATHS / Django APPEND_SLASH
-        pass
-    elif path != "/" and not path.endswith("/"):
-        # allow either; prefer Django-style trailing slash for known pages
-        slashed = f"{path}/"
-        if slashed in TRACKED_PATHS:
-            return slashed[:200]
+    # Prefer Django APPEND_SLASH style so /privacy and /privacy/ match.
+    if path != "/" and not path.endswith("/"):
+        if "." not in path.rsplit("/", 1)[-1]:
+            path = f"{path}/"
     return path[:200]
 
 
